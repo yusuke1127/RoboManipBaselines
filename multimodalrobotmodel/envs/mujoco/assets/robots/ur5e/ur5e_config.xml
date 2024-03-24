@@ -120,6 +120,11 @@
              gainprm="0.3137255 0 0" biasprm="0 -100 -10"/>
   </actuator>
 
+  <sensor>
+    <force name="force_sensor" site="force_sensor"/>
+    <torque name="torque_sensor" site="force_sensor"/>
+  </sensor>
+
   <!-- gripper: robotiq_2f85 -->
   <contact>
     <exclude body1="gripper_base" body2="left_driver"/>

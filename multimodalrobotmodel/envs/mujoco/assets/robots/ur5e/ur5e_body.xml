@@ -53,6 +53,7 @@
 
                 <!-- gripper: robotiq_2f85 -->
                 <body name="base_mount" pos="0 0.1 0" quat="-1 1 0 0" childclass="2f85">
+                  <site name="force_sensor" type="box" size="0.005 0.005 0.01" rgba="0.6 0.1 0.1 1"/>
                   <geom class="gripper_visual" mesh="base_mount" material="gripper_black"/>
                   <geom class="gripper_collision" mesh="base_mount"/>
                   <body name="gripper_base" pos="0 0 0.0038" quat="1 0 0 -1">
