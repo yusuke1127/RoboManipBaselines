@@ -6,6 +6,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 DEFAULT_CAMERA_CONFIG = {
+    "azimuth": -135,
     "distance": 4.0,
 }
 
@@ -43,6 +44,9 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
         )
+
+        self.init_qpos[:6] = np.array([1.0472, -2.26893, 2.0944, -1.8326, -1.48353, -0.698132])
+        self.init_qvel[:] = 0.0
 
     @property
     def terminated(self):

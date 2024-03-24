@@ -31,7 +31,7 @@
       <geom type="box" size="0.37 0.59 0.01" group="3" pos="0 0 0.758"/>
     </body>
 
-    <body name="ur5e_root_frame" pos="-0.27 -0.18 1.32" euler="2.35619 0 0">
+    <body name="ur5e_root_frame" pos="-0.27 -0.18 1.32" euler="2.35619 0 -1.5708">
       <include file="../robots/ur5e/ur5e_body.xml"/>
     </body>
 
