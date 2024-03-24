@@ -1,0 +1,46 @@
+<mujoco model="ur5e_cable">
+  <compiler angle="radian" meshdir="../robots/meshes" autolimits="true"/>
+  <option integrator="implicitfast"/>
+  <size memory="2M"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.0 0.0 0.0"/>
+    <rgba haze="1.0 1.0 1.0 1.0"/>
+    <global azimuth="120" elevation="-20"/>
+  </visual>
+
+  <include file="../robots/ur5e/ur5e_config.xml"/>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="1.0 1.0 1.0" rgb2="1.0 1.0 1.0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" rgb1="0.6 0.6 0.6" rgb2="0.7 0.7 0.7" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"/>
+    <material name="vention_frame" rgba="0.05 0.22 0.48 1"/>
+
+    <!-- stand: vention_dualarm_stand -->
+    <mesh file="stand/vention_dualarm_stand.stl" scale="0.001 0.001 0.001"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
+
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+
+    <body name="vention_dualarm_stand">
+      <geom type="mesh" mesh="vention_dualarm_stand" contype="0" conaffinity="0" group="2" material="vention_frame"/>
+      <geom type="box" size="0.37 0.59 0.01" group="3" pos="0 0 0.758"/>
+    </body>
+
+    <body name="ur5e_root_frame" pos="-0.27 -0.18 1.32" euler="2.35619 0 0">
+      <include file="../robots/ur5e/ur5e_body.xml"/>
+    </body>
+
+    <body name="B0" pos="0.1 -0.4 0.9" euler="0 0 1.5708">
+      <freejoint/>
+      <composite type="rope" count="30" spacing="0.02">
+        <joint kind="main" damping="0.005"/>
+        <geom type="capsule" size="0.01 0.0075" rgba="0.8 0.8 0.2 1"/>
+      </composite>
+    </body>
+  </worldbody>
+</mujoco>
