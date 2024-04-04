@@ -11,6 +11,6 @@ for _ in range(10000):
 
    if terminated or truncated:
       obs, info = env.reset()
-      print("reset environment. terminated: {}, truncated: {}".format(terminated, truncated))
+      print("Reset environment. terminated: {}, truncated: {}".format(terminated, truncated))
 
 env.close()

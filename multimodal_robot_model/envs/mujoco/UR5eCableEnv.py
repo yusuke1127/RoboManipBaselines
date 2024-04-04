@@ -49,6 +49,10 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         self.init_qvel[:] = 0.0
 
     @property
+    def urdf_path(self):
+        return path.join(path.dirname(__file__), "assets/robots/ur5e/ur5e.urdf")
+
+    @property
     def terminated(self):
         # TODO
         return False
