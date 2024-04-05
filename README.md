@@ -2,6 +2,10 @@
 Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
 ## Install
+1. Install Pinocchio from the robotpkg apt repository.  
+https://stack-of-tasks.github.io/pinocchio/download.html#Install_4
+
+2. Install this package via pip.
 ```bash
 $ pip install -e .
 ```
