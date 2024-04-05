@@ -11,7 +11,8 @@ obs, info = env.reset(seed=42)
 action = np.zeros(env.action_space.shape)
 
 # Setup pinocchio
-root_se3 = pin.SE3(np.matmul(pin.rpy.rpyToMatrix(2.35619, 0.0, 0.0), pin.rpy.rpyToMatrix(0.0, 0.0, -1.5708)), np.array([-0.27, -0.18, 1.32]))
+root_se3 = pin.SE3(np.identity(3), np.array([-0.605, 0.0, 0.8])) # env_ur5e_cable_verticalup.xml
+# root_se3 = pin.SE3(np.matmul(pin.rpy.rpyToMatrix(2.35619, 0.0, 0.0), pin.rpy.rpyToMatrix(0.0, 0.0, -1.5708)), np.array([-0.27, -0.18, 1.32])) # env_ur5e_cable_diagonaldown.xml
 model = pin.buildModelFromUrdf(env.unwrapped.urdf_path)
 model.jointPlacements[1] = root_se3.act(model.jointPlacements[1])
 data = model.createData()

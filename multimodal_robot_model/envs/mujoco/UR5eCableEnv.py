@@ -6,8 +6,10 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.spaces import Box
 
 DEFAULT_CAMERA_CONFIG = {
-    "azimuth": -135,
-    "distance": 4.0,
+    "azimuth": -135.0,
+    "elevation": -45.0,
+    "distance": 2.0,
+    "lookat": [-0.2, 0.0, 0.8]
 }
 
 class UR5eCableEnv(MujocoEnv, utils.EzPickle):
@@ -22,7 +24,8 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
 
     def __init__(
         self,
-        xml_file=path.join(path.dirname(__file__), "assets/envs/env_ur5e_cable.xml"),
+        xml_file=path.join(path.dirname(__file__), "assets/envs/env_ur5e_cable_verticalup.xml"),
+        # xml_file=path.join(path.dirname(__file__), "assets/envs/env_ur5e_cable_diagonaldown.xml"),
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -45,7 +48,8 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
-        self.init_qpos[:6] = np.array([1.0472, -2.26893, 2.0944, -1.8326, -1.48353, -0.698132])
+        self.init_qpos[:6] = np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi/2]) # env_ur5e_cable_verticalup.xml
+        # self.init_qpos[:6] = np.array([1.0472, -2.26893, 2.0944, -1.8326, -1.48353, -0.698132]) # env_ur5e_cable_diagonaldown.xml
         self.init_qvel[:] = 0.0
 
     @property

@@ -1,4 +1,4 @@
-<mujoco model="ur5e_cable">
+<mujoco model="ur5e_cable_diagonaldown">
   <compiler angle="radian" meshdir="../robots/meshes" autolimits="true"/>
   <option integrator="implicitfast"/>
   <size memory="2M"/>
