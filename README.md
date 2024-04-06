@@ -16,3 +16,5 @@ $ cd multimodal_robot_model/demos/
 # Connect SpaceMouse to your PC.
 $ python demo_UR5eCableEnv_Teleop.py
 ```
+
+https://github.com/isri-aist/MultimodalRobotModel/assets/6636600/df5665c2-97fc-4913-8891-27fbfb4fad52
