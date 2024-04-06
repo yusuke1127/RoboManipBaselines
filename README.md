@@ -1,4 +1,4 @@
-# [MultimodalRobotModel](https://github.com/mmurooka/MultimodalRobotModel)
+# [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel)
 Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
 ## Install
