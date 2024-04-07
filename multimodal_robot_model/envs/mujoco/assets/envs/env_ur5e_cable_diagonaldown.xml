@@ -1,6 +1,6 @@
 <mujoco model="ur5e_cable_diagonaldown">
   <compiler angle="radian" meshdir="../robots/meshes" autolimits="true"/>
-  <option integrator="implicitfast"/>
+  <option timestep="0.004" integrator="implicitfast"/>
   <size memory="2M"/>
 
   <visual>

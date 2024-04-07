@@ -21,7 +21,7 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 100,
+        "render_fps": 50,
     }
 
     def __init__(

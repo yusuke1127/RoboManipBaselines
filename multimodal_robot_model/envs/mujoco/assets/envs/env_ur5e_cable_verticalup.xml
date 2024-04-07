@@ -1,6 +1,6 @@
 <mujoco model="ur5e_cable_verticalup">
   <compiler angle="radian" meshdir="../robots/meshes" texturedir="../robots/textures" autolimits="true"/>
-  <option integrator="implicitfast"/>
+  <option timestep="0.004" integrator="implicitfast"/>
   <size memory="2M"/>
 
   <visual>
