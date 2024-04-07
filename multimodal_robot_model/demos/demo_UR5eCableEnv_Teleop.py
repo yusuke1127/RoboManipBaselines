@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import cv2
 import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
@@ -28,18 +28,6 @@ target_se3 = data.oMi[eef_joint_id].copy()
 
 # Setup spacemouse
 pyspacemouse.open()
-
-# Setup matplotlib
-fig, ax = plt.subplots(1, 2, figsize=(12, 5))
-
-image_front_artist = ax[0].imshow(np.zeros(env.unwrapped.cameras["front"]["size"] + (3,), dtype=np.uint8))
-image_side_artist = ax[1].imshow(np.zeros(env.unwrapped.cameras["side"]["size"] + (3,), dtype=np.uint8))
-for i in range(2):
-  ax[i].axis("off")
-ax[0].set_title("Front image")
-ax[1].set_title("Side image")
-plt.ion()
-plt.show(block=False)
 
 for _ in range(10000):
     # Solve FK
@@ -94,10 +82,8 @@ for _ in range(10000):
     obs, reward, terminated, truncated, info = env.step(action)
 
     # Draw images
-    image_front_artist.set_data(info["images"]["front"])
-    image_side_artist.set_data(info["images"]["side"])
-    fig.canvas.draw()
-    fig.canvas.flush_events()
+    cv2.imshow("image", cv2.cvtColor(np.concatenate([info["images"]["front"], info["images"]["side"]]), cv2.COLOR_RGB2BGR))
+    cv2.waitKey(1)
 
     # Check end conditions
     if terminated or truncated:

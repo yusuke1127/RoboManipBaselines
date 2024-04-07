@@ -8,6 +8,7 @@ setup(
         "gymnasium==0.29.1",
         "mujoco==2.3.7",
         "imageio >=2.14.1",
-        "pyspacemouse"
+        "pyspacemouse",
+        "opencv-python",
     ],
 )
