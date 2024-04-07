@@ -1,8 +1,10 @@
 from os import path
 import numpy as np
+import mujoco
 
 from gymnasium import utils
 from gymnasium.envs.mujoco import MujocoEnv
+from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 from gymnasium.spaces import Box
 
 DEFAULT_CAMERA_CONFIG = {
@@ -26,6 +28,7 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         self,
         xml_file=path.join(path.dirname(__file__), "assets/envs/env_ur5e_cable_verticalup.xml"),
         # xml_file=path.join(path.dirname(__file__), "assets/envs/env_ur5e_cable_diagonaldown.xml"),
+        extra_camera_configs=None,
         **kwargs,
     ):
         utils.EzPickle.__init__(
@@ -48,9 +51,27 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
+        # Set initial posture
         self.init_qpos[:6] = np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi/2]) # env_ur5e_cable_verticalup.xml
         # self.init_qpos[:6] = np.array([1.0472, -2.26893, 2.0944, -1.8326, -1.48353, -0.698132]) # env_ur5e_cable_diagonaldown.xml
         self.init_qvel[:] = 0.0
+
+        # Setup camera
+        self.cameras = {}
+        if extra_camera_configs is not None:
+            for extra_camera_config in extra_camera_configs:
+                camera_name = extra_camera_config["name"]
+                camera = {}
+                camera["name"] = camera_name
+                camera["id"] = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
+                camera["size"] = extra_camera_config["size"]
+                self.model.vis.global_.offheight, self.model.vis.global_.offwidth = extra_camera_config["size"]
+                camera["viewer"] = OffScreenViewer(self.model, self.data)
+                self.cameras[camera_name] = camera
+
+        # This is required to automatically switch context to free camera in render()
+        # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
+        self.mujoco_renderer._viewers["dummy"] = None
 
     @property
     def urdf_path(self):
@@ -67,8 +88,13 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         observation = self._get_obs()
         reward = 0.0
         terminated = self.terminated
-        info = {
-        }
+        info = {}
+
+        if len(self.cameras) > 0:
+            info["images"] = {}
+            for camera in self.cameras.values():
+                camera["viewer"].make_context_current()
+                info["images"][camera["name"]] = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
 
         if self.render_mode == "human":
             self.render()
@@ -114,3 +140,8 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         observation = self._get_obs()
 
         return observation
+
+    def close(self):
+        MujocoEnv.show(self)
+        for offscreen_viewer in self.offscreen_viewers:
+            self.offscreen_viewer.close()

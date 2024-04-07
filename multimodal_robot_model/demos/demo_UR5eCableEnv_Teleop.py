@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
@@ -6,7 +7,11 @@ import pyspacemouse
 import mujoco
 
 # Setup gym
-env = gym.make("multimodal_robot_model/UR5eCableEnv-v0", render_mode="human")
+env = gym.make(
+  "multimodal_robot_model/UR5eCableEnv-v0",
+  render_mode="human",
+  extra_camera_configs=[{"name": "front", "size": (128, 128)}, {"name": "side", "size": (128, 128)}]
+)
 obs, info = env.reset(seed=42)
 action = np.zeros(env.action_space.shape)
 
@@ -23,6 +28,18 @@ target_se3 = data.oMi[eef_joint_id].copy()
 
 # Setup spacemouse
 pyspacemouse.open()
+
+# Setup matplotlib
+fig, ax = plt.subplots(1, 2, figsize=(12, 5))
+
+image_front_artist = ax[0].imshow(np.zeros(env.unwrapped.cameras["front"]["size"] + (3,), dtype=np.uint8))
+image_side_artist = ax[1].imshow(np.zeros(env.unwrapped.cameras["side"]["size"] + (3,), dtype=np.uint8))
+for i in range(2):
+  ax[i].axis("off")
+ax[0].set_title("Front image")
+ax[1].set_title("Side image")
+plt.ion()
+plt.show(block=False)
 
 for _ in range(10000):
     # Solve FK
@@ -75,6 +92,14 @@ for _ in range(10000):
     # Step environment
     action[:6] = q
     obs, reward, terminated, truncated, info = env.step(action)
+
+    # Draw images
+    image_front_artist.set_data(info["images"]["front"])
+    image_side_artist.set_data(info["images"]["side"])
+    fig.canvas.draw()
+    fig.canvas.flush_events()
+
+    # Check end conditions
     if terminated or truncated:
         obs, info = env.reset()
         print("Reset environment. terminated: {}, truncated: {}".format(terminated, truncated))
