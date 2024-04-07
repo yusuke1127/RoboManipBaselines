@@ -88,13 +88,7 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         observation = self._get_obs()
         reward = 0.0
         terminated = self.terminated
-        info = {}
-
-        if len(self.cameras) > 0:
-            info["images"] = {}
-            for camera in self.cameras.values():
-                camera["viewer"].make_context_current()
-                info["images"][camera["name"]] = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+        info = self._get_info()
 
         if self.render_mode == "human":
             self.render()
@@ -124,6 +118,18 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
         return np.concatenate((arm_qpos, arm_qvel, gripper_qpos, force, torque))
+
+    def _get_info(self):
+        info = {}
+        if len(self.cameras) > 0:
+            info["images"] = {}
+            for camera in self.cameras.values():
+                camera["viewer"].make_context_current()
+                info["images"][camera["name"]] = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+        return info
+
+    def _get_reset_info(self):
+        return self._get_info()
 
     def reset_model(self):
         reset_noise_scale = 0.0
