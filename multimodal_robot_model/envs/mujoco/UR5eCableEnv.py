@@ -69,9 +69,9 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
                 camera["viewer"] = OffScreenViewer(self.model, self.data)
                 self.cameras[camera_name] = camera
 
-        # This is required to automatically switch context to free camera in render()
-        # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
-        self.mujoco_renderer._viewers["dummy"] = None
+            # This is required to automatically switch context to free camera in render()
+            # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
+            self.mujoco_renderer._viewers["dummy"] = None
 
     @property
     def urdf_path(self):
@@ -148,6 +148,6 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         return observation
 
     def close(self):
-        MujocoEnv.show(self)
-        for offscreen_viewer in self.offscreen_viewers:
-            self.offscreen_viewer.close()
+        for camera in self.cameras.values():
+            camera["viewer"].close()
+        MujocoEnv.close(self)
