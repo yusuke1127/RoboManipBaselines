@@ -10,6 +10,22 @@ import mujoco
 def reset_recording(pole_pos_idx=None):
     global status, data_seq
 
+    # Set position of poles
+    pole_pos_offsets = np.array([
+        [-0.03, 0, 0.0],
+        [0.0, 0, 0.0],
+        [0.03, 0, 0.0],
+        [0.06, 0, 0.0],
+        [0.09, 0, 0.0],
+        [0.12, 0, 0.0],
+    ]) # [m]
+    if pole_pos_idx is None:
+        pole_pos_idx = data_idx % len(pole_pos_offsets)
+    env.unwrapped.model.body("poles").pos = original_pole_pos + pole_pos_offsets[pole_pos_idx]
+
+    # Set environment index (currently only the position of poles is a dependent parameter)
+    env_idx = pole_pos_idx
+
     # Reset variables for recording
     status = "initial"
     data_seq = {
@@ -19,29 +35,17 @@ def reset_recording(pole_pos_idx=None):
         "side_image": [],
         "wrench": [],
     }
+    print("== [UR5eCableEnv] data_idx: {}, env_idx: {} ==".format(data_idx, env_idx))
+    print("- Press space key to start automatic grasping.")
 
-    # Set position of poles
-    pole_pos_offsets = np.array([
-        [-0.03, 0, 0.0],
-        [0.0, 0, 0.0],
-        [0.03, 0, 0.0],
-        [0.06, 0, 0.0],
-        [0.09, 0, 0.0],
-        [0.12, 0, 0.0],
-    ])
-    if pole_pos_idx is None:
-        pole_pos_idx = data_idx % len(pole_pos_offsets)
-    env.unwrapped.model.body("poles").pos = original_pole_pos + pole_pos_offsets[pole_pos_idx]
-
-    # Set environment index (currently only the position of poles is a dependent parameter)
-    env_idx = pole_pos_idx
-    print("Press space key to start teleoperation. (env_idx: {})".format(env_idx))
     return env_idx
 
 def get_status_image(status):
     status_image = np.zeros((50, 224, 3), dtype=np.uint8)
     if status == "initial":
         status_image[:, :] = np.array([200, 255, 200])
+    elif status == "pre-reach" or status == "reach" or status == "grasp":
+        status_image[:, :] = np.array([255, 255, 200])
     elif status == "record":
         status_image[:, :] = np.array([255, 200, 200])
     elif status == "end":
@@ -71,14 +75,14 @@ eef_joint_id = 6
 pin.forwardKinematics(model, data, joint_pos)
 original_target_se3 = data.oMi[eef_joint_id].copy()
 target_se3 = original_target_se3.copy()
-gripper_pos = 0
+gripper_pos = 0.0
 
 # Setup spacemouse
 pyspacemouse.open()
 
 # Setup data recording
 data_idx = 0
-status_list = ["initial", "record", "end"]
+status_list = ["initial", "pre-reach", "reach", "grasp", "record", "end"]
 original_pole_pos = env.unwrapped.model.body("poles").pos.copy()
 env_idx = reset_recording()
 
@@ -91,18 +95,30 @@ while True:
     spacemouse_state = pyspacemouse.read()
 
     # Set arm command
-    pos_scale = 1e-2
-    target_se3.translation += pos_scale * np.array([-1.0 * spacemouse_state.y, spacemouse_state.x, spacemouse_state.z])
-    ori_scale = 5e-3
-    rpy = ori_scale * np.array([-1.0 * spacemouse_state.roll, -1.0 * spacemouse_state.pitch, -2.0 * spacemouse_state.yaw])
-    target_se3.rotation = np.matmul(pin.rpy.rpyToMatrix(*rpy), target_se3.rotation)
+    if status == "pre-reach":
+        target_pos = env.unwrapped.model.body("cable_end").pos.copy()
+        target_pos[2] = 1.02 # [m]
+        target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
+    elif status == "reach":
+        target_pos = env.unwrapped.model.body("cable_end").pos.copy()
+        target_pos[2] = 0.995 # [m]
+        target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
+    elif status == "record":
+        pos_scale = 1e-2
+        target_se3.translation += pos_scale * np.array([-1.0 * spacemouse_state.y, spacemouse_state.x, spacemouse_state.z])
+        ori_scale = 5e-3
+        rpy = ori_scale * np.array([-1.0 * spacemouse_state.roll, -1.0 * spacemouse_state.pitch, -2.0 * spacemouse_state.yaw])
+        target_se3.rotation = np.matmul(pin.rpy.rpyToMatrix(*rpy), target_se3.rotation)
 
     # Set gripper command
-    gripper_scale = 5.0
-    if spacemouse_state.buttons[0] > 0 and spacemouse_state.buttons[1] <= 0:
-        gripper_pos = np.clip(gripper_pos + gripper_scale, env.action_space.low[6], env.action_space.high[6])
-    elif spacemouse_state.buttons[1] > 0 and spacemouse_state.buttons[0] <= 0:
-        gripper_pos = np.clip(gripper_pos - gripper_scale, env.action_space.low[6], env.action_space.high[6])
+    if status == "grasp":
+        gripper_pos = env.action_space.high[6]
+    elif status == "record":
+        gripper_scale = 5.0
+        if spacemouse_state.buttons[0] > 0 and spacemouse_state.buttons[1] <= 0:
+            gripper_pos = np.clip(gripper_pos + gripper_scale, env.action_space.low[6], env.action_space.high[6])
+        elif spacemouse_state.buttons[1] > 0 and spacemouse_state.buttons[0] <= 0:
+            gripper_pos = np.clip(gripper_pos - gripper_scale, env.action_space.low[6], env.action_space.high[6])
 
     # Draw markers
     env.unwrapped.mujoco_renderer.viewer.add_marker(
@@ -147,23 +163,40 @@ while True:
     window_image = np.concatenate([info["images"]["front"], info["images"]["side"], get_status_image(status)])
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
+
+    # Manage status
     reset = False
     if status == "initial":
         if key == 32: # space key
+            status = "pre-reach"
+            start_time = env.unwrapped.data.time
+    elif status == "pre-reach":
+        pre_reach_duration = 0.7 # [s]
+        if env.unwrapped.data.time - start_time > pre_reach_duration:
+            status = "reach"
+            start_time = env.unwrapped.data.time
+    elif status == "reach":
+        reach_duration = 0.3 # [s]
+        if env.unwrapped.data.time - start_time > reach_duration:
+            status = "grasp"
+            start_time = env.unwrapped.data.time
+            print("- Press space key to start teleoperation after robot grasps the cable.")
+    elif status == "grasp":
+        if key == 32: # space key
             status = "record"
             start_time = env.unwrapped.data.time
-            print("Press space key to finish teleoperation.")
+            print("- Press space key to finish teleoperation.")
     elif status == "record":
         if key == 32: # space key
             status = "end"
-            print("Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed. (duration: {:.1f} [s])".format(data_seq["time"][-1]))
+            print("- Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed. (duration: {:.1f} [s])".format(data_seq["time"][-1]))
     elif status == "end":
         if key == ord("s"):
             # Save data
             dirname = "teleop_data/env{:0>1}".format(env_idx)
             os.makedirs(dirname, exist_ok=True)
             filename = "{}/UR5eCableEnv_env{:0>1}_{:0>3}.npz".format(dirname, env_idx, data_idx)
-            print("Teleoperation succeeded: Save the data as {}".format(filename))
+            print("- Teleoperation succeeded: Save the data as {}".format(filename))
             np.savez(filename,
                      times=data_seq["time"],
                      joints=data_seq["joint"],
@@ -173,7 +206,7 @@ while True:
             data_idx += 1
             reset = True
         elif key == ord("f"):
-            print("Teleoperation failed: Reset without saving")
+            print("- Teleoperation failed: Reset without saving")
             reset = True
     if key == 27: # escape key
         break
@@ -184,6 +217,6 @@ while True:
         obs, info = env.reset()
         joint_pos = env.unwrapped.init_qpos[:6].copy()
         target_se3 = original_target_se3.copy()
-        gripper_pos = 0
+        gripper_pos = 0.0
 
 # env.close()
