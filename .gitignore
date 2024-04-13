@@ -3,6 +3,8 @@
 
 multimodal_robot_model.egg-info
 
+MUJOCO_LOG.TXT
+
 GPATH
 GRTAGS
 GSYMS
