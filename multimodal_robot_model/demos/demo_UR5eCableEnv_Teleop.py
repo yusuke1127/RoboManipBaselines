@@ -7,16 +7,35 @@ import pinocchio as pin
 import pyspacemouse
 import mujoco
 
-def reset_recording():
+def reset_recording(pole_pos_idx=None):
     global status, data_seq
+
+    # Reset variables for recording
     status = "initial"
-    print("Press space key to start teleoperation.")
     data_seq = {
         "joint": [],
         "front_image": [],
         "side_image": [],
         "wrench": [],
     }
+
+    # Set position of poles
+    pole_pos_offsets = np.array([
+        [-0.03, 0, 0.0],
+        [0.0, 0, 0.0],
+        [0.03, 0, 0.0],
+        [0.06, 0, 0.0],
+        [0.09, 0, 0.0],
+        [0.12, 0, 0.0],
+    ])
+    if pole_pos_idx is None:
+        pole_pos_idx = data_idx % len(pole_pos_offsets)
+    env.unwrapped.model.body("poles").pos = original_pole_pos + pole_pos_offsets[pole_pos_idx]
+
+    # Set environment index (currently only the position of poles is a dependent parameter)
+    env_idx = pole_pos_idx
+    print("Press space key to start teleoperation (env_idx: {}).".format(env_idx))
+    return env_idx
 
 def get_status_image(status):
     status_image = np.zeros((50, 224, 3), dtype=np.uint8)
@@ -59,7 +78,8 @@ pyspacemouse.open()
 # Setup data recording
 data_idx = 0
 status_list = ["initial", "record", "end"]
-reset_recording()
+original_pole_pos = env.unwrapped.model.body("poles").pos.copy()
+env_idx = reset_recording()
 
 while True:
     # Solve FK
@@ -137,10 +157,9 @@ while True:
     elif status == "end":
         if key == ord("s"):
             # Save data
-            dirname = "teleop_data"
-            if not os.path.exists(dirname):
-                os.mkdir(dirname)
-            filename = "{}/UR5eCableEnv_{:0>3}.npz".format(dirname, data_idx)
+            dirname = "teleop_data/env{:0>1}".format(env_idx)
+            os.makedirs(dirname, exist_ok=True)
+            filename = "{}/UR5eCableEnv_env{:0>1}_{:0>3}.npz".format(dirname, env_idx, data_idx)
             print("Teleoperation succeeded: Save the data as {}".format(filename))
             np.savez(filename,
                      joints=data_seq["joint"],
@@ -157,7 +176,7 @@ while True:
 
     # Check end conditions
     if reset:
-        reset_recording()
+        env_idx = reset_recording()
         obs, info = env.reset()
         joint_pos = env.unwrapped.init_qpos[:6].copy()
         target_se3 = original_target_se3.copy()
