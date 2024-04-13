@@ -13,6 +13,7 @@ def reset_recording(pole_pos_idx=None):
     # Reset variables for recording
     status = "initial"
     data_seq = {
+        "time": [],
         "joint": [],
         "front_image": [],
         "side_image": [],
@@ -34,7 +35,7 @@ def reset_recording(pole_pos_idx=None):
 
     # Set environment index (currently only the position of poles is a dependent parameter)
     env_idx = pole_pos_idx
-    print("Press space key to start teleoperation (env_idx: {}).".format(env_idx))
+    print("Press space key to start teleoperation. (env_idx: {})".format(env_idx))
     return env_idx
 
 def get_status_image(status):
@@ -136,6 +137,7 @@ while True:
 
     # Record data
     if status == "record":
+        data_seq["time"].append(env.unwrapped.data.time - start_time)
         data_seq["joint"].append(action)
         data_seq["front_image"].append(info["images"]["front"])
         data_seq["side_image"].append(info["images"]["side"])
@@ -149,11 +151,12 @@ while True:
     if status == "initial":
         if key == 32: # space key
             status = "record"
+            start_time = env.unwrapped.data.time
             print("Press space key to finish teleoperation.")
     elif status == "record":
         if key == 32: # space key
             status = "end"
-            print("Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed.")
+            print("Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed. (duration: {:.1f} [s])".format(data_seq["time"][-1]))
     elif status == "end":
         if key == ord("s"):
             # Save data
@@ -162,6 +165,7 @@ while True:
             filename = "{}/UR5eCableEnv_env{:0>1}_{:0>3}.npz".format(dirname, env_idx, data_idx)
             print("Teleoperation succeeded: Save the data as {}".format(filename))
             np.savez(filename,
+                     times=data_seq["time"],
                      joints=data_seq["joint"],
                      front_image=data_seq["front_image"],
                      side_image=data_seq["side_image"],
