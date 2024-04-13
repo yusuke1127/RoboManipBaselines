@@ -10,8 +10,8 @@ from gymnasium.spaces import Box
 DEFAULT_CAMERA_CONFIG = {
     "azimuth": -135.0,
     "elevation": -45.0,
-    "distance": 2.0,
-    "lookat": [-0.2, 0.0, 0.8]
+    "distance": 1.8,
+    "lookat": [-0.2, -0.2, 0.8]
 }
 
 class UR5eCableEnv(MujocoEnv, utils.EzPickle):

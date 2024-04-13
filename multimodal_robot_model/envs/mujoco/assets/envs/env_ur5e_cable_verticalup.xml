@@ -24,8 +24,8 @@
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
 
-    <camera name="front" mode="fixed" pos="1.0 0.0 2.0" euler="0.0 0.785398 1.5708"/>
-    <camera name="side" mode="fixed" pos="0.0 -1.25 1.0" euler="1.5708 0.0 0.0"/>
+    <camera name="front" mode="fixed" pos="0.5 0.0 1.5" euler="0.0 0.785398 1.5708"/>
+    <camera name="side" mode="fixed" pos="-0.1 -0.75 0.9" euler="1.5708 0.0 0.0"/>
 
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
 
@@ -42,27 +42,27 @@
       <include file="../robots/ur5e/ur5e_body.xml"/>
     </body>
 
-    <body name="B0" pos="-0.175 0.4 0.8325" euler="0 0 -1.5708">
+    <body name="B0" pos="-0.175 0.2 0.8325" euler="0 0 -1.5708">
       <geom type="box" size="0.02 0.015 0.015" pos="0.0 0.0 0.0" rgba="0.1 0.8 0.1 1.0"/>
       <!-- <freejoint/> -->
-      <composite type="rope" count="40" spacing="0.02">
+      <composite type="rope" count="25" spacing="0.02">
         <joint kind="main" damping="0.005"/>
         <geom type="capsule" size="0.01 0.0075" rgba="0.8 0.8 0.2 1"/>
       </composite>
     </body>
 
-    <body name="cable_end" pos="-0.175 -0.4 0.8325" euler="0 0 -1.5708">
+    <body name="cable_end" pos="-0.175 -0.3 0.8325" euler="0 0 -1.5708">
       <freejoint/>
       <geom type="box" size="0.02 0.015 0.015" pos="0.0 0.0 0.0" rgba="0.1 0.8 0.1 1.0"/>
     </body>
 
-    <body name="poles" pos="-0.1 0.2 0.815">
+    <body name="poles" pos="-0.1 0.1 0.815">
       <geom type="cylinder" size="0.02 0.05" pos="0.0 0.0 0.05" rgba="0.8 0.5 0.1 1.0"/>
       <geom type="cylinder" size="0.02 0.05" pos="0.1 0.0 0.05" rgba="0.8 0.5 0.1 1.0"/>
     </body>
   </worldbody>
 
   <equality>
-    <weld name="right_boundary" body1="B39" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
+    <weld name="right_boundary" body1="B24" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
   </equality>
 </mujoco>
