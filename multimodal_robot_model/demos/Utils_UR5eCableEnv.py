@@ -145,13 +145,12 @@ class RecordManager(object):
     def saveData(self, filename):
         """Save data."""
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        np.savez(filename,
-                 times=self.data_seq[RecordKey.TIME.key()],
-                 joints=self.data_seq[RecordKey.JOINT.key()],
-                 front_images=self.data_seq[RecordKey.FRONT_IMAGE.key()],
-                 side_images=self.data_seq[RecordKey.SIDE_IMAGE.key()],
-                 wrenches=self.data_seq[RecordKey.WRENCH.key()])
+        np.savez(filename, **self.data_seq)
         self.data_idx += 1
+
+    def loadData(self, filename):
+        """Load data."""
+        self.data_seq = np.load(filename)
 
     def goToNextStatus(self):
         """Go to the next status."""

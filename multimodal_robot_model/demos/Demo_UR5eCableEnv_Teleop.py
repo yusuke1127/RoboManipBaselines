@@ -4,8 +4,7 @@ import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
 import pyspacemouse
-import mujoco
-from utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
+from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
 
 # Setup gym
 env = gym.make(
