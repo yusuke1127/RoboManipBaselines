@@ -142,6 +142,10 @@ class RecordManager(object):
         """Append a single data to the data sequence."""
         self.data_seq[record_key.key()].append(data)
 
+    def getSingleData(self, record_key, time_idx):
+        """Get single data from the data sequence."""
+        return self.data_seq[record_key.key()][time_idx]
+
     def saveData(self, filename):
         """Save data."""
         os.makedirs(os.path.dirname(filename), exist_ok=True)
