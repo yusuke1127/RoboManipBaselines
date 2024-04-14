@@ -125,6 +125,7 @@ class RecordManager(object):
 
         self.data_idx = 0
         self.world_idx = 0
+        self.world_info = {}
 
         self._original_pole_pos = self.env.unwrapped.model.body("poles").pos.copy()
 
@@ -149,7 +150,7 @@ class RecordManager(object):
     def saveData(self, filename):
         """Save data."""
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        np.savez(filename, **self.data_seq)
+        np.savez(filename, **self.data_seq, **self.world_info)
         self.data_idx += 1
 
     def loadData(self, filename):
@@ -193,6 +194,8 @@ class RecordManager(object):
 
         # Set world index (currently only the position of poles is a dependent parameter)
         self.world_idx = pole_pos_idx
+        self.world_info = {"world_idx": self.world_idx,
+                           "pole_pos_idx": pole_pos_idx}
 
     @property
     def status_elapsed_duration(self):

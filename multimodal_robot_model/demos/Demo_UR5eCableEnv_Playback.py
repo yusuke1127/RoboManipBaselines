@@ -1,4 +1,5 @@
 import sys
+import argparse
 import numpy as np
 import cv2
 import gymnasium as gym
@@ -6,9 +7,10 @@ import multimodal_robot_model
 import pinocchio as pin
 from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
 
-if len(sys.argv) != 2:
-    print("Usage: python {} [teleoperation data (npz format)]".format(sys.argv[0]))
-    sys.exit(1)
+parser = argparse.ArgumentParser()
+parser.add_argument("teleop_filename")
+parser.add_argument("--pole-pos-idx", type=int, default=None, help="index of the position of poles (0-5)")
+args = parser.parse_args()
 
 # Setup gym
 env = gym.make(
@@ -23,8 +25,11 @@ motion_manager = MotionManager(env)
 
 # Setup record manager
 record_manager = RecordManager(env)
-record_manager.setupSimWorld(pole_pos_idx=None)
-record_manager.loadData(sys.argv[1])
+record_manager.loadData(args.teleop_filename)
+pole_pos_idx = args.pole_pos_idx
+if pole_pos_idx is None:
+    pole_pos_idx = record_manager.data_seq["pole_pos_idx"].tolist()
+record_manager.setupSimWorld(pole_pos_idx)
 
 print("- Press space key to start automatic grasping.")
 
@@ -58,13 +63,15 @@ while True:
     # Draw images
     status_image = record_manager.getStatusImage()
     online_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
-    if record_manager.status == RecordStatus.TELEOP:
-        record_image = cv2.vconcat([record_manager.getSingleData(RecordKey.FRONT_IMAGE, time_idx),
-                                    record_manager.getSingleData(RecordKey.SIDE_IMAGE, time_idx),
-                                    np.full_like(status_image, 255)])
-    else:
-        record_image = np.full_like(online_image, 255)
-    window_image = cv2.hconcat([online_image, record_image])
+    # TODO: Fix slow access to record images
+    # if record_manager.status == RecordStatus.TELEOP:
+    #     record_image = cv2.vconcat([record_manager.getSingleData(RecordKey.FRONT_IMAGE, time_idx),
+    #                                 record_manager.getSingleData(RecordKey.SIDE_IMAGE, time_idx),
+    #                                 np.full_like(status_image, 255)])
+    # else:
+    #     record_image = np.full_like(online_image, 255)
+    # window_image = cv2.hconcat([online_image, record_image])
+    window_image = online_image
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
 
