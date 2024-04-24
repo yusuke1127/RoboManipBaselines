@@ -77,7 +77,7 @@ train_dataset = UR5eCableEnvDataset(
     joint_limits,
     wrench_limits,
     stdev=stdev,
-    skip=1,
+    skip=5,
 )
 train_loader = DataLoader(
     train_dataset,
@@ -93,7 +93,7 @@ test_dataset = UR5eCableEnvDataset(
     joint_limits,
     wrench_limits,
     stdev=stdev,
-    skip=1,
+    skip=5,
 )
 test_loader = DataLoader(
     test_dataset,

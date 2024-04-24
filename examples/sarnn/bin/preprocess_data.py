@@ -14,6 +14,10 @@ parser.add_argument(
     type=str,
     help="Target directory including .npz files",
 )
+#
+# [TODO] Add skipp step into preprocessing
+#
+
 # parser.add_argument(
 #     "--skip_step",
 #     type=int,

@@ -66,6 +66,8 @@ class fullBPTTtrainer:
         y_joint: Tensor
         mask: Tensor
 
+        criterion = nn.MSELoss(reduction="none")
+
         if not training:
             self.model.eval()
         else:
@@ -103,17 +105,27 @@ class fullBPTTtrainer:
                 enc_pts[:, t] = enc_ij
                 dec_pts[:, t] = dec_ij
 
-            img_loss: Tensor = (
-                nn.MSELoss()(yi_hat, y_img[:, 1:]) * self.loss_weights[0]
+            # [TODO] mask, MSELoss(reduction="none")
+
+            img_loss = torch.mean(
+                criterion(yi_hat, y_img[:, 1:]) * self.loss_weights[0],
+                dim=(2, 3, 4),
             )
-            joint_loss: Tensor = (
-                nn.MSELoss()(yv_hat, y_joint[:, 1:]) * self.loss_weights[1]
+            joint_loss = torch.mean(
+                criterion(yv_hat, y_joint[:, 1:]) * self.loss_weights[1],
+                dim=2,
             )
             # Gradually change the loss value using the LossScheluder class.
-            pt_loss: Tensor = nn.MSELoss()(
-                dec_pts[:, :-1], enc_pts[:, 1:]
-            ) * self.scheduler(self.loss_weights[2])
+            pt_loss = torch.mean(
+                # criterion(dec_pts[:, :-1], enc_pts[:, 1:])
+                criterion(dec_pts, enc_pts)
+                * self.scheduler(self.loss_weights[2]),
+                dim=2,
+            )
+            # mask and
             loss = img_loss + joint_loss + pt_loss
+            # mask and average of batch and time length
+            loss = torch.sum(loss * mask[:, 1:]) / torch.sum(mask[:, 1:])
             total_loss += tensor2numpy(loss)
 
             if training:
