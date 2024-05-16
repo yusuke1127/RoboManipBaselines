@@ -115,17 +115,16 @@ class fullBPTTtrainer:
                 criterion(yv_hat, y_joint[:, 1:]) * self.loss_weights[1],
                 dim=2,
             )
+            loss = img_loss + joint_loss
+            loss = torch.sum(loss * mask[:, 1:]) / torch.sum(mask[:, 1:])
             # Gradually change the loss value using the LossScheluder class.
             pt_loss = torch.mean(
-                # criterion(dec_pts[:, :-1], enc_pts[:, 1:])
-                criterion(dec_pts, enc_pts)
-                * self.scheduler(self.loss_weights[2]),
+                criterion(dec_pts[:, :-1], enc_pts[:, 1:]),
                 dim=2,
+            ) * self.scheduler(self.loss_weights[2])
+            loss += torch.sum(pt_loss * mask[:, 1:-1]) / torch.sum(
+                mask[:, 1:-1]
             )
-            # mask and
-            loss = img_loss + joint_loss + pt_loss
-            # mask and average of batch and time length
-            loss = torch.sum(loss * mask[:, 1:]) / torch.sum(mask[:, 1:])
             total_loss += tensor2numpy(loss)
 
             if training:
