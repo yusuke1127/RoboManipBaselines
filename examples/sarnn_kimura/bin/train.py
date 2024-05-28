@@ -20,11 +20,7 @@ from collections import OrderedDict
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 
-from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
 from eipl.utils import EarlyStopping, check_args, set_logdir, normalization
-
-# load own library
-from libs.fullBPTT import fullBPTTtrainer, Loss
 
 # argument parser
 parser = argparse.ArgumentParser(
@@ -104,9 +100,8 @@ if (not args.no_side_image) and (not args.no_wrench):
         stdev=stdev
     )
 elif args.no_side_image and args.no_wrench:
-    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
-    from eipl.data import MultimodalDatasetWithSideimageAndWrench
-    train_dataset = MultimodalDatasetWithSideimageAndWrench(
+    from eipl.data import MultimodalDataset
+    train_dataset = MultimodalDataset(
         front_images,
         joints,
         device=device,
@@ -130,14 +125,25 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 joints = normalization(joints_raw, joint_bounds, minmax)
 wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
-test_dataset = MultimodalDatasetWithSideimageAndWrench(
-    front_images,
-    side_images,
-    joints,
-    wrenches,
-    device=device,
-    stdev=None
-)
+if (not args.no_side_image) and (not args.no_wrench):
+    test_dataset = MultimodalDatasetWithSideimageAndWrench(
+        front_images,
+        side_images,
+        joints,
+        wrenches,
+        device=device,
+        stdev=None
+    )
+elif args.no_side_image and args.no_wrench:
+    from eipl.data import MultimodalDataset
+    test_dataset = MultimodalDataset(
+        front_images,
+        joints,
+        device=device,
+        stdev=None
+    )
+else:
+    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 test_loader = DataLoader(
     test_dataset,
     batch_size=args.batch_size,
@@ -146,15 +152,29 @@ test_loader = DataLoader(
 )
 
 # define model
-model = SARNNwithSideimageAndWrench(
-    rec_dim=args.rec_dim,
-    joint_dim=7,
-    wrench_dim=6,
-    k_dim=args.k_dim,
-    heatmap_size=args.heatmap_size,
-    temperature=args.temperature,
-    im_size=[64, 64],
-)
+if (not args.no_side_image) and (not args.no_wrench):
+    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    model = SARNNwithSideimageAndWrench(
+        rec_dim=args.rec_dim,
+        joint_dim=7,
+        wrench_dim=6,
+        k_dim=args.k_dim,
+        heatmap_size=args.heatmap_size,
+        temperature=args.temperature,
+        im_size=[64, 64],
+    )
+elif args.no_side_image and args.no_wrench:
+    from eipl.model import SARNN
+    model = SARNN(
+        rec_dim=args.rec_dim,
+        joint_dim=7,
+        k_dim=args.k_dim,
+        heatmap_size=args.heatmap_size,
+        temperature=args.temperature,
+        im_size=[64, 64],
+    )
+else:
+    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
 # torch.compile makes PyTorch code run faster
 if args.compile:
@@ -165,19 +185,27 @@ if args.compile:
 optimizer = optim.Adam(model.parameters(), eps=1e-07, lr=args.lr)
 
 # load trainer/tester class
-loss_weights = [
-    {
-        Loss.FRONT_IMG: args.front_img_loss,
-        Loss.SIDE_IMG: args.side_img_loss,
-        Loss.JOINT: args.joint_loss,
-        Loss.WRENCH: args.wrench_loss,
-        Loss.FRONT_PT: args.front_pt_loss,
-        Loss.SIDE_PT: args.side_pt_loss
-    }[loss] for loss in Loss
-]
-trainer = fullBPTTtrainer(
-    model, optimizer, loss_weights=loss_weights, device=device
-)
+if (not args.no_side_image) and (not args.no_wrench):
+    from libs.fullBPTTwithSideimageAndWrench import fullBPTTtrainerWithSideimageAndWrench, Loss
+    loss_weights = [
+        {
+            Loss.FRONT_IMG: args.front_img_loss,
+            Loss.SIDE_IMG: args.side_img_loss,
+            Loss.JOINT: args.joint_loss,
+            Loss.WRENCH: args.wrench_loss,
+            Loss.FRONT_PT: args.front_pt_loss,
+            Loss.SIDE_PT: args.side_pt_loss
+        }[loss] for loss in Loss
+    ]
+    trainer = fullBPTTtrainerWithSideimageAndWrench(
+        model, optimizer, loss_weights=loss_weights, device=device
+    )
+elif args.no_side_image and args.no_wrench:
+    from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
+    loss_weights = [args.front_img_loss, args.joint_loss, args.front_pt_loss]
+    trainer = fullBPTTtrainer(model, optimizer, loss_weights=loss_weights, device=device)
+else:
+    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
 ### training main
 log_dir_path = set_logdir("./" + args.log_dir, args.tag)

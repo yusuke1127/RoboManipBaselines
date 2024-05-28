@@ -23,6 +23,8 @@ from eipl.utils import restore_args, tensor2numpy, normalization
 parser = argparse.ArgumentParser()
 parser.add_argument("filename", type=str, default=None)
 parser.add_argument("--dirname", type=str, default="../simulator/data", help="directory that stores test data, that has been generated, and will be loaded")
+parser.add_argument("--no_side_image", action="store_true")
+parser.add_argument("--no_wrench", action="store_true")
 args = parser.parse_args()
 
 # restore parameters
@@ -33,22 +35,38 @@ params = restore_args(os.path.join(dir_name, "args.json"))
 # load dataset
 minmax = [params["vmin"], params["vmax"]]
 front_images = np.load(os.path.join(args.dirname, "test/front_images.npy"))
-side_images = np.load(os.path.join(args.dirname, "test/side_images.npy"))
+if not args.no_side_image:
+    side_images = np.load(os.path.join(args.dirname, "test/side_images.npy"))
 joints = np.load(os.path.join(args.dirname, "test/joints.npy"))
 joint_bounds = np.load(os.path.join(args.dirname, "joint_bounds.npy"))
-wrenches = np.load(os.path.join(args.dirname, "test/wrenches.npy"))
-wrench_bounds = np.load(os.path.join(args.dirname, "wrench_bounds.npy"))
+if not args.no_wrench:
+    wrenches = np.load(os.path.join(args.dirname, "test/wrenches.npy"))
+    wrench_bounds = np.load(os.path.join(args.dirname, "wrench_bounds.npy"))
 
 # define model
-model = SARNNwithSideimageAndWrench(
-    rec_dim=params["rec_dim"],
-    joint_dim=7,
-    wrench_dim=6,
-    k_dim=params["k_dim"],
-    heatmap_size=params["heatmap_size"],
-    temperature=params["temperature"],
-    im_size=[64, 64],
-)
+if (not args.no_side_image) and (not args.no_wrench):
+    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    model = SARNNwithSideimageAndWrench(
+        rec_dim=params["rec_dim"],
+        joint_dim=7,
+        wrench_dim=6,
+        k_dim=params["k_dim"],
+        heatmap_size=params["heatmap_size"],
+        temperature=params["temperature"],
+        im_size=[64, 64],
+    )
+elif args.no_side_image and args.no_wrench:
+    from eipl.model import SARNN
+    model = SARNN(
+        rec_dim=params["rec_dim"],
+        joint_dim=7,
+        k_dim=params["k_dim"],
+        heatmap_size=params["heatmap_size"],
+        temperature=params["temperature"],
+        im_size=[64, 64],
+    )
+else:
+    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
 if params["compile"]:
     model = torch.compile(model)
@@ -67,16 +85,23 @@ for loop_ct in range(nloop):
     front_img_t = front_images[:, loop_ct].transpose(0, 3, 1, 2)
     front_img_t = normalization(front_img_t, (0, 255), minmax)
     front_img_t = torch.Tensor(front_img_t)
-    side_img_t = side_images[:, loop_ct].transpose(0, 3, 1, 2)
-    side_img_t = normalization(side_img_t, (0, 255), minmax)
-    side_img_t = torch.Tensor(side_img_t)
+    if not args.no_side_image:
+        side_img_t = side_images[:, loop_ct].transpose(0, 3, 1, 2)
+        side_img_t = normalization(side_img_t, (0, 255), minmax)
+        side_img_t = torch.Tensor(side_img_t)
     joint_t = normalization(joints[:, loop_ct], joint_bounds, minmax)
     joint_t = torch.Tensor(joint_t)
-    wrench_t = normalization(wrenches[:, loop_ct], wrench_bounds, minmax)
-    wrench_t = torch.Tensor(wrench_t)
+    if not args.no_wrench:
+        wrench_t = normalization(wrenches[:, loop_ct], wrench_bounds, minmax)
+        wrench_t = torch.Tensor(wrench_t)
 
     # predict rnn
-    _, _, _, _, _, _, _, _, state = model(front_img_t, side_img_t, joint_t, wrench_t, state)
+    if (not args.no_side_image) and (not args.no_wrench):
+        _, _, _, _, _, _, _, _, state = model(front_img_t, side_img_t, joint_t, wrench_t, state)
+    elif args.no_side_image and args.no_wrench:
+        _, _, _, _, state = model(front_img_t, joint_t, state)
+    else:
+        raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
     states.append(state[0])
 
 states = torch.permute(torch.stack(states), (1, 0, 2))
