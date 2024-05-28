@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.animation as anim
 from sklearn.decomposition import PCA
-from eipl.model import SARNN
+from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
 from eipl.utils import restore_args, tensor2numpy, normalization
 
 
@@ -40,7 +40,7 @@ wrenches = np.load(os.path.join(args.dirname, "test/wrenches.npy"))
 wrench_bounds = np.load(os.path.join(args.dirname, "wrench_bounds.npy"))
 
 # define model
-model = SARNN(
+model = SARNNwithSideimageAndWrench(
     rec_dim=params["rec_dim"],
     joint_dim=7,
     wrench_dim=6,

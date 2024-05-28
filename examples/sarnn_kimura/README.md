@@ -1,4 +1,4 @@
-# Spatial attention recurrent neural network (SARNN), that crops the imagae, and uses side image and wrench.
+# Spatial attention recurrent neural network (SARNN), that crops image, and uses side image and wrench.
 
 ## Requirements: installing EIPL
 

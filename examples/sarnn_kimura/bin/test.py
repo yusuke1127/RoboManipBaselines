@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.animation as anim
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization
-from model.SARNN import SARNN
+from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
 
 # argument parser
 parser = argparse.ArgumentParser()
@@ -43,7 +43,7 @@ joints = joints_raw[idx]
 wrenches = wrenches_raw[idx]
 
 # define model
-model = SARNN(
+model = SARNNwithSideimageAndWrench(
     rec_dim=params["rec_dim"],
     joint_dim=7,
     wrench_dim=6,

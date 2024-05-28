@@ -20,7 +20,7 @@ from collections import OrderedDict
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
 
-from model.SARNN import SARNN
+from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
 from eipl.utils import EarlyStopping, check_args, set_logdir, normalization
 
 # load own library
@@ -94,8 +94,8 @@ side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), 
 joints = normalization(joints_raw, joint_bounds, minmax)
 wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
 if (not args.no_side_image) and (not args.no_wrench):
-    from data.dataset import MultimodalDataset
-    train_dataset = MultimodalDataset(
+    from data.dataset import MultimodalDatasetWithSideimageAndWrench
+    train_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
         side_images,
         joints,
@@ -105,8 +105,8 @@ if (not args.no_side_image) and (not args.no_wrench):
     )
 elif args.no_side_image and args.no_wrench:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
-    from eipl.data import MultimodalDataset
-    train_dataset = MultimodalDataset(
+    from eipl.data import MultimodalDatasetWithSideimageAndWrench
+    train_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
         joints,
         device=device,
@@ -130,7 +130,7 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 joints = normalization(joints_raw, joint_bounds, minmax)
 wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
-test_dataset = MultimodalDataset(
+test_dataset = MultimodalDatasetWithSideimageAndWrench(
     front_images,
     side_images,
     joints,
@@ -146,7 +146,7 @@ test_loader = DataLoader(
 )
 
 # define model
-model = SARNN(
+model = SARNNwithSideimageAndWrench(
     rec_dim=args.rec_dim,
     joint_dim=7,
     wrench_dim=6,
