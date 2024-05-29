@@ -77,18 +77,19 @@ else:
 data_dir = Path(args.data_dir)
 minmax = [args.vmin, args.vmax]
 
-joint_bounds = np.load(data_dir / "joint_bounds.npy")
-wrench_bounds = np.load(data_dir / "wrench_bounds.npy")
-
 train_data_dir = data_dir / "train"
-front_images_raw = np.load(sorted(train_data_dir.glob("**/front_images.npy"))[0])
-side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
+joint_bounds = np.load(data_dir / "joint_bounds.npy")
 joints_raw = np.load(sorted(train_data_dir.glob("**/joints.npy"))[0])
-wrenches_raw = np.load(sorted(train_data_dir.glob("**/wrenches.npy"))[0])
-front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
-side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 joints = normalization(joints_raw, joint_bounds, minmax)
-wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
+if not args.no_wrench:
+    wrench_bounds = np.load(data_dir / "wrench_bounds.npy")
+    wrenches_raw = np.load(sorted(train_data_dir.glob("**/wrenches.npy"))[0])
+    wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
+front_images_raw = np.load(sorted(train_data_dir.glob("**/front_images.npy"))[0])
+front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+if not args.no_side_image:
+    side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
+    side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 if (not args.no_side_image) and (not args.no_wrench):
     from data.dataset import MultimodalDatasetWithSideimageAndWrench
     train_dataset = MultimodalDatasetWithSideimageAndWrench(
@@ -117,14 +118,16 @@ train_loader = DataLoader(
 )
 
 test_data_dir = data_dir / "test"
-front_images_raw = np.load(sorted(test_data_dir.glob("**/front_images.npy"))[0])
-side_images_raw = np.load(sorted(test_data_dir.glob("**/side_images.npy"))[0])
 joints_raw = np.load(sorted(test_data_dir.glob("**/joints.npy"))[0])
-wrenches_raw = np.load(sorted(test_data_dir.glob("**/wrenches.npy"))[0])
-front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
-side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 joints = normalization(joints_raw, joint_bounds, minmax)
-wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
+if not args.no_wrench:
+    wrenches_raw = np.load(sorted(test_data_dir.glob("**/wrenches.npy"))[0])
+    wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
+front_images_raw = np.load(sorted(test_data_dir.glob("**/front_images.npy"))[0])
+front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+if not args.no_side_image:
+    side_images_raw = np.load(sorted(test_data_dir.glob("**/side_images.npy"))[0])
+    side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 if (not args.no_side_image) and (not args.no_wrench):
     test_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
