@@ -166,6 +166,7 @@ elif args.no_side_image and args.no_wrench:
     ax = ax.reshape(-1, 3)
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+joint_scales = [1.0] * (joints.shape[1] - 1) + [0.01]
 pbar = tqdm(total=pred_joint.shape[0] + 1, desc=anim.FuncAnimation.__name__)
 
 
@@ -206,12 +207,11 @@ def anim_update(i):
         ax[1, 1].set_title("Predicted side_image", fontsize=20)
 
     # plot joint
-    ax[0, 2].set_ylim(-np.pi, np.pi * 1.25)
-    ax[0, 2].set_yticks([-np.pi / 2, 0, np.pi / 2])
+    ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
     ax[0, 2].set_xlim(0, T)
-    ax[0, 2].plot(joints[1:], linestyle="dashed", c="k")
+    ax[0, 2].plot(joints[1:] * joint_scales, linestyle="dashed", c="k")
     for joint_idx in range(pred_joint.shape[1]):
-        ax[0, 2].plot(np.arange(i + 1), pred_joint[: i + 1, joint_idx])
+        ax[0, 2].plot(np.arange(i + 1), pred_joint[: i + 1, joint_idx] * joint_scales[joint_idx])
     ax[0, 2].set_xlabel("Step", fontsize=20)
     ax[0, 2].set_title("Joint", fontsize=20)
     ax[0, 2].tick_params(axis="x", labelsize=16)
