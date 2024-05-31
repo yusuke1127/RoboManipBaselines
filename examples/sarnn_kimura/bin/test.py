@@ -235,6 +235,7 @@ def anim_update(i):
 
 ani = anim.FuncAnimation(fig, anim_update, interval=int(np.ceil(T / 1)), frames=T)
 save_file_name = "./output/SARNN_{}_{}.gif".format(params["tag"], idx)
+os.makedirs("./output/", exist_ok=True)
 ani.save(save_file_name)
 pbar.close()
 print("save file: ", save_file_name)
