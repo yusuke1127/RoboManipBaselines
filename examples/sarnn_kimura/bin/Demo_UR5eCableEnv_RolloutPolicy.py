@@ -2,6 +2,9 @@ import os
 import sys
 import argparse
 import numpy as np
+import matplotlib
+import matplotlib.pylab as plt
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import gymnasium as gym
 import multimodal_robot_model
@@ -26,16 +29,18 @@ params = restore_args(os.path.join(dir_name, "args.json"))
 # load dataset
 minmax = [params["vmin"], params["vmax"]]
 joint_bounds = np.load(os.path.join(args.dirname, "joint_bounds.npy"))
+joint_scales = [1.0] * 6 + [0.01]
 
 # define model
 from eipl.model import SARNN
+im_size = 64
 model = SARNN(
     rec_dim=params["rec_dim"],
     joint_dim=7,
     k_dim=params["k_dim"],
     heatmap_size=params["heatmap_size"],
     temperature=params["temperature"],
-    im_size=[64, 64],
+    im_size=[im_size, im_size],
 )
 
 if params["compile"]:
@@ -90,7 +95,7 @@ while True:
         joint = motion_manager.getAction()
         joint_t = normalization(joint, joint_bounds, minmax)
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0))
-        y_front_image, y_joint, enc_front_pts, dec_front_pts, state = model(front_img_t, joint_t, state)
+        y_front_image, y_joint, y_enc_front_pts, y_dec_front_pts, state = model(front_img_t, joint_t, state)
 
         # denormalization
         pred_front_image = tensor2numpy(y_front_image[0])
@@ -98,6 +103,9 @@ while True:
         pred_front_image = pred_front_image.transpose(1, 2, 0)
         pred_joint = tensor2numpy(y_joint[0])
         pred_joint = normalization(pred_joint, minmax, joint_bounds)
+        pred_joint_list.append(pred_joint)
+        enc_front_pts = tensor2numpy(y_enc_front_pts[0]).reshape(params["k_dim"], 2) * im_size
+        dec_front_pts = tensor2numpy(y_dec_front_pts[0]).reshape(params["k_dim"], 2) * im_size
 
     # Set gripper command
     if record_manager.status == RecordStatus.GRASP:
@@ -118,8 +126,50 @@ while True:
     # Draw images
     status_image = record_manager.getStatusImage()
     online_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+    # front_img, pred_front_image
     window_image = online_image
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
+
+    if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
+        for j in range(ax.shape[0]):
+            for k in range(ax.shape[1]):
+                ax[j, k].cla()
+
+        # plot camera front_image
+        ax[0, 0].imshow(front_img)
+        for j in range(params["k_dim"]):
+            ax[0, 0].plot(enc_front_pts[j, 0], enc_front_pts[j, 1], "co", markersize=12)  # encoder
+            ax[0, 0].plot(
+                dec_front_pts[j, 0], dec_front_pts[j, 1], "rx", markersize=12, markeredgewidth=2
+            )  # decoder
+        ax[0, 0].axis("off")
+        ax[0, 0].set_title("Input front_image", fontsize=20)
+
+        # plot predicted front_image
+        ax[0, 1].imshow(pred_front_image)
+        ax[0, 1].axis("off")
+        ax[0, 1].set_title("Predicted front_image", fontsize=20)
+
+        # plot joint
+        ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        T = 100
+        ax[0, 2].set_xlim(0, T)
+        # ax[0, 2].plot(joints[1:] * joint_scales, linestyle="dashed", c="k")
+        pred_joint_arr = np.array(pred_joint_list)
+        for joint_idx in range(len(pred_joint_list[0])):
+            ax[0, 2].plot(np.arange(len(pred_joint_list)), pred_joint_arr[:, joint_idx] * joint_scales[joint_idx])
+        ax[0, 2].set_xlabel("Step", fontsize=20)
+        ax[0, 2].set_title("Joint", fontsize=20)
+        ax[0, 2].tick_params(axis="x", labelsize=16)
+        ax[0, 2].tick_params(axis="y", labelsize=16)
+
+        canvas.draw()
+        buf = canvas.buffer_rgba()
+        model_image = np.asarray(buf)
+        cv2.imshow("image2", cv2.cvtColor(model_image, cv2.COLOR_RGB2BGR))
+        # plt.draw()
+        # plt.pause(0.001)
+
     key = cv2.waitKey(1)
 
     # Manage status
@@ -138,6 +188,11 @@ while True:
     elif record_manager.status == RecordStatus.GRASP:
         if key == 32: # space key
             time_idx = 0
+            matplotlib.use("agg")
+            fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
+            canvas = FigureCanvasAgg(fig)
+            ax = ax.reshape(-1, 3)
+            pred_joint_list = []
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.TELEOP:
         time_idx += 1
