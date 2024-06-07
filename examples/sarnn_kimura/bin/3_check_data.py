@@ -60,7 +60,7 @@ def anim_update(i):
         ax[j].cla()
 
     # plot image
-    ax[0].imshow(front_images[idx, i, :, :, ::-1])
+    ax[0].imshow(front_images[idx, i])
     ax[0].axis("off")
     ax[0].set_title("Image")
 
