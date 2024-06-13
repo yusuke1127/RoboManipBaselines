@@ -13,6 +13,8 @@ from constants import PUPPET_GRIPPER_JOINT_OPEN
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict # helper functions
+import sys
+sys.path.append("../../third_party/act")
 from policy import ACTPolicy, CNNMLPPolicy
 from visualize_episodes import save_videos
 
@@ -42,12 +44,10 @@ def main(args):
         from aloha_scripts.constants import TASK_CONFIGS
         task_config = TASK_CONFIGS[task_name]
     dataset_dir = task_config['dataset_dir']
-    num_episodes = task_config['num_episodes']
-    episode_len = task_config['episode_len']
     camera_names = task_config['camera_names']
 
     # fixed parameters
-    state_dim = 14
+    state_dim = 7
     lr_backbone = 1e-5
     backbone = 'resnet18'
     if policy_class == 'ACT':
@@ -75,7 +75,6 @@ def main(args):
     config = {
         'num_epochs': num_epochs,
         'ckpt_dir': ckpt_dir,
-        'episode_len': episode_len,
         'state_dim': state_dim,
         'lr': args['lr'],
         'policy_class': policy_class,
@@ -100,7 +99,7 @@ def main(args):
         print()
         exit()
 
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, num_episodes, camera_names, batch_size_train, batch_size_val)
+    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val)
 
     # save dataset stats
     if not os.path.isdir(ckpt_dir):
@@ -157,7 +156,6 @@ def eval_bc(config, ckpt_name, save_episode=True):
     onscreen_render = config['onscreen_render']
     policy_config = config['policy_config']
     camera_names = config['camera_names']
-    max_timesteps = config['episode_len']
     task_name = config['task_name']
     temporal_agg = config['temporal_agg']
     onscreen_cam = 'angle'
@@ -419,7 +417,7 @@ if __name__ == '__main__':
     parser.add_argument('--onscreen_render', action='store_true')
     parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
     parser.add_argument('--policy_class', action='store', type=str, help='policy_class, capitalize', required=True)
-    parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
+    parser.add_argument('--task_name', default='sim_ur5ecable', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=False)
     parser.add_argument('--batch_size', action='store', type=int, help='batch_size', required=True)
     parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
     parser.add_argument('--num_epochs', action='store', type=int, help='num_epochs', required=True)
