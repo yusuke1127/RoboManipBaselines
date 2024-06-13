@@ -1,7 +1,12 @@
 import pathlib
 
 ### Task parameters
+DATA_DIR = './data'
 SIM_TASK_CONFIGS = {
+    'sim_ur5ecable':{
+        'dataset_dir': DATA_DIR,
+        'camera_names': ['front']
+    },
 }
 
 ### Simulation envs fixed constants

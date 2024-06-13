@@ -16,6 +16,8 @@ sys.path.append("../../third_party/act/")
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict # helper functions
+import sys
+sys.path.append("../../third_party/act")
 from policy import ACTPolicy, CNNMLPPolicy
 from visualize_episodes import save_videos
 
@@ -38,8 +40,19 @@ def main(args):
     batch_size_val = args['batch_size']
     num_epochs = args['num_epochs']
 
+    # get task parameters
+    is_sim = task_name[:4] == 'sim_'
+    if is_sim:
+        from constants import SIM_TASK_CONFIGS
+        task_config = SIM_TASK_CONFIGS[task_name]
+    else:
+        from aloha_scripts.constants import TASK_CONFIGS
+        task_config = TASK_CONFIGS[task_name]
+    dataset_dir = task_config['dataset_dir']
+    camera_names = task_config['camera_names']
+
     # fixed parameters
-    state_dim = 14
+    state_dim = 7
     lr_backbone = 1e-5
     backbone = 'resnet18'
     if policy_class == 'ACT':
@@ -90,7 +103,7 @@ def main(args):
         print()
         exit()
 
-    train_dataloader, val_dataloader, stats = load_data(dataset_dir, camera_names, batch_size_train, batch_size_val)
+    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val)
 
     # save dataset stats
     if not os.path.isdir(ckpt_dir):
@@ -409,8 +422,12 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_dir', action='store', type=str, help='dataset_dir', required=False, default="./data/")
     parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
     parser.add_argument('--policy_class', action='store', type=str, help='policy_class, capitalize', required=True)
+<<<<<<< HEAD:.working_on/examples/act_kimura/bin/imitate_episodes.py
     parser.add_argument('--camera_names', action='store', type=lambda x:list(map(str, x.split(','))), help='camera_names', required=False, default=["front"])
     parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
+=======
+    parser.add_argument('--task_name', default='sim_ur5ecable', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=False)
+>>>>>>> f66fdf7... move codes for ACT working on to examples/act_kimura/ directory:examples/act_kimura/bin/imitate_episodes.py
     parser.add_argument('--batch_size', action='store', type=int, help='batch_size', required=True)
     parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
     parser.add_argument('--num_epochs', action='store', type=int, help='num_epochs', required=True)
