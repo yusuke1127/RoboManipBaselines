@@ -10,7 +10,7 @@ $ cd act/detr && pip install -e .
 ```
 Replace 14 with 7 in act/detr/models/detr_vae.py .
 ``` console
-sed -ir "s/14/7/g" act/detr/models/detr_vae.py
+$ sed -ir "s/14/7/g" act/detr/models/detr_vae.py
 ```
 
 ### Installing EIPL
