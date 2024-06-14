@@ -116,8 +116,11 @@ if __name__ == "__main__":
 
     # dataset keywords
     if args.train_keywords is not None:
+        # use arguments to train files
         train_keywords = args.train_keywords
     else:
+        # no arguments to train files
+        # set train keywords excluding middle file
         i_pivot = (len(file_names) - 1) // 2
         train_keywords = [
             Path(
@@ -127,8 +130,11 @@ if __name__ == "__main__":
             ) if i != i_pivot
         ]
     if args.test_keywords is not None:
+        # use arguments to test files
         test_keywords = args.test_keywords
     else:
+        # no arguments to test files
+        # set test keywords excluding train keywords
         test_keywords = [
             Path(file_name).stem for file_name in file_names if all([
                 (w not in file_name) for w in train_keywords
