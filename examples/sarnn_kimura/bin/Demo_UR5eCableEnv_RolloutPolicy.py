@@ -99,7 +99,7 @@ while True:
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
         front_image = info["images"]["front"]
-        cropped_img_size = 112
+        cropped_img_size = 128
         [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
         [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
         front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]

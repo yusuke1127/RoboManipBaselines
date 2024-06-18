@@ -45,7 +45,7 @@ Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training
 
 ```console
 # e.g.
-$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 112
+$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
 ```
 
 ## Model Training
