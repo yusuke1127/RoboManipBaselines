@@ -14,6 +14,12 @@ $ pip install -r requirements.txt
 $ pip install -e .
 ```
 
+Install [MultimodalRobotModel](https://github.com/ysk-kimura/MultimodalRobotModel) according to `README.md`. (pinocchio is not required.)
+```console
+# Go to the top directory of this repository
+$ pip install -e .
+```
+
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_00000000`. 
