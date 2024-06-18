@@ -5,7 +5,8 @@ Install [ACT](https://github.com/tonyzhaozh/act) under `third_party/act/` accord
 ``` console
 $ cd MultimodalRobotModel/
 $ git clone https://github.com/tonyzhaozh/act
-$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==2.3.7 dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
+$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==2.3.7 \
+ dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
 $ cd act/detr && pip install -e .
 ```
 Replace 14 with 7 in act/detr/models/detr_vae.py .
