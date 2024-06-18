@@ -80,3 +80,10 @@ Specifying a weight file as the argument of `./bin/test_pca_sarnn.py` will save 
 # e.g.
 $ python3 ./bin/test_pca_sarnn.py ./log/YEAR_DAY_TIME/SARNN.pth
 ```
+
+## Run a trained policy on the simulation
+
+```console
+# e.g.
+$ python3 ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --dirname ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+```
