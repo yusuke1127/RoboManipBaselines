@@ -10,12 +10,8 @@ import gymnasium as gym
 import pinocchio as pin
 from tqdm import tqdm
 import torch
-# The following line is unnecessary if eipl is properly installed
-# sys.path.append("../../third_party/eipl/")
 from eipl.model import SARNN
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
-# The following line is unnecessary if multimodal_robot_model is properly installed
-# sys.path.append("../../")
 import multimodal_robot_model
 from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
 
