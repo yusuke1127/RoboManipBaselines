@@ -55,7 +55,7 @@ $ python ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `n
 Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
 
 ```console
-$ python ./bin/train.py --data_dir ./data/
+$ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench
 ```
 
 ## Test
@@ -63,7 +63,7 @@ $ python ./bin/train.py --data_dir ./data/
 Specifying a weight file as the argument of `./bin/test.py` will save a gif animation of the predicted image, attention points, and predicted joint angles in the output folder.
 
 ```console
-$ python ./bin/test.py --filename ./log/YEAR_DAY_TIME/SARNN.pth
+$ python ./bin/test.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
 ```
 
 ## Visualization of internal representation using PCA
@@ -71,11 +71,11 @@ $ python ./bin/test.py --filename ./log/YEAR_DAY_TIME/SARNN.pth
 Specifying a weight file as the argument of `./bin/test_pca_sarnn.py` will save the internal representation of the RNN as a gif animation.
 
 ```console
-$ python ./bin/test_pca_sarnn.py ./log/YEAR_DAY_TIME/SARNN.pth
+$ python ./bin/test_pca_sarnn.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
 ```
 
 ## Run a trained policy on the simulation
 
 ```console
-$ python ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --dirname ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+$ python ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```

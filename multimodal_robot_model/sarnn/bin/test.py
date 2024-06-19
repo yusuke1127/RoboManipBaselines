@@ -18,8 +18,8 @@ from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization
 
 # argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
-parser.add_argument("--dirname", type=str, default="../simulator/data", help="directory that stores test data, that has been generated, and will be loaded")
+parser.add_argument("--filename", type=str, required=True, help=".pth file that PyTorch loads as checkpoint for model")
+parser.add_argument("--data_dir", type=str, required=True, help="directory that stores test data, that has been generated, and will be loaded")
 parser.add_argument("--idx", type=int, default=0)
 parser.add_argument("--no_side_image", action="store_true")
 parser.add_argument("--no_wrench", action="store_true")
@@ -32,15 +32,15 @@ idx = args.idx
 
 # load dataset
 minmax = [params["vmin"], params["vmax"]]
-front_images_raw = np.load(os.path.join(args.dirname, "test/front_images.npy"))
+front_images_raw = np.load(os.path.join(args.data_dir, "test/front_images.npy"))
 if not args.no_side_image:
-    side_images_raw = np.load(os.path.join(args.dirname, "test/side_images.npy"))
+    side_images_raw = np.load(os.path.join(args.data_dir, "test/side_images.npy"))
     side_images = side_images_raw[idx]
-joints_raw = np.load(os.path.join(args.dirname, "test/joints.npy"))
-joint_bounds = np.load(os.path.join(args.dirname, "joint_bounds.npy"))
+joints_raw = np.load(os.path.join(args.data_dir, "test/joints.npy"))
+joint_bounds = np.load(os.path.join(args.data_dir, "joint_bounds.npy"))
 if not args.no_wrench:
-    wrenches_raw = np.load(os.path.join(args.dirname, "test/wrenches.npy"))
-    wrench_bounds = np.load(os.path.join(args.dirname, "wrench_bounds.npy"))
+    wrenches_raw = np.load(os.path.join(args.data_dir, "test/wrenches.npy"))
+    wrench_bounds = np.load(os.path.join(args.data_dir, "wrench_bounds.npy"))
     wrenches = wrenches_raw[idx]
 front_images = front_images_raw[idx]
 joints = joints_raw[idx]

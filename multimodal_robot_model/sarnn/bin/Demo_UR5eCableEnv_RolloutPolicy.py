@@ -21,7 +21,7 @@ from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, Recor
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
-parser.add_argument("--dirname", type=str, default="./data", help="directory that stores test data, that has been generated, and will be loaded")
+parser.add_argument("--data_dir", type=str, default="./data", help="directory that stores test data, that has been generated, and will be loaded")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
 args = parser.parse_args()
 
@@ -32,7 +32,7 @@ params = restore_args(os.path.join(dir_name, "args.json"))
 
 ## Load dataset
 minmax = [params["vmin"], params["vmax"]]
-joint_bounds = np.load(os.path.join(args.dirname, "joint_bounds.npy"))
+joint_bounds = np.load(os.path.join(args.data_dir, "joint_bounds.npy"))
 joint_scales = [1.0] * 6 + [0.01]
 
 ## Define model
