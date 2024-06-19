@@ -1,22 +1,19 @@
-# Spatial attention recurrent neural network (SARNN), that crops image, and uses side image and wrench.
+# Spatial attention recurrent neural network (SARNN)
 
-## Requirements: installing EIPL
+## Requirements
 
-Install [EIPL](https://github.com/ogata-lab/eipl) according to `third_party/eipl/README.md`.
+Install [EIPL](https://github.com/ogata-lab/eipl).
 ```console
-$ # clone submodule resources
-$ cd MultimodalRobotModel
+$ # Go to the top directory of this repository
 $ git submodule update --init --recursive
-
-$ # install EIPL
 $ cd third_party/eipl
 $ pip install -r requirements.txt
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/ysk-kimura/MultimodalRobotModel) according to `README.md`. (pinocchio is not required.)
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
 ```console
-# Go to the top directory of this repository
+$ # Go to the top directory of this repository
 $ pip install -e .
 ```
 
@@ -50,8 +47,7 @@ data/teleop_data_00000000/
 Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
 
 ```console
-# e.g.
-$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
+$ python ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
 ```
 
 ## Model Training
@@ -59,8 +55,7 @@ $ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `
 Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
 
 ```console
-# e.g.
-$ python3 ./bin/train.py --data_dir ./data/
+$ python ./bin/train.py --data_dir ./data/
 ```
 
 ## Test
@@ -68,8 +63,7 @@ $ python3 ./bin/train.py --data_dir ./data/
 Specifying a weight file as the argument of `./bin/test.py` will save a gif animation of the predicted image, attention points, and predicted joint angles in the output folder.
 
 ```console
-# e.g.
-$ python3 ./bin/test.py --filename ./log/YEAR_DAY_TIME/SARNN.pth
+$ python ./bin/test.py --filename ./log/YEAR_DAY_TIME/SARNN.pth
 ```
 
 ## Visualization of internal representation using PCA
@@ -77,13 +71,11 @@ $ python3 ./bin/test.py --filename ./log/YEAR_DAY_TIME/SARNN.pth
 Specifying a weight file as the argument of `./bin/test_pca_sarnn.py` will save the internal representation of the RNN as a gif animation.
 
 ```console
-# e.g.
-$ python3 ./bin/test_pca_sarnn.py ./log/YEAR_DAY_TIME/SARNN.pth
+$ python ./bin/test_pca_sarnn.py ./log/YEAR_DAY_TIME/SARNN.pth
 ```
 
 ## Run a trained policy on the simulation
 
 ```console
-# e.g.
-$ python3 ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --dirname ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+$ python ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --dirname ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```
