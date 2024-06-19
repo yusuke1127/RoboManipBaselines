@@ -73,6 +73,8 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
             # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
             self.mujoco_renderer._viewers["dummy"] = None
 
+        self._first_render = True
+
     @property
     def urdf_path(self):
         return path.join(path.dirname(__file__), "assets/robots/ur5e/ur5e.urdf")
@@ -91,6 +93,9 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         info = self._get_info()
 
         if self.render_mode == "human":
+            if self._first_render:
+                self._first_render = False
+                self.mujoco_renderer.viewer._hide_menu = True
             self.render()
 
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
