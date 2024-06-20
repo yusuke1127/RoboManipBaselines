@@ -61,6 +61,7 @@ obs, info = env.reset(seed=42)
 
 # Setup motion manager
 motion_manager = MotionManager(env)
+RecordStatus.TELEOP._name_ = "AUTO"
 
 # Setup record manager
 record_manager = RecordManager(env)
