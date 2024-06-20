@@ -126,8 +126,8 @@ record_manager.setupSimWorld(pole_pos_idx=args.pole_pos_idx)
 
 # Setup window for policy image
 matplotlib.use("agg")
-fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
-ax = ax.reshape(-1, 3)
+fig, ax = plt.subplots(1, 2, figsize=(14, 6), dpi=60)
+ax = ax.reshape(-1, 2)
 canvas = FigureCanvasAgg(fig)
 pred_joint_list = np.empty((0, joint_dim))
 canvas.draw()
@@ -202,29 +202,19 @@ while True:
 
         # Draw camera front_image
         ax[0, 0].imshow(front_image)
-        for j in range(args.k_dim):
-            ax[0, 0].plot(enc_front_pts[j, 0], enc_front_pts[j, 1], "co", markersize=12)  # encoder
-            ax[0, 0].plot(
-                dec_front_pts[j, 0], dec_front_pts[j, 1], "rx", markersize=12, markeredgewidth=2
-            )  # decoder
         ax[0, 0].axis("off")
         ax[0, 0].set_title("Input front_image", fontsize=20)
 
-        # Draw predicted front_image
-        ax[0, 1].imshow(pred_front_image)
-        ax[0, 1].axis("off")
-        ax[0, 1].set_title("Predicted front_image", fontsize=20)
-
         # Plot joint
         T = 100
-        ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-        ax[0, 2].set_xlim(0, T)
+        ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        ax[0, 1].set_xlim(0, T)
         for joint_idx in range(pred_joint_list.shape[1]):
-            ax[0, 2].plot(np.arange(pred_joint_list.shape[0]), pred_joint_list[:, joint_idx] * joint_scales[joint_idx])
-        ax[0, 2].set_xlabel("Step", fontsize=20)
-        ax[0, 2].set_title("Joint", fontsize=20)
-        ax[0, 2].tick_params(axis="x", labelsize=16)
-        ax[0, 2].tick_params(axis="y", labelsize=16)
+            ax[0, 1].plot(np.arange(pred_joint_list.shape[0]), pred_joint_list[:, joint_idx] * joint_scales[joint_idx])
+        ax[0, 1].set_xlabel("Step", fontsize=20)
+        ax[0, 1].set_title("Joint", fontsize=20)
+        ax[0, 1].tick_params(axis="x", labelsize=16)
+        ax[0, 1].tick_params(axis="y", labelsize=16)
 
         canvas.draw()
         buf = canvas.buffer_rgba()
