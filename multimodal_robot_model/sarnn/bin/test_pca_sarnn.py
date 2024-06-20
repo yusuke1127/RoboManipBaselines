@@ -15,7 +15,6 @@ import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.animation as anim
 from sklearn.decomposition import PCA
-from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
 from eipl.utils import restore_args, tensor2numpy, normalization
 
 
@@ -45,7 +44,7 @@ if not args.no_wrench:
 
 # define model
 if (not args.no_side_image) and (not args.no_wrench):
-    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
     model = SARNNwithSideimageAndWrench(
         rec_dim=params["rec_dim"],
         joint_dim=7,

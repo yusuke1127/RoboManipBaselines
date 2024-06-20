@@ -91,7 +91,7 @@ if not args.no_side_image:
     side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
     side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
 if (not args.no_side_image) and (not args.no_wrench):
-    from data.dataset import MultimodalDatasetWithSideimageAndWrench
+    from multimodal_robot_model.sarnn import MultimodalDatasetWithSideimageAndWrench
     train_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
         side_images,
@@ -156,7 +156,7 @@ test_loader = DataLoader(
 
 # define model
 if (not args.no_side_image) and (not args.no_wrench):
-    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
     model = SARNNwithSideimageAndWrench(
         rec_dim=args.rec_dim,
         joint_dim=7,
@@ -189,7 +189,7 @@ optimizer = optim.Adam(model.parameters(), eps=1e-07, lr=args.lr)
 
 # load trainer/tester class
 if (not args.no_side_image) and (not args.no_wrench):
-    from libs.fullBPTTwithSideimageAndWrench import fullBPTTtrainerWithSideimageAndWrench, Loss
+    from multimodal_robot_model.sarnn import fullBPTTtrainerWithSideimageAndWrench, Loss
     loss_weights = [
         {
             Loss.FRONT_IMG: args.front_img_loss,

@@ -47,7 +47,7 @@ joints = joints_raw[idx]
 
 # define model
 if (not args.no_side_image) and (not args.no_wrench):
-    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
     model = SARNNwithSideimageAndWrench(
         rec_dim=params["rec_dim"],
         joint_dim=7,
