@@ -49,7 +49,7 @@ class fullBPTTtrainerWithMask(fullBPTTtrainer):
 
             pt_loss = torch.mean(
                 criterion(torch.stack(dec_pts_list[:-1]), torch.stack(enc_pts_list[1:])) ,
-                dim=2)
+                dim=2).T
             masked_pt_loss = torch.sum(pt_loss * mask[:, 1:-1]) / torch.sum(mask[:, 1:-1])
 
             loss = self.loss_weights[0] * masked_img_loss + \
