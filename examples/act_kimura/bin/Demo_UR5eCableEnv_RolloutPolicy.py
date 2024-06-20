@@ -21,10 +21,7 @@ from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, Recor
 # command line parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for policy")
-parser.add_argument("--dirname", type=str, default="./data", help="directory that stores test data, that has been generated, and will be loaded")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
-parser.add_argument("--vmin", type=float, default=0.0)
-parser.add_argument("--vmax", type=float, default=1.0)
 parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
 parser.add_argument('--task_name', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=True)
 parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
@@ -40,8 +37,6 @@ parser.add_argument('--num_epochs', action='store', type=int, help='num_epochs',
 args = parser.parse_args()
 
 ## Load dataset
-minmax = [args.vmin, args.vmax]
-joint_bounds = np.load(os.path.join(args.dirname, "joint_bounds.npy"))
 joint_scales = [1.0] * 6 + [0.01]
 
 # command line parameters
