@@ -1,6 +1,7 @@
 import os
 import sys
 import argparse
+import pickle
 import numpy as np
 import matplotlib
 import matplotlib.pylab as plt
@@ -88,15 +89,6 @@ im_size = 64
 joint_dim = 7
 policy = ACTPolicy(policy_config)
 
-def get_image(info, camera_names):
-    curr_images = []
-    for cam_name in camera_names:
-        curr_image = rearrange(info['images'][cam_name], 'h w c -> c h w')
-        curr_images.append(curr_image)
-    curr_image = np.stack(curr_images, axis=0)
-    curr_image = torch.from_numpy(curr_image / 255.0).float().cuda().unsqueeze(0)
-    return curr_image
-
 ## Load weight
 ckpt_path = os.path.join(ckpt_dir, ckpt_name)
 try:
@@ -108,6 +100,14 @@ except RuntimeError as e:
 print(loading_status)
 policy.cuda()
 policy.eval()
+
+print(f'Loaded: {ckpt_path}')
+stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl')
+with open(stats_path, 'rb') as f:
+    stats = pickle.load(f)
+
+pre_process = lambda _joint: (_joint - stats['joint_mean']) / stats['joint_std']
+post_process = lambda _action: _action * stats['action_std'] + stats['action_mean']
 
 # Setup gym
 env = gym.make(
@@ -159,26 +159,18 @@ while True:
         front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
         front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
         front_image_t = front_image.transpose(2, 0, 1)
-        front_image_t = normalization(front_image_t, (0, 255), minmax)
-        front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0))
+        front_image_t = front_image_t.astype(np.float32) / 255.0
+        front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0)).cuda().unsqueeze(0)
         joint = motion_manager.getAction()
-        joint_t = normalization(joint, joint_bounds, minmax)
-        joint_t = torch.Tensor(np.expand_dims(joint_t, 0))
+        joint_t = pre_process(joint)
+        joint_t = torch.Tensor(np.expand_dims(joint_t, 0)).cuda()
 
         # Infer
-        curr_image = get_image(info, camera_names)
-        all_actions = policy(
-            torch.from_numpy(
-                joint.reshape(1, -1)
-            ).to(
-                curr_image.dtype
-            ).cuda(), 
-            curr_image
-        )
+        all_actions = policy(joint_t, front_image_t)
 
         # denormalization
-        pred_joint = tensor2numpy(y_joint[0])
-        pred_joint = normalization(pred_joint, minmax, joint_bounds)
+        pred_joint = tensor2numpy(all_actions[0, 0])
+        pred_joint = post_process(pred_joint)
         pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
