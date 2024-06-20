@@ -77,12 +77,11 @@ def save_arr(file_name, arr_data, verbose):
 
 
 def load_data(in_dir, skip, nproc):
-    joints = []
     front_images = []
     side_images = []
     wrenches = []
-
-    seq_length = []
+    joints = []
+    masks = []
 
     file_names = glob.glob(os.path.join(in_dir, "**/*.npz"))
     file_names.sort()
@@ -95,20 +94,25 @@ def load_data(in_dir, skip, nproc):
     loaded_data = pool.map(
         load_skip_data, [(skip, file_name) for file_name in file_names]
     )
+    seq_length = []
+    for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
+        seq_length.append(len(_joints))
+    max_seq = max(seq_length)
+
     for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
         front_images.append(_front_images)
         side_images.append(_side_images)
         wrenches.append(_wrenches)
         joints.append(_joints)
-        seq_length.append(len(_joints))
+        masks.append(np.concatenate((np.ones(len(_joints)), np.zeros(max_seq - len(_joints)))))
 
-    max_seq = max(seq_length)
     front_images = list_to_numpy(front_images, max_seq)
     side_images = list_to_numpy(side_images, max_seq)
     wrenches = list_to_numpy(wrenches, max_seq)
     joints = list_to_numpy(joints, max_seq)
+    masks = np.stack(masks)
 
-    return front_images, side_images, wrenches, joints, file_names
+    return front_images, side_images, wrenches, joints, masks, file_names
 
 
 def split_dataset_index(in_list, train_size, test_size, random_state, shuffle):
@@ -140,7 +144,7 @@ def split_dataset_index(in_list, train_size, test_size, random_state, shuffle):
 
 if __name__ == "__main__":
     # load data
-    front_images, side_images, wrenches, joints, file_names = load_data(
+    front_images, side_images, wrenches, joints, masks, file_names = load_data(
         args.in_dir, args.skip, args.nproc
     )
 
@@ -169,10 +173,12 @@ if __name__ == "__main__":
     save_arr("./data/train/side_images.npy", side_images[train_list].astype(np.uint8), args.verbose)
     save_arr("./data/train/wrenches.npy", wrenches[train_list].astype(np.float32), args.verbose)
     save_arr("./data/train/joints.npy", joints[train_list].astype(np.float32), args.verbose)
+    save_arr("./data/train/masks.npy", masks[train_list].astype(np.float32), args.verbose)
     save_arr("./data/test/front_images.npy", front_images[test_list].astype(np.uint8), args.verbose)
     save_arr("./data/test/side_images.npy", side_images[test_list].astype(np.uint8), args.verbose)
     save_arr("./data/test/wrenches.npy", wrenches[test_list].astype(np.float32), args.verbose)
     save_arr("./data/test/joints.npy", joints[test_list].astype(np.float32), args.verbose)
+    save_arr("./data/test/masks.npy", masks[test_list].astype(np.float32), args.verbose)
 
     # save joint bounds
     joint_bounds = calc_minmax(joints)

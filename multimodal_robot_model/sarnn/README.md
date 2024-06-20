@@ -55,7 +55,7 @@ $ python ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `n
 Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
 
 ```console
-$ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench
+$ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench --with_mask
 ```
 
 ## Test

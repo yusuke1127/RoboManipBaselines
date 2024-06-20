@@ -41,6 +41,7 @@ parser.add_argument("--front_pt_loss", type=float, default=0.1)
 parser.add_argument("--side_pt_loss", type=float, default=0.1)
 parser.add_argument("--no_side_image", action="store_true")
 parser.add_argument("--no_wrench", action="store_true")
+parser.add_argument("--with_mask", action="store_true")
 parser.add_argument("--lr", type=float, default=1e-4)
 parser.add_argument("--heatmap_size", type=float, default=0.1)
 parser.add_argument("--temperature", type=float, default=1e-4)
@@ -90,7 +91,9 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 if not args.no_side_image:
     side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
     side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+masks = np.load(sorted(train_data_dir.glob("**/masks.npy"))[0])
 if (not args.no_side_image) and (not args.no_wrench):
+    assert not args.with_mask, "with_mask option is not supported for the model with side_image and wrench."
     from multimodal_robot_model.sarnn import MultimodalDatasetWithSideimageAndWrench
     train_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
@@ -101,13 +104,23 @@ if (not args.no_side_image) and (not args.no_wrench):
         stdev=stdev
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.data import MultimodalDataset
-    train_dataset = MultimodalDataset(
-        front_images,
-        joints,
-        device=device,
-        stdev=stdev
-    )
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+        train_dataset = MultimodalDatasetWithMask(
+            front_images,
+            joints,
+            masks,
+            device=device,
+            stdev=stdev
+        )
+    else:
+        from eipl.data import MultimodalDataset
+        train_dataset = MultimodalDataset(
+            front_images,
+            joints,
+            device=device,
+            stdev=stdev
+        )
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 train_loader = DataLoader(
@@ -128,6 +141,7 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 if not args.no_side_image:
     side_images_raw = np.load(sorted(test_data_dir.glob("**/side_images.npy"))[0])
     side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+masks = np.load(sorted(test_data_dir.glob("**/masks.npy"))[0])
 if (not args.no_side_image) and (not args.no_wrench):
     test_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
@@ -138,13 +152,23 @@ if (not args.no_side_image) and (not args.no_wrench):
         stdev=None
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.data import MultimodalDataset
-    test_dataset = MultimodalDataset(
-        front_images,
-        joints,
-        device=device,
-        stdev=None
-    )
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+        test_dataset = MultimodalDatasetWithMask(
+            front_images,
+            joints,
+            masks,
+            device=device,
+            stdev=stdev
+        )
+    else:
+        from eipl.data import MultimodalDataset
+        test_dataset = MultimodalDataset(
+            front_images,
+            joints,
+            device=device,
+            stdev=None
+        )
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 test_loader = DataLoader(
@@ -204,9 +228,13 @@ if (not args.no_side_image) and (not args.no_wrench):
         model, optimizer, loss_weights=loss_weights, device=device
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
     loss_weights = [args.front_img_loss, args.joint_loss, args.front_pt_loss]
-    trainer = fullBPTTtrainer(model, optimizer, loss_weights=loss_weights, device=device)
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import fullBPTTtrainerWithMask
+        trainer = fullBPTTtrainerWithMask(model, optimizer, loss_weights=loss_weights, device=device)
+    else:
+        from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
+        trainer = fullBPTTtrainer(model, optimizer, loss_weights=loss_weights, device=device)
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
