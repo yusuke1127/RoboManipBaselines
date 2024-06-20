@@ -80,7 +80,7 @@ cv2.imshow("Model image", cv2.cvtColor(model_image, cv2.COLOR_RGB2BGR))
 
 print("- Press space key to start automatic grasping.")
 
-state = None
+rnn_state = None
 while True:
     # Set arm command
     if record_manager.status == RecordStatus.PRE_REACH:
@@ -109,7 +109,7 @@ while True:
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0))
 
         # Infer
-        y_front_image, y_joint, y_enc_front_pts, y_dec_front_pts, state = model(front_image_t, joint_t, state)
+        y_front_image, y_joint, y_enc_front_pts, y_dec_front_pts, rnn_state = model(front_image_t, joint_t, rnn_state)
 
         # denormalization
         pred_front_image = tensor2numpy(y_front_image[0])
