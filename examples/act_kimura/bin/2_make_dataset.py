@@ -17,7 +17,7 @@ from eipl.utils import resize_img, calc_minmax, list_to_numpy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./bag/")
-parser.add_argument("--skip", type=int, default=10)
+parser.add_argument("--skip", type=int, default=1)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
 parser.add_argument("--cropped_img_size", type=int, required=False)
