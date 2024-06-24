@@ -82,9 +82,9 @@ def load_data(in_dir, skip, nproc):
     file_names = glob.glob(os.path.join(in_dir, "**/*.npz"))
     file_names.sort()
     try:
-        assert len(file_names) >= 1, f"Not asserted len(file_names):\t{len(file_names)}"
+        assert len(file_names) >= 1, f"{len(file_names)=}"
     except AssertionError as e:
-        print("in_dir:\t", in_dir)
+        sys.stderr.write(f"{sys.stderr.name} {in_dir=}\n")
         raise
     pool = Pool(nproc)
     loaded_data = pool.map(
