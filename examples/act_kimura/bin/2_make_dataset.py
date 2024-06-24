@@ -79,7 +79,7 @@ def load_data(in_dir, skip, nproc):
 
     seq_length = []
 
-    file_names = glob.glob(os.path.join(in_dir, "**/*.npz"))
+    file_names = glob.glob(os.path.join(in_dir, "**/*.npz"), recursive=True)
     file_names.sort()
     try:
         assert len(file_names) >= 1, f"{len(file_names)=}"
