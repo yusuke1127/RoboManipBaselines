@@ -59,7 +59,7 @@ Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training
 ```console
 # e.g.
 $ cd examples/act_kimura/
-$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_20240414 --train_keywords env0 env1 env2 env4 env5 --test_keywords env3 --nproc `nproc`
+$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_20240414 --train_keywords env0 env1 env2 env4 env5 --test_keywords env3 --resized_img_size 64 --nproc `nproc`
 ```
 
 ## Model Training

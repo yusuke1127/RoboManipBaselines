@@ -21,14 +21,15 @@ parser.add_argument("--skip", type=int, default=1)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
 parser.add_argument("--cropped_img_size", type=int, required=False)
+parser.add_argument("--resized_img_size", type=int, required=False)
 parser.add_argument("-j", "--nproc", type=int, default=1)
 parser.add_argument("-q", "--quiet", action="store_true")
 args = parser.parse_args()
 print(args)
 
 
-def load_skip_data(file_info):
-    skip, filename = file_info
+def load_skip_resize_data(file_info):
+    skip, resized_img_size, filename = file_info
     print(" " * 4 + filename)
     npz_data = np.load(filename)
     try:
@@ -50,8 +51,9 @@ def load_skip_data(file_info):
             ]
             _front_images = _front_images[:, fro_lef:fro_rig, fro_top:fro_bot, :]
             _side_images = _side_images[:, sid_lef:sid_rig, sid_top:sid_bot, :]
-        _front_images = resize_img(_front_images, (64, 64))
-        _side_images = resize_img(_side_images, (64, 64))
+        if resized_img_size is not None:
+            _front_images = resize_img(_front_images, (resized_img_size, resized_img_size))
+            _side_images = resize_img(_side_images, (resized_img_size, resized_img_size))
         _wrenches = npz_data["wrench"][::skip]
         _joints = npz_data["joint"][::skip]
     except KeyError as e:
@@ -71,7 +73,7 @@ def save_arr(file_name, arr_data, quiet):
         print(f"(save file, shape):\t( {file_name},\t{arr_data.shape} )")
 
 
-def load_data(in_dir, skip, nproc):
+def load_data(in_dir, skip, resized_img_size, nproc):
     joints = []
     front_images = []
     side_images = []
@@ -88,7 +90,7 @@ def load_data(in_dir, skip, nproc):
         raise
     pool = Pool(nproc)
     loaded_data = pool.map(
-        load_skip_data, [(skip, file_name) for file_name in file_names]
+        load_skip_resize_data, [(skip, resized_img_size, file_name) for file_name in file_names]
     )
     for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
         front_images.append(_front_images)
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     if not args.quiet:
         print("load_data:")
     front_images, side_images, wrenches, joints, file_names = load_data(
-        args.in_dir, args.skip, args.nproc
+        args.in_dir, args.skip, args.resized_img_size, args.nproc
     )
 
     # dataset keywords
