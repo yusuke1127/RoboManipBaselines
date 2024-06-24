@@ -44,15 +44,21 @@ data/teleop_data_00000000/
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Run `./bin/make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
+Make numpy files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
 
 ```console
 $ python ./bin/make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
 ```
 
+Visualize the generated data (optional).
+
+```console
+$ python ./bin/check_data.py --in_dir ./data/ --idx 0
+```
+
 ## Model Training
 
-Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
+Train the model. The trained weights are saved in the `log` folder.
 
 ```console
 $ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench --with_mask
@@ -60,7 +66,7 @@ $ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench --with_ma
 
 ## Test
 
-Specifying a weight file as the argument of `./bin/test.py` will save a gif animation of the predicted image, attention points, and predicted joint angles in the output folder.
+Save a gif animation of the predicted image, attention points, and predicted joint angles in the `output` folder.
 
 ```console
 $ python ./bin/test.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
@@ -68,14 +74,16 @@ $ python ./bin/test.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.p
 
 ## Visualization of internal representation using PCA
 
-Specifying a weight file as the argument of `./bin/test_pca_sarnn.py` will save the internal representation of the RNN as a gif animation.
+Save the internal representation of the RNN as a gif animation in the `output` folder.
 
 ```console
 $ python ./bin/test_pca_sarnn.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
 ```
 
-## Run a trained policy on the simulation
+## Policy rollout
+
+Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+$ python ./bin/rollout.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```
