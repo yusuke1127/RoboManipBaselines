@@ -44,10 +44,10 @@ data/teleop_data_00000000/
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
+Run `./bin/make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
 
 ```console
-$ python ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
+$ python ./bin/make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
 ```
 
 ## Model Training
