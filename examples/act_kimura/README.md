@@ -59,7 +59,7 @@ Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training
 ```console
 # e.g.
 $ cd examples/act_kimura/
-$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_20240414 --train_keywords env0 env1 env2 env4 env5 --test_keywords env3 --resized_img_size 64 --nproc `nproc`
+$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_20240414 --train_keywords env0 env1 env2 env4 env5 --test_keywords env3 --nproc `nproc`
 ```
 
 ## Model Training
@@ -71,7 +71,7 @@ Run `./bin/train.py` to start training the model. The trained weights are saved 
 $ python3 ./bin/imitate_episodes.py \
 --task_name sim_ur5ecable \
 --ckpt_dir ./data/ckpt \
---policy_class ACT --kl_weight 10 --chunk_size 50 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+--policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
 --num_epochs 20  --lr 1e-5 \
 --seed 0
 ```
