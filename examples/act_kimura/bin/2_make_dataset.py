@@ -17,6 +17,7 @@ from eipl.utils import resize_img, calc_minmax, list_to_numpy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./bag/")
+parser.add_argument("--out_dir", type=str, default="./data/")
 parser.add_argument("--skip", type=int, default=1)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
@@ -65,12 +66,13 @@ def load_skip_resize_data(file_info):
     return (_front_images, _side_images, _wrenches, _joints)
 
 
-def save_arr(file_name, arr_data, quiet):
+def save_arr(out_base_name, out_subpath_name, arr_data, quiet):
     """ almost an alias for np.save() """
-    Path(file_name).parent.mkdir(parents=True, exist_ok=True)
-    np.save(file_name, arr_data)
+    out_path = Path(out_base_name, out_subpath_name)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(out_path, arr_data)
     if not quiet:
-        print(f"(save file, shape):\t( {file_name},\t{arr_data.shape} )")
+        print(f"(out_path, shape):\t( {out_path},\t{arr_data.shape} )")
 
 
 def load_data(in_dir, skip, resized_img_size, nproc):
@@ -81,16 +83,16 @@ def load_data(in_dir, skip, resized_img_size, nproc):
 
     seq_length = []
 
-    file_names = glob.glob(os.path.join(in_dir, "**/*.npz"), recursive=True)
-    file_names.sort()
+    in_file_names = glob.glob(os.path.join(in_dir, "**/*.npz"), recursive=True)
+    in_file_names.sort()
     try:
-        assert len(file_names) >= 1, f"{len(file_names)=}"
+        assert len(in_file_names) >= 1, f"{len(in_file_names)=}"
     except AssertionError as e:
         sys.stderr.write(f"{sys.stderr.name} {in_dir=}\n")
         raise
     pool = Pool(nproc)
     loaded_data = pool.map(
-        load_skip_resize_data, [(skip, resized_img_size, file_name) for file_name in file_names]
+        load_skip_resize_data, [(skip, resized_img_size, in_file_name) for in_file_name in in_file_names]
     )
     for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
         front_images.append(_front_images)
@@ -105,14 +107,14 @@ def load_data(in_dir, skip, resized_img_size, nproc):
     wrenches = list_to_numpy(wrenches, max_seq)
     joints = list_to_numpy(joints, max_seq)
 
-    return front_images, side_images, wrenches, joints, file_names
+    return front_images, side_images, wrenches, joints, in_file_names
 
 
 if __name__ == "__main__":
     # load data
     if not args.quiet:
         print("load_data:")
-    front_images, side_images, wrenches, joints, file_names = load_data(
+    front_images, side_images, wrenches, joints, in_file_names = load_data(
         args.in_dir, args.skip, args.resized_img_size, args.nproc
     )
 
@@ -123,12 +125,12 @@ if __name__ == "__main__":
     else:
         # no arguments to train files
         # set train keywords excluding middle file
-        i_pivot = (len(file_names) - 1) // 2
+        i_pivot = (len(in_file_names) - 1) // 2
         train_keywords = [
             Path(
-                file_name
-            ).stem for i, file_name in enumerate(
-                file_names
+                in_file_name
+            ).stem for i, in_file_name in enumerate(
+                in_file_names
             ) if i != i_pivot
         ]
     if args.test_keywords is not None:
@@ -138,8 +140,8 @@ if __name__ == "__main__":
         # no arguments to test files
         # set test keywords excluding train keywords
         test_keywords = [
-            Path(file_name).stem for file_name in file_names if all([
-                (w not in file_name) for w in train_keywords
+            Path(in_file_name).stem for in_file_name in in_file_names if all([
+                (w not in in_file_name) for w in train_keywords
             ])
         ]
     if not args.quiet:
@@ -149,32 +151,32 @@ if __name__ == "__main__":
 
     # dataset index
     train_list, test_list = list(), list()
-    for i, file_name in enumerate(file_names):
-        if any([(w in file_name) for w in train_keywords]):
+    for i, in_file_name in enumerate(in_file_names):
+        if any([(w in in_file_name) for w in train_keywords]):
             train_list.append(i)
-        if any([(w in file_name) for w in test_keywords]):
+        if any([(w in in_file_name) for w in test_keywords]):
             test_list.append(i)
     if not args.quiet:
         print()
-        print("\n".join(["train:"] + [(" " * 4 + file_names[i]) for i in train_list]))
-        print("\n".join(["test:"] + [(" " * 4 + file_names[i]) for i in test_list]))
+        print("\n".join(["train:"] + [(" " * 4 + in_file_names[i]) for i in train_list]))
+        print("\n".join(["test:"] + [(" " * 4 + in_file_names[i]) for i in test_list]))
 
     # save
     if not args.quiet:
         print()
-    save_arr("./data/train/front_images.npy", front_images[train_list].astype(np.uint8), args.quiet)
-    save_arr("./data/train/side_images.npy", side_images[train_list].astype(np.uint8), args.quiet)
-    save_arr("./data/train/wrenches.npy", wrenches[train_list].astype(np.float32), args.quiet)
-    save_arr("./data/train/joints.npy", joints[train_list].astype(np.float32), args.quiet)
-    save_arr("./data/test/front_images.npy", front_images[test_list].astype(np.uint8), args.quiet)
-    save_arr("./data/test/side_images.npy", side_images[test_list].astype(np.uint8), args.quiet)
-    save_arr("./data/test/wrenches.npy", wrenches[test_list].astype(np.float32), args.quiet)
-    save_arr("./data/test/joints.npy", joints[test_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "train/front_images.npy", front_images[train_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "train/side_images.npy", side_images[train_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "train/wrenches.npy", wrenches[train_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "train/joints.npy", joints[train_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/front_images.npy", front_images[test_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "test/side_images.npy", side_images[test_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "test/wrenches.npy", wrenches[test_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/joints.npy", joints[test_list].astype(np.float32), args.quiet)
 
     # save joint bounds
     joint_bounds = calc_minmax(joints)
-    save_arr("./data/joint_bounds.npy", joint_bounds, args.quiet)
+    save_arr(args.out_dir, "joint_bounds.npy", joint_bounds, args.quiet)
 
     # save wrench bounds
     wrench_bounds = calc_minmax(wrenches)
-    save_arr("./data/wrench_bounds.npy", wrench_bounds, args.quiet)
+    save_arr(args.out_dir, "wrench_bounds.npy", wrench_bounds, args.quiet)
