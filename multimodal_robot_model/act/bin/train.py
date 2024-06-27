@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import sys
 import os
 import pickle
 import argparse
@@ -7,19 +8,9 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from tqdm import tqdm
 from einops import rearrange
-
-from constants import DT
-from constants import PUPPET_GRIPPER_JOINT_OPEN
-
-import sys
+from multimodal_robot_model.act import load_data, compute_dict_mean, set_seed, detach_dict
 sys.path.append("../../third_party/act/")
-from utils import load_data # data functions
-from utils import sample_box_pose, sample_insertion_pose # robot functions
-from utils import compute_dict_mean, set_seed, detach_dict # helper functions
-import sys
-sys.path.append("../../third_party/act")
 from policy import ACTPolicy, CNNMLPPolicy
-from visualize_episodes import save_videos
 
 from sim_env import BOX_POSE
 
@@ -43,12 +34,11 @@ def main(args):
     # get task parameters
     is_sim = task_name[:4] == 'sim_'
     if is_sim:
-        from constants import SIM_TASK_CONFIGS
+        from multimodal_robot_model.act import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
         from aloha_scripts.constants import TASK_CONFIGS
         task_config = TASK_CONFIGS[task_name]
-    dataset_dir = task_config['dataset_dir']
     camera_names = task_config['camera_names']
 
     # fixed parameters
@@ -234,14 +224,10 @@ if __name__ == '__main__':
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--onscreen_render', action='store_true')
     parser.add_argument('--dataset_dir', action='store', type=str, help='dataset_dir', required=False, default="./data/")
-    parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
+    parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=False, default="./log/")
     parser.add_argument('--policy_class', action='store', type=str, help='policy_class, capitalize', required=True)
-<<<<<<< HEAD:.working_on/examples/act_kimura/bin/imitate_episodes.py
     parser.add_argument('--camera_names', action='store', type=lambda x:list(map(str, x.split(','))), help='camera_names', required=False, default=["front"])
-    parser.add_argument('--task_name', action='store', type=str, help='task_name', required=True)
-=======
     parser.add_argument('--task_name', default='sim_ur5ecable', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=False)
->>>>>>> f66fdf7... move codes for ACT working on to examples/act_kimura/ directory:examples/act_kimura/bin/imitate_episodes.py
     parser.add_argument('--batch_size', action='store', type=int, help='batch_size', required=True)
     parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
     parser.add_argument('--num_epochs', action='store', type=int, help='num_epochs', required=True)
@@ -253,5 +239,5 @@ if __name__ == '__main__':
     parser.add_argument('--hidden_dim', action='store', type=int, help='hidden_dim', required=False)
     parser.add_argument('--dim_feedforward', action='store', type=int, help='dim_feedforward', required=False)
     parser.add_argument('--temporal_agg', action='store_true')
-    
+
     main(vars(parser.parse_args()))

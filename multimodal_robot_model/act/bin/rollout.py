@@ -49,11 +49,10 @@ seed = args.seed
 # get task parameters
 is_sim = task_name[:4] == 'sim_'
 if is_sim:
-    from constants import SIM_TASK_CONFIGS
+    from multimodal_robot_model.act import SIM_TASK_CONFIGS
     task_config = SIM_TASK_CONFIGS[task_name]
 else:
     assert False, f"{task_name=}"
-dataset_dir = task_config['dataset_dir']
 camera_names = task_config['camera_names']
 
 # fixed parameters

@@ -14,6 +14,9 @@ $ pip install -e .
 ### [SARNN](./multimodal_robot_model/sarnn)
 Spatial attention recurrent neural network
 
+### [ACT](./multimodal_robot_model/act)
+Action Chunking with Transformers
+
 ## Data collection
 ### Sample data
 Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1potaosirh/teleop_data_20240414.zip?rlkey=2vt1h5gde7l42vrwz4axj10da&dl=0).

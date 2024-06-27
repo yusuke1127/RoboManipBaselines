@@ -1,92 +1,79 @@
-## Requirements
-### Installing ACT
+# Action Chunking with Transformers (ACT)
 
-Install [ACT](https://github.com/tonyzhaozh/act) under `third_party/act/` according to [act/README.md](https://github.com/tonyzhaozh/act/blob/main/README.md).
+## Install
+
+Install [SARNN](../sarnn).
+
+Install [ACT](https://github.com/tonyzhaozh/act).
 ``` console
-$ cd MultimodalRobotModel/
-$ git clone https://github.com/tonyzhaozh/act
+$ # Go to the top directory of this repository
+$ git submodule update --init --recursive
+$ cd third_party/act
 $ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==2.3.7 \
  dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
-$ cd act/detr && pip install -e .
-```
-Replace 14 with 7 in act/detr/models/detr_vae.py .
-``` console
-$ sed -ir "s/14/7/g" act/detr/models/detr_vae.py
-```
-
-### Installing EIPL
-To run `./bin/2_make_dataset.py`, install [EIPL](https://github.com/ogata-lab/eipl) according to `third_party/eipl/README.md`.
-```console
-$ # clone submodule resources
-$ cd MultimodalRobotModel
-$ git submodule update --init --recursive
-
-$ # install EIPL
-$ cd third_party/eipl
-$ pip install -r requirements.txt
+$ cd detr
 $ pip install -e .
 ```
 
 ## Dataset preparation
 
-Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_00000000`. 
+Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
 
 ```console
-$ tree data/teleop_data_00000000/
-data/teleop_data_00000000/
+$ tree data/teleop_data_sample/
+data/teleop_data_sample/
 ├── env0
-│   ├── UR5eCableEnv_env0_000.npz
-│   └── UR5eCableEnv_env0_006.npz
+│   ├── UR5eCableEnv_env0_000.npz
+│   └── UR5eCableEnv_env0_006.npz
 ├── env1
-│   ├── UR5eCableEnv_env1_001.npz
-│   └── UR5eCableEnv_env1_007.npz
+│   ├── UR5eCableEnv_env1_001.npz
+│   └── UR5eCableEnv_env1_007.npz
 ├── env2
-│   ├── UR5eCableEnv_env2_002.npz
-│   └── UR5eCableEnv_env2_008.npz
+│   ├── UR5eCableEnv_env2_002.npz
+│   └── UR5eCableEnv_env2_008.npz
 ├── env3
-│   ├── UR5eCableEnv_env3_003.npz
-│   └── UR5eCableEnv_env3_009.npz
+│   ├── UR5eCableEnv_env3_003.npz
+│   └── UR5eCableEnv_env3_009.npz
 ├── env4
-│   ├── UR5eCableEnv_env4_004.npz
-│   └── UR5eCableEnv_env4_010.npz
+│   ├── UR5eCableEnv_env4_004.npz
+│   └── UR5eCableEnv_env4_010.npz
 └── env5
     ├── UR5eCableEnv_env5_005.npz
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
+Make numpy files in each of `train` (for training) and `test` directories (for validation).
 
 ```console
-# e.g.
-$ cd examples/act_kimura/
-$ python3 ./bin/2_make_dataset.py --in_dir ./data/teleop_data_20240414 --train_keywords env0 env1 env2 env4 env5 --test_keywords env3 --nproc `nproc`
+$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 1
+```
+
+Visualize the generated data (optional).
+
+```console
+$ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
 ```
 
 ## Model Training
 
-Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
+Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-# e.g.
-$ python3 ./bin/imitate_episodes.py \
---task_name sim_ur5ecable \
---ckpt_dir ./data/ckpt \
+$ python ./bin/train.py \
+--dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME --task_name sim_ur5ecable \
 --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
---num_epochs 20  --lr 1e-5 \
+--num_epochs 1000 --lr 1e-5 \
 --seed 0
 ```
 
-## Model Evaluation
+## Policy rollout
 
-Note: The following command will terminate abnormally with `raise NotImplementedError` because the work is in progress.
+Run a trained policy in the simulator.
 
 ```console
-# e.g.
-$ python3 ./bin/imitate_episodes.py \
---task_name sim_ur5ecable \
---ckpt_dir ./data/ckpt \
---policy_class ACT --kl_weight 10 --chunk_size 50 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
---num_epochs 20  --lr 1e-5 \
---seed 0 --eval --onscreen_render
+$ python ./bin/rollout.py \
+--ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name sim_ur5ecable \
+--policy_class ACT --chunk_size 100 --num_epochs 0 \
+--seed 0 \
+--pole-pos-idx 0
 ```
-

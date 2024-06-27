@@ -1,6 +1,6 @@
 # Spatial attention recurrent neural network (SARNN)
 
-## Requirements
+## Install
 
 Install [EIPL](https://github.com/ogata-lab/eipl).
 ```console
@@ -44,7 +44,7 @@ data/teleop_data_sample/
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Make numpy files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_sample`.
+Make numpy files in each of `train` (for training) and `test` directories (for validation).
 
 ```console
 $ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 10 --cropped_img_size 128 --resized_img_size 64
