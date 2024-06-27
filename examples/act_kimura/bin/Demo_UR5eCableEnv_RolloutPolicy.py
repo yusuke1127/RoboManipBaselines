@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for policy")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
 parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', required=True)
+parser.add_argument('--ckpt_name', default='policy_best.ckpt', type=str, help='ckpt_name')
 parser.add_argument('--task_name', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=True)
 parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
 # for ACT
@@ -77,7 +78,7 @@ if policy_class == 'ACT':
 else:
     assert False, f"{policy_class=}"
 
-ckpt_name = f'policy_best.ckpt'
+ckpt_name = args.ckpt_name
 
 ## Define policy
 im_size = 64
@@ -133,6 +134,7 @@ cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
 print("- Press space key to start automatic grasping.")
 
 state = None
+all_actions_history = []
 while True:
     # Set arm command
     if record_manager.status == RecordStatus.PRE_REACH:
@@ -144,15 +146,15 @@ while True:
         target_pos[2] = 0.995 # [m]
         motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
 
-    skip = 10
+    skip = 1
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
         front_image = info["images"]["front"]
         cropped_img_size = 128
         [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
         [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
-        front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
-        front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
+        # front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
+        # front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
         front_image_t = front_image.transpose(2, 0, 1)
         front_image_t = front_image_t.astype(np.float32) / 255.0
         front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0)).cuda().unsqueeze(0)
@@ -161,12 +163,21 @@ while True:
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0)).cuda()
 
         # Infer
-        all_actions = policy(joint_t, front_image_t)
+        all_actions = policy(joint_t, front_image_t)[0]
+        all_actions_history.append(tensor2numpy(all_actions))
+        if len(all_actions_history) > args.chunk_size:
+            all_actions_history.pop(0)
 
         # denormalization
-        pred_joint = tensor2numpy(all_actions[0, 0])
-        pred_joint = post_process(pred_joint)
-        pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
+        k = 0.01
+        exp_weights = np.exp(-k * np.arange(len(all_actions_history)))
+        exp_weights = exp_weights / exp_weights.sum()
+        action = np.zeros(joint_dim)
+        for action_idx, _all_actions in enumerate(reversed(all_actions_history)):
+            action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
+        pred_joint = post_process(action)
+        if time_idx % skip_draw == 0:
+            pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
     if record_manager.status == RecordStatus.GRASP:
@@ -190,7 +201,8 @@ while True:
     cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
 
     # Draw policy images
-    if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
+    skip_draw = 10
+    if record_manager.status == RecordStatus.TELEOP and time_idx % skip_draw == 0:
         for j in range(ax.shape[0]):
             for k in range(ax.shape[1]):
                 ax[j, k].cla()
