@@ -7,7 +7,6 @@
 
 import os
 import sys
-sys.path.append("../../../..")
 from tqdm import tqdm
 import torch
 import argparse

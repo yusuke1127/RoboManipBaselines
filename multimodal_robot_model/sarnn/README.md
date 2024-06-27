@@ -19,11 +19,11 @@ $ pip install -e .
 
 ## Dataset preparation
 
-Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_00000000`. 
+Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
 
 ```console
-$ tree data/teleop_data_00000000/
-data/teleop_data_00000000/
+$ tree data/teleop_data_sample/
+data/teleop_data_sample/
 ├── env0
 │   ├── UR5eCableEnv_env0_000.npz
 │   └── UR5eCableEnv_env0_006.npz
@@ -44,38 +44,46 @@ data/teleop_data_00000000/
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Run `./bin/2_make_dataset.py` to make NPZ files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_00000000`.
+Make numpy files in each of `train` (for training) and `test` directories (for validation), in `teleop_data_sample`.
 
 ```console
-$ python ./bin/2_make_dataset.py --in_dir ./data/teleop_data_00000000 --nproc `nproc` --cropped_img_size 128
+$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 10 --cropped_img_size 128 --resized_img_size 64
+```
+
+Visualize the generated data (optional).
+
+```console
+$ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
 ```
 
 ## Model Training
 
-Run `./bin/train.py` to start training the model. The trained weights are saved in the log folder.
+Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py --data_dir ./data/ --no_side_image --no_wrench --with_mask
+$ python ./bin/train.py --data_dir ./data/learning_data_sample --no_side_image --no_wrench --with_mask
 ```
 
 ## Test
 
-Specifying a weight file as the argument of `./bin/test.py` will save a gif animation of the predicted image, attention points, and predicted joint angles in the output folder.
+Save a gif animation of the predicted image, attention points, and predicted joint angles in the `output` folder.
 
 ```console
-$ python ./bin/test.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
+$ python ./bin/test.py --data_dir ./data/learning_data_sample --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
 ```
 
 ## Visualization of internal representation using PCA
 
-Specifying a weight file as the argument of `./bin/test_pca_sarnn.py` will save the internal representation of the RNN as a gif animation.
+Save the internal representation of the RNN as a gif animation in the `output` folder.
 
 ```console
-$ python ./bin/test_pca_sarnn.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
+$ python ./bin/test_pca.py --data_dir ./data/learning_data_sample --filename ./log/YEAR_DAY_TIME/SARNN.pth --no_side_image --no_wrench
 ```
 
-## Run a trained policy on the simulation
+## Policy rollout
+
+Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/Demo_UR5eCableEnv_RolloutPolicy.py --data_dir ./data/ --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+$ python ./bin/rollout.py --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```

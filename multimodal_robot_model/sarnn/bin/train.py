@@ -7,7 +7,7 @@
 
 import os
 import sys
-sys.path.append("../../third_party/eipl/")
+import shutil
 import random
 import torch
 import numpy as np
@@ -77,6 +77,12 @@ else:
 # load dataset
 data_dir = Path(args.data_dir)
 minmax = [args.vmin, args.vmax]
+
+# copy bound files
+log_dir_path = set_logdir("./" + args.log_dir, args.tag)
+bound_files = sorted(data_dir.glob("*_bounds.npy"))
+for bound_file in bound_files:
+    shutil.copy(bound_file, os.path.join(log_dir_path, bound_file.name))
 
 train_data_dir = data_dir / "train"
 joint_bounds = np.load(data_dir / "joint_bounds.npy")
@@ -239,7 +245,6 @@ else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
 ### training main
-log_dir_path = set_logdir("./" + args.log_dir, args.tag)
 save_name = os.path.join(log_dir_path, "SARNN.pth")
 writer = SummaryWriter(log_dir=log_dir_path, flush_secs=30)
 early_stop = EarlyStopping(patience=1000)
