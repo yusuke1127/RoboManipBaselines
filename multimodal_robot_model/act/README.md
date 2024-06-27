@@ -2,7 +2,7 @@
 
 ## Install
 
-Install [SARNN](../sarnn).
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
 
 Install [ACT](https://github.com/tonyzhaozh/act).
 ``` console
