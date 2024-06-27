@@ -85,5 +85,5 @@ $ python ./bin/test_pca.py --data_dir ./data/learning_data_sample --filename ./l
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/rollout.py --data_dir ./data/learning_data_sample --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
+$ python ./bin/rollout.py --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```
