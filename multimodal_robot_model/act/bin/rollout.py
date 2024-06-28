@@ -26,6 +26,8 @@ parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', req
 parser.add_argument('--ckpt_name', default='policy_best.ckpt', type=str, help='ckpt_name')
 parser.add_argument('--task_name', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=True)
 parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
+parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
+parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
 # for ACT
 parser.add_argument('--kl_weight', default=10, type=int, help='KL Weight', required=False)
 parser.add_argument('--chunk_size', default=100, type=int, help='chunk_size', required=False)
@@ -45,6 +47,8 @@ ckpt_dir = args.ckpt_dir
 policy_class = args.policy_class
 task_name = args.task_name
 seed = args.seed
+win_xy_policy = args.win_xy_policy
+win_xy_simulation = args.win_xy_simulation
 
 # get task parameters
 is_sim = task_name[:4] == 'sim_'
@@ -130,6 +134,8 @@ canvas.draw()
 buf = canvas.buffer_rgba()
 policy_image = np.asarray(buf)
 cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
+if win_xy_policy is not None:
+    cv2.moveWindow("Policy image", *win_xy_policy)
 
 print("- Press space key to start automatic grasping.")
 
@@ -199,6 +205,8 @@ while True:
     status_image = record_manager.getStatusImage()
     window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
     cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
+    if win_xy_policy is not None:
+        cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
     skip_draw = 10
@@ -227,6 +235,8 @@ while True:
         buf = canvas.buffer_rgba()
         policy_image = np.asarray(buf)
         cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
+        if win_xy_policy is not None:
+            cv2.moveWindow("Policy image", *win_xy_policy)
         # plt.draw()
         # plt.pause(0.001)
 
