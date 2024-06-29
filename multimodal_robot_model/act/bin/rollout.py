@@ -42,7 +42,7 @@ args = parser.parse_args()
 ## Load dataset
 joint_scales = [1.0] * 6 + [0.01]
 
-# command line parameters
+# Command line parameters
 ckpt_dir = args.ckpt_dir
 policy_class = args.policy_class
 task_name = args.task_name
@@ -50,7 +50,7 @@ seed = args.seed
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
 
-# get task parameters
+# Get task parameters
 is_sim = task_name[:4] == 'sim_'
 if is_sim:
     from multimodal_robot_model.act import SIM_TASK_CONFIGS
@@ -59,8 +59,9 @@ else:
     assert False, f"{task_name=}"
 camera_names = task_config['camera_names']
 
-# fixed parameters
-state_dim = 14
+# Set fixed parameters
+apply_crop = False
+apply_resize = False
 lr_backbone = 1e-5
 backbone = 'resnet18'
 if policy_class == 'ACT':
@@ -156,11 +157,13 @@ while True:
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
         front_image = info["images"]["front"]
-        cropped_img_size = 128
-        [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
-        [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
-        # front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
-        # front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
+        if apply_crop:
+            cropped_img_size = 128
+            [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
+            [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
+            front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
+        if apply_resize:
+            front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
         front_image_t = front_image.transpose(2, 0, 1)
         front_image_t = front_image_t.astype(np.float32) / 255.0
         front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0)).cuda().unsqueeze(0)
@@ -174,7 +177,7 @@ while True:
         if len(all_actions_history) > args.chunk_size:
             all_actions_history.pop(0)
 
-        # denormalization
+        # Apply temporal ensembling
         k = 0.01
         exp_weights = np.exp(-k * np.arange(len(all_actions_history)))
         exp_weights = exp_weights / exp_weights.sum()

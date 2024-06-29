@@ -35,8 +35,7 @@ def main(args):
         from multimodal_robot_model.act import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
-        from aloha_scripts.constants import TASK_CONFIGS
-        task_config = TASK_CONFIGS[task_name]
+        assert False, f"{task_name=}"
     camera_names = task_config['camera_names']
 
     # fixed parameters
