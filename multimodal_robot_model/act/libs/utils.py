@@ -50,18 +50,23 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 print(f"cam_name:\t{cam_name}")
                 raise
             image_dict[cam_name] = original_image[episode_id][start_ts]
+        # get mask
+        original_mask = load_array(self.dataset_dir, "**/masks.npy")[episode_id].astype(bool)
         # get all actions after and including start_ts
         if self.is_sim:
             action = original_action[start_ts:]
             action_len = episode_len - start_ts
+            mask = original_mask[start_ts:]
         else:
             action = original_action[max(0, start_ts - 1):] # hack, to make timesteps more aligned
             action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
+            mask = original_mask[max(0, start_ts - 1):]
 
         padded_action = np.zeros(original_action_shape, dtype=np.float32)
         padded_action[:action_len] = action
-        is_pad = np.zeros(episode_len)
-        is_pad[action_len:] = 1
+        padded_mask = np.zeros(episode_len, dtype=bool)
+        padded_mask[:action_len] = mask
+        is_pad = ~padded_mask
 
         # new axis for different cameras
         all_cam_images = []
