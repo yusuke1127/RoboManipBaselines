@@ -33,7 +33,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
 
         original_joint = load_array(self.dataset_dir, "**/joints.npy")[episode_id]
         episode_len = original_joint.shape[0]
-        original_action = MotionManager.getAction(joint_pos=original_joint[:-1], gripper_pos=original_joint[-1])
+        original_action = original_joint
         original_action_shape = original_action.shape
         if sample_full_episode:
             start_ts = 0
@@ -95,7 +95,7 @@ def get_norm_stats(train_dataset_dir, val_dataset_dir):
         except IndexError:
             print(f"dataset_dir:\t{dataset_dir}")
             raise
-        action = MotionManager.getAction(joint_pos=joint[:-1], gripper_pos=joint[-1])
+        action = joint
         all_joint_data.append(torch.from_numpy(joint))
         all_action_data.append(torch.from_numpy(action))
     all_joint_data = torch.cat(all_joint_data)
@@ -117,12 +117,6 @@ def get_norm_stats(train_dataset_dir, val_dataset_dir):
              "example_joint": joint}
 
     return stats
-
-
-class MotionManager(object):
-    @classmethod
-    def getAction(cls, joint_pos, gripper_pos):
-        return np.concatenate([joint_pos, [gripper_pos]])
 
 
 def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val):
