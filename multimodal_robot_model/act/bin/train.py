@@ -12,8 +12,6 @@ from multimodal_robot_model.act import load_data, compute_dict_mean, set_seed, d
 sys.path.append("../../third_party/act/")
 from policy import ACTPolicy, CNNMLPPolicy
 
-from sim_env import BOX_POSE
-
 import IPython
 e = IPython.embed
 
