@@ -87,3 +87,9 @@ Run a trained policy in the simulator.
 ```console
 $ python ./bin/rollout.py --filename ./log/YEAR_DAY_TIME/SARNN.pth --pole-pos-idx 1
 ```
+
+Repeatedly run a trained policy in different environments in the simulator.
+
+```console
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/
+```

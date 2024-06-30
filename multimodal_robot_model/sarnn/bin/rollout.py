@@ -18,7 +18,11 @@ from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, Recor
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
+parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
+parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
 args = parser.parse_args()
+win_xy_policy = args.win_xy_policy
+win_xy_simulation = args.win_xy_simulation
 
 # Setup model
 ## Restore parameters
@@ -74,8 +78,10 @@ canvas = FigureCanvasAgg(fig)
 pred_joint_list = np.empty((0, joint_dim))
 canvas.draw()
 buf = canvas.buffer_rgba()
-model_image = np.asarray(buf)
-cv2.imshow("Model image", cv2.cvtColor(model_image, cv2.COLOR_RGB2BGR))
+policy_image = np.asarray(buf)
+cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
+if win_xy_policy is not None:
+    cv2.moveWindow("Policy image", *win_xy_policy)
 
 print("- Press space key to start automatic grasping.")
 
@@ -140,6 +146,8 @@ while True:
     status_image = record_manager.getStatusImage()
     window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
     cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
+    if win_xy_simulation is not None:
+        cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw model images
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
@@ -175,8 +183,10 @@ while True:
 
         canvas.draw()
         buf = canvas.buffer_rgba()
-        model_image = np.asarray(buf)
-        cv2.imshow("Model image", cv2.cvtColor(model_image, cv2.COLOR_RGB2BGR))
+        policy_image = np.asarray(buf)
+        cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
+        if win_xy_policy is not None:
+            cv2.moveWindow("Policy image", *win_xy_policy)
         # plt.draw()
         # plt.pause(0.001)
 

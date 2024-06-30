@@ -208,7 +208,7 @@ while True:
     status_image = record_manager.getStatusImage()
     window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
     cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
-    if win_xy_policy is not None:
+    if win_xy_simulation is not None:
         cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
