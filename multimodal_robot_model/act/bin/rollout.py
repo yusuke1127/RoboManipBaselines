@@ -12,7 +12,7 @@ import pinocchio as pin
 from tqdm import tqdm
 from einops import rearrange
 import torch
-sys.path.append("../../third_party/act")
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
