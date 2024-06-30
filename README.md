@@ -6,7 +6,7 @@ Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 https://stack-of-tasks.github.io/pinocchio/download.html#Install_4
 
 2. Install this package via pip.
-```bash
+```console
 $ pip install -e .
 ```
 
@@ -17,19 +17,22 @@ Spatial attention recurrent neural network
 ### [ACT](./multimodal_robot_model/act)
 Action Chunking with Transformers
 
-## Data collection
+## Utilities
+See [utils](./multimodal_robot_model/utils).
+
+## Data collection in MuJoCo
 ### Sample data
 Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1potaosirh/teleop_data_20240414.zip?rlkey=2vt1h5gde7l42vrwz4axj10da&dl=0).
 
 ### Record teleoperation data
-```bash
+```console
 $ cd multimodal_robot_model/demos/
 $ # Connect SpaceMouse to your PC.
 $ python Demo_UR5eCableEnv_Teleop.py
 ```
 
 ### Playback teleoperation data
-```bash
+```console
 $ cd multimodal_robot_model/demos/
 $ python Demo_UR5eCableEnv_Playback.py ./teleop_data/env0/UR5eCableEnv_env0_000.npz
 ```
