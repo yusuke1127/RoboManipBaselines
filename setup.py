@@ -10,5 +10,8 @@ setup(
         "imageio >=2.14.1",
         "pyspacemouse",
         "opencv-python",
+        "rosbag",
+        "pycryptodomex",
+        "gnupg",
     ],
 )
