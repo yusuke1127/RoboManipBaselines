@@ -77,3 +77,9 @@ $ python ./bin/rollout.py \
 --seed 0 \
 --pole-pos-idx 0
 ```
+
+Repeatedly run a trained policy in different environments in the simulator.
+
+```console
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt
+```
