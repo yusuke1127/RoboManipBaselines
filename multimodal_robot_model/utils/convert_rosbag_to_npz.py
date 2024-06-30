@@ -51,12 +51,12 @@ for bag_path in bag_path_list:
     images = np.array(image_list, dtype=np.uint8)
 
     # Get shorter length
-    seq_length = min(len(joints), len(images))
+    seq_len = min(len(joints), len(images))
 
     # Trim
-    joints = joints[:seq_length]
-    images = images[:seq_length]
-    times = np.arange(seq_length) / float(args.freq)
+    joints = joints[:seq_len]
+    images = images[:seq_len]
+    times = np.arange(seq_len) / float(args.freq)
 
     # Save
     if args.out_dir is None:
@@ -70,6 +70,6 @@ for bag_path in bag_path_list:
         time=times,
         joint=joints,
         front_image=images,
-        wrench=np.zeros((seq_length, 6)), # TODO: dummy
+        wrench=np.zeros((seq_len, 6)), # TODO: dummy
         side_image=np.zeros_like(images), # TODO: dummy
     )
