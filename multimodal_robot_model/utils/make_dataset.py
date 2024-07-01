@@ -12,11 +12,13 @@ import argparse
 import numpy as np
 from multiprocessing import Pool
 from pathlib import Path
+import random
 from eipl.utils import resize_img, calc_minmax, list_to_numpy
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")
 parser.add_argument("--out_dir", type=str, default="./data/")
+parser.add_argument("--train_ratio", type=float, required=False)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
 parser.add_argument("--skip", type=int, default=1)
@@ -25,7 +27,7 @@ parser.add_argument("--resized_img_size", type=int, required=False)
 parser.add_argument("-j", "--nproc", type=int, default=1)
 parser.add_argument("-q", "--quiet", action="store_true")
 args = parser.parse_args()
-print("arguments:")
+print("[make_dataset] arguments:")
 for k, v in vars(args).items():
     print(" " * 4 + f"{k}: {v}")
 print()
@@ -118,70 +120,52 @@ def load_data(in_dir, skip, resized_img_size, nproc):
 
 
 if __name__ == "__main__":
-    # load data
+    # Load data
     if not args.quiet:
-        print("input files:")
+        print("[make_dataset] input files:")
     front_images, side_images, wrenches, joints, masks, in_file_names = load_data(
         args.in_dir, args.skip, args.resized_img_size, args.nproc
     )
 
-    # dataset keywords
-    if args.train_keywords is not None:
-        # use arguments to train files
-        train_keywords = args.train_keywords
-    else:
-        # no arguments to train files
-        # set train keywords excluding middle file
-        i_pivot = (len(in_file_names) - 1) // 2
-        train_keywords = [
-            Path(
-                in_file_name
-            ).stem for i, in_file_name in enumerate(
-                in_file_names
-            ) if i != i_pivot
-        ]
+    # Set dataset index
+    train_idx_list, test_idx_list = list(), list()
+    if args.train_ratio is not None:
+        random_idx_list = list(range(len(in_file_names)))
+        random.shuffle(random_idx_list)
+        train_len = int(np.clip(args.train_ratio, 0.0, 1.0) * len(in_file_names))
+        train_idx_list = random_idx_list[:train_len]
+        test_idx_list = random_idx_list[train_len:]
+    elif args.train_keywords is not None:
+        for idx, in_file_name in enumerate(in_file_names):
+            if any([(w in in_file_name) for w in args.train_keywords]):
+                train_idx_list.append(idx)
     if args.test_keywords is not None:
-        # use arguments to test files
-        test_keywords = args.test_keywords
-    else:
-        # no arguments to test files
-        # set test keywords excluding train keywords
-        test_keywords = [
-            Path(in_file_name).stem for in_file_name in in_file_names if all([
-                (w not in in_file_name) for w in train_keywords
-            ])
-        ]
+        for idx, in_file_name in enumerate(in_file_names):
+            if any([(w in in_file_name) for w in args.test_keywords]):
+                test_idx_list.append(idx)
+    elif len(test_idx_list) == 0:
+        for idx in range(len(in_file_names)):
+            if idx not in train_idx_list:
+                test_idx_list.append(idx)
     if not args.quiet:
         print()
-        print("train keywords:\t", train_keywords)
-        print("test keywords:\t", test_keywords)
-
-    # dataset index
-    train_list, test_list = list(), list()
-    for i, in_file_name in enumerate(in_file_names):
-        if any([(w in in_file_name) for w in train_keywords]):
-            train_list.append(i)
-        if any([(w in in_file_name) for w in test_keywords]):
-            test_list.append(i)
-    if not args.quiet:
-        print()
-        print("\n".join(["train files:"] + [(" " * 4 + in_file_names[i]) for i in train_list]))
-        print("\n".join(["test files:"] + [(" " * 4 + in_file_names[i]) for i in test_list]))
+        print("\n".join(["[make_dataset] train files:"] + [(" " * 4 + in_file_names[idx]) for idx in train_idx_list]))
+        print("\n".join(["[make_dataset] test files:"] + [(" " * 4 + in_file_names[idx]) for idx in test_idx_list]))
 
     # save
     if not args.quiet:
         print()
-        print("output files:")
-    save_arr(args.out_dir, "train/masks.npy", masks[train_list].astype(np.float32), args.quiet)
-    save_arr(args.out_dir, "train/front_images.npy", front_images[train_list].astype(np.uint8), args.quiet)
-    save_arr(args.out_dir, "train/side_images.npy", side_images[train_list].astype(np.uint8), args.quiet)
-    save_arr(args.out_dir, "train/wrenches.npy", wrenches[train_list].astype(np.float32), args.quiet)
-    save_arr(args.out_dir, "train/joints.npy", joints[train_list].astype(np.float32), args.quiet)
-    save_arr(args.out_dir, "test/masks.npy", masks[test_list].astype(np.float32), args.quiet)
-    save_arr(args.out_dir, "test/front_images.npy", front_images[test_list].astype(np.uint8), args.quiet)
-    save_arr(args.out_dir, "test/side_images.npy", side_images[test_list].astype(np.uint8), args.quiet)
-    save_arr(args.out_dir, "test/wrenches.npy", wrenches[test_list].astype(np.float32), args.quiet)
-    save_arr(args.out_dir, "test/joints.npy", joints[test_list].astype(np.float32), args.quiet)
+        print("[make_dataset] output files:")
+    save_arr(args.out_dir, "train/masks.npy", masks[train_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "train/front_images.npy", front_images[train_idx_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "train/side_images.npy", side_images[train_idx_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "train/wrenches.npy", wrenches[train_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "train/joints.npy", joints[train_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/masks.npy", masks[test_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/front_images.npy", front_images[test_idx_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "test/side_images.npy", side_images[test_idx_list].astype(np.uint8), args.quiet)
+    save_arr(args.out_dir, "test/wrenches.npy", wrenches[test_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/joints.npy", joints[test_idx_list].astype(np.float32), args.quiet)
 
     # save joint bounds
     joint_bounds = calc_minmax(joints)
