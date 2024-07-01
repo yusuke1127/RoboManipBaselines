@@ -9,8 +9,6 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import gymnasium as gym
 import pinocchio as pin
-from tqdm import tqdm
-from einops import rearrange
 import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy

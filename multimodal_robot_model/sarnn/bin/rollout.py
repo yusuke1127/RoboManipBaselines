@@ -8,7 +8,6 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import gymnasium as gym
 import pinocchio as pin
-from tqdm import tqdm
 import torch
 from eipl.model import SARNN
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
@@ -70,7 +69,7 @@ RecordStatus.TELEOP._name_ = "AUTO"
 record_manager = RecordManager(env)
 record_manager.setupSimWorld(pole_pos_idx=args.pole_pos_idx)
 
-# Setup window for model image
+# Setup window for policy image
 matplotlib.use("agg")
 fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
 ax = ax.reshape(-1, 3)
@@ -149,7 +148,7 @@ while True:
     if win_xy_simulation is not None:
         cv2.moveWindow("Simulation image", *win_xy_simulation)
 
-    # Draw model images
+    # Draw policy images
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         for j in range(ax.shape[0]):
             for k in range(ax.shape[1]):
