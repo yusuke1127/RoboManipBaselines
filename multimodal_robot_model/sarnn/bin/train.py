@@ -7,7 +7,7 @@
 
 import os
 import sys
-sys.path.append("../../third_party/eipl/")
+import shutil
 import random
 import torch
 import numpy as np
@@ -41,6 +41,7 @@ parser.add_argument("--front_pt_loss", type=float, default=0.1)
 parser.add_argument("--side_pt_loss", type=float, default=0.1)
 parser.add_argument("--no_side_image", action="store_true")
 parser.add_argument("--no_wrench", action="store_true")
+parser.add_argument("--with_mask", action="store_true")
 parser.add_argument("--lr", type=float, default=1e-4)
 parser.add_argument("--heatmap_size", type=float, default=0.1)
 parser.add_argument("--temperature", type=float, default=1e-4)
@@ -77,6 +78,12 @@ else:
 data_dir = Path(args.data_dir)
 minmax = [args.vmin, args.vmax]
 
+# copy bound files
+log_dir_path = set_logdir("./" + args.log_dir, args.tag)
+bound_files = sorted(data_dir.glob("*_bounds.npy"))
+for bound_file in bound_files:
+    shutil.copy(bound_file, os.path.join(log_dir_path, bound_file.name))
+
 train_data_dir = data_dir / "train"
 joint_bounds = np.load(data_dir / "joint_bounds.npy")
 joints_raw = np.load(sorted(train_data_dir.glob("**/joints.npy"))[0])
@@ -90,8 +97,10 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 if not args.no_side_image:
     side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
     side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+masks = np.load(sorted(train_data_dir.glob("**/masks.npy"))[0])
 if (not args.no_side_image) and (not args.no_wrench):
-    from data.dataset import MultimodalDatasetWithSideimageAndWrench
+    assert not args.with_mask, "with_mask option is not supported for the model with side_image and wrench."
+    from multimodal_robot_model.sarnn import MultimodalDatasetWithSideimageAndWrench
     train_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
         side_images,
@@ -101,13 +110,23 @@ if (not args.no_side_image) and (not args.no_wrench):
         stdev=stdev
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.data import MultimodalDataset
-    train_dataset = MultimodalDataset(
-        front_images,
-        joints,
-        device=device,
-        stdev=stdev
-    )
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+        train_dataset = MultimodalDatasetWithMask(
+            front_images,
+            joints,
+            masks,
+            device=device,
+            stdev=stdev
+        )
+    else:
+        from eipl.data import MultimodalDataset
+        train_dataset = MultimodalDataset(
+            front_images,
+            joints,
+            device=device,
+            stdev=stdev
+        )
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 train_loader = DataLoader(
@@ -128,6 +147,7 @@ front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255)
 if not args.no_side_image:
     side_images_raw = np.load(sorted(test_data_dir.glob("**/side_images.npy"))[0])
     side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+masks = np.load(sorted(test_data_dir.glob("**/masks.npy"))[0])
 if (not args.no_side_image) and (not args.no_wrench):
     test_dataset = MultimodalDatasetWithSideimageAndWrench(
         front_images,
@@ -138,13 +158,23 @@ if (not args.no_side_image) and (not args.no_wrench):
         stdev=None
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.data import MultimodalDataset
-    test_dataset = MultimodalDataset(
-        front_images,
-        joints,
-        device=device,
-        stdev=None
-    )
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+        test_dataset = MultimodalDatasetWithMask(
+            front_images,
+            joints,
+            masks,
+            device=device,
+            stdev=stdev
+        )
+    else:
+        from eipl.data import MultimodalDataset
+        test_dataset = MultimodalDataset(
+            front_images,
+            joints,
+            device=device,
+            stdev=None
+        )
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 test_loader = DataLoader(
@@ -156,7 +186,7 @@ test_loader = DataLoader(
 
 # define model
 if (not args.no_side_image) and (not args.no_wrench):
-    from model.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
+    from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
     model = SARNNwithSideimageAndWrench(
         rec_dim=args.rec_dim,
         joint_dim=7,
@@ -189,7 +219,7 @@ optimizer = optim.Adam(model.parameters(), eps=1e-07, lr=args.lr)
 
 # load trainer/tester class
 if (not args.no_side_image) and (not args.no_wrench):
-    from libs.fullBPTTwithSideimageAndWrench import fullBPTTtrainerWithSideimageAndWrench, Loss
+    from multimodal_robot_model.sarnn import fullBPTTtrainerWithSideimageAndWrench, Loss
     loss_weights = [
         {
             Loss.FRONT_IMG: args.front_img_loss,
@@ -204,14 +234,17 @@ if (not args.no_side_image) and (not args.no_wrench):
         model, optimizer, loss_weights=loss_weights, device=device
     )
 elif args.no_side_image and args.no_wrench:
-    from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
     loss_weights = [args.front_img_loss, args.joint_loss, args.front_pt_loss]
-    trainer = fullBPTTtrainer(model, optimizer, loss_weights=loss_weights, device=device)
+    if args.with_mask:
+        from multimodal_robot_model.sarnn import fullBPTTtrainerWithMask
+        trainer = fullBPTTtrainerWithMask(model, optimizer, loss_weights=loss_weights, device=device)
+    else:
+        from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
+        trainer = fullBPTTtrainer(model, optimizer, loss_weights=loss_weights, device=device)
 else:
     raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
 
 ### training main
-log_dir_path = set_logdir("./" + args.log_dir, args.tag)
 save_name = os.path.join(log_dir_path, "SARNN.pth")
 writer = SummaryWriter(log_dir=log_dir_path, flush_secs=30)
 early_stop = EarlyStopping(patience=1000)

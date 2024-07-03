@@ -1,1 +1,1 @@
-from multimodal_robot_model.envs.mujoco.UR5eCableEnv import UR5eCableEnv
+from .UR5eCableEnv import UR5eCableEnv

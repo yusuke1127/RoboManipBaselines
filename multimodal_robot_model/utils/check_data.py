@@ -6,7 +6,6 @@
 #
 
 import sys
-sys.path.append("../../third_party/eipl/")
 import os
 from tqdm import tqdm
 import argparse

@@ -44,8 +44,8 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
 
         MujocoEnv.__init__(
             self,
-            xml_file,
-            5,
+            model_path=xml_file,
+            frame_skip=5,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,

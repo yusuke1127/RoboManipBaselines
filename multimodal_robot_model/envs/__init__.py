@@ -1,4 +1,4 @@
-from multimodal_robot_model.envs import mujoco
+from . import mujoco
 
 from gymnasium.envs.registration import register
 
