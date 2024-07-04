@@ -68,6 +68,8 @@ RecordStatus.TELEOP._name_ = "AUTO"
 # Setup record manager
 record_manager = RecordManager(env)
 record_manager.setupSimWorld(pole_pos_idx=args.pole_pos_idx)
+original_pole_pos_x = env.unwrapped.model.body("poles").pos[0]
+pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 
 # Setup window for policy image
 matplotlib.use("agg")
@@ -95,6 +97,13 @@ while True:
         target_pos = env.unwrapped.model.body("cable_end").pos.copy()
         target_pos[2] = 0.995 # [m]
         motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
+
+    enable_pole_swing = False
+    if record_manager.status == RecordStatus.TELEOP and enable_pole_swing:
+        pole_swing_scale = 0.05
+        pole_swing_freq = 0.1
+        env.unwrapped.model.body("poles").pos[0] = original_pole_pos_x + \
+            pole_swing_scale * np.sin(2.0 * np.pi * pole_swing_freq * record_manager.status_elapsed_duration + pole_swing_phase_offset)
 
     skip = 10
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
