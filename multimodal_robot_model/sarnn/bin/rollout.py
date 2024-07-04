@@ -142,11 +142,13 @@ while True:
     _, _, _, _, info = env.step(action)
 
     # Draw simulation images
-    status_image = record_manager.getStatusImage()
-    window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
-    cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
-    if win_xy_simulation is not None:
-        cv2.moveWindow("Simulation image", *win_xy_simulation)
+    enable_simulation_image = False
+    if enable_simulation_image:
+        status_image = record_manager.getStatusImage()
+        window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+        cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
+        if win_xy_simulation is not None:
+            cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
@@ -193,7 +195,8 @@ while True:
 
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
-        if key == 32: # space key
+        initial_duration = 1.0 # [s]
+        if record_manager.status_elapsed_duration > initial_duration:
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.PRE_REACH:
         pre_reach_duration = 0.7 # [s]
@@ -203,18 +206,19 @@ while True:
         reach_duration = 0.3 # [s]
         if record_manager.status_elapsed_duration > reach_duration:
             record_manager.goToNextStatus()
-            print("- Press space key to start playback after robot grasps the cable.")
     elif record_manager.status == RecordStatus.GRASP:
-        if key == 32: # space key
+        grasp_duration = 0.5 # [s]
+        if record_manager.status_elapsed_duration > grasp_duration:
             time_idx = 0
             record_manager.goToNextStatus()
+            print("- Press space key to finish policy rollout.")
     elif record_manager.status == RecordStatus.TELEOP:
         time_idx += 1
         if key == 32: # space key
             record_manager.goToNextStatus()
+            print("- Press space key to exit.")
     elif record_manager.status == RecordStatus.END:
         if key == 32: # space key
-            print("- Press space key to exit.")
             break
     if key == 27: # escape key
         break
