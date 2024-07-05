@@ -24,6 +24,7 @@ parser.add_argument('--ckpt_dir', action='store', type=str, help='ckpt_dir', req
 parser.add_argument('--ckpt_name', default='policy_best.ckpt', type=str, help='ckpt_name')
 parser.add_argument('--task_name', choices=['sim_ur5ecable'], action='store', type=str, help='task_name', required=True)
 parser.add_argument('--seed', action='store', type=int, help='seed', required=True)
+parser.add_argument('--skip', default=1, type=int, help='skip', required=False)
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
 # for ACT
@@ -160,7 +161,7 @@ while True:
         env.unwrapped.model.body("poles").pos[0] = original_pole_pos_x + \
             pole_swing_scale * np.sin(2.0 * np.pi * pole_swing_freq * record_manager.status_elapsed_duration + pole_swing_phase_offset)
 
-    skip = 1
+    skip = args.skip
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
         front_image = info["images"]["front"]
