@@ -13,6 +13,7 @@ import rospy
 from sensor_msgs.msg import CompressedImage
 import rtde_control
 import rtde_receive
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
@@ -50,12 +51,12 @@ model.eval()
 # Setup ROS
 rospy.init_node("rollout_real")
 
-front_image = None
+raw_front_image = None
 def callback(msg):
-    global front_image
-    front_image = np.frombuffer(msg.data, np.uint8)
-    front_image = cv2.imdecode(front_image, cv2.IMREAD_COLOR)
-    front_image = cv2.cvtColor(front_image, cv2.COLOR_BGR2RGB).astype(np.uint8)
+    global raw_front_image
+    _raw_front_image = np.frombuffer(msg.data, np.uint8)
+    _raw_front_image = cv2.imdecode(_raw_front_image, cv2.IMREAD_COLOR)
+    raw_front_image = cv2.cvtColor(_raw_front_image, cv2.COLOR_BGR2RGB).astype(np.uint8)
 
 rospy.Subscriber("/camera/color/image_raw/compressed", CompressedImage, callback, queue_size=1)
 rate = rospy.Rate(10)
@@ -65,6 +66,21 @@ robot_ip = "192.168.11.4"
 rtde_c = rtde_control.RTDEControlInterface(robot_ip)
 rtde_r = rtde_receive.RTDEReceiveInterface(robot_ip)
 rtde_c.endFreedriveMode()
+joint_order = [2,1,0,3,4,5]
+
+## Go to initial posture
+print("- Start initial posture")
+init_q = np.array([1.5929644, -1.9200722, 1.1177821, -1.243697, -1.5707978, -0.45310742])
+velocity = 0.5
+acceleration = 0.5
+dt = 10.0 # [s]
+lookahead_time = 0.2
+gain = 100
+t_start = rtde_c.initPeriod()
+rtde_c.servoJ(init_q[joint_order], velocity, acceleration, dt, lookahead_time, gain)
+rtde_c.waitPeriod(t_start)
+time.sleep(dt)
+print("- Finish initial posture")
 
 # Setup window for policy image
 matplotlib.use("agg")
@@ -80,15 +96,15 @@ cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
 rnn_state = None
 while True:
     # Wait first image
-    while front_image is None:
+    while raw_front_image is None:
         rate.sleep()
 
     # Load data and normalization
-    front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
+    front_image = resize_img(np.expand_dims(np.copy(raw_front_image), 0), (im_size, im_size))[0]
     front_image_t = front_image.transpose(2, 0, 1)
     front_image_t = normalization(front_image_t, (0, 255), minmax)
     front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0))
-    joint = np.array(rtde_r.getActualQ())
+    joint = np.array(rtde_r.getActualQ())[joint_order]
     joint_t = normalization(joint, joint_bounds, minmax)
     joint_t = torch.Tensor(np.expand_dims(joint_t, 0))
 
@@ -108,13 +124,13 @@ while True:
     # Send joint command
     velocity = 0.5
     acceleration = 0.5
-    dt = 2.0 # [ms]
-    # dt = 0.1 # [ms]
+    dt = 0.5 # 1.0 # [s]
     lookahead_time = 0.2
     gain = 100
     t_start = rtde_c.initPeriod()
-    rtde_c.servoJ(pred_joint, velocity, acceleration, dt, lookahead_time, gain)
+    rtde_c.servoJ(pred_joint[joint_order], velocity, acceleration, dt, lookahead_time, gain)
     rtde_c.waitPeriod(t_start)
+    time.sleep(dt)
 
     # Draw policy images
     for j in range(ax.shape[0]):
