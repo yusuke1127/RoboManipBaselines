@@ -75,6 +75,9 @@ pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 matplotlib.use("agg")
 fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
 ax = ax.reshape(-1, 3)
+for _ax in np.ravel(ax):
+    _ax.cla()
+    _ax.axis("off")
 canvas = FigureCanvasAgg(fig)
 pred_joint_list = np.empty((0, joint_dim))
 canvas.draw()
@@ -161,9 +164,9 @@ while True:
 
     # Draw policy images
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
-        for j in range(ax.shape[0]):
-            for k in range(ax.shape[1]):
-                ax[j, k].cla()
+        for _ax in np.ravel(ax):
+            _ax.cla()
+            _ax.axis("off")
 
         # Draw camera front_image
         ax[0, 0].imshow(front_image)
@@ -195,8 +198,6 @@ while True:
         buf = canvas.buffer_rgba()
         policy_image = np.asarray(buf)
         cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
-        if win_xy_policy is not None:
-            cv2.moveWindow("Policy image", *win_xy_policy)
         # plt.draw()
         # plt.pause(0.001)
 

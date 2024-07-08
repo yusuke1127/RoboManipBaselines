@@ -101,7 +101,7 @@ try:
     loading_status = policy.load_state_dict(torch.load(ckpt_path))
 except RuntimeError as e:
     if "size mismatch" in str(e.args):
-        sys.stderr.write(f"\n{sys.stderr.name} {args.chunk_size=}\n\n")  # may be helpful 
+        sys.stderr.write(f"\n{sys.stderr.name} {args.chunk_size=}\n\n")  # may be helpful
     raise
 print(loading_status)
 policy.cuda()
