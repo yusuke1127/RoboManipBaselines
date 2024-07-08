@@ -135,7 +135,7 @@ pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 
 # Setup window for policy image
 matplotlib.use("agg")
-fig, ax = plt.subplots(2, max(2, enc_layers), figsize=(14, 6), dpi=60)
+fig, ax = plt.subplots(2, max(2, enc_layers), figsize=(13.4, 6.0), dpi=60)
 for _ax in np.ravel(ax):
     _ax.cla()
     _ax.axis("off")

@@ -73,7 +73,7 @@ pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 
 # Setup window for policy image
 matplotlib.use("agg")
-fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
+fig, ax = plt.subplots(1, 3, figsize=(13.4, 5.0), dpi=60)
 ax = ax.reshape(-1, 3)
 for _ax in np.ravel(ax):
     _ax.cla()
@@ -193,6 +193,7 @@ while True:
         ax[0, 2].set_title("Joint", fontsize=20)
         ax[0, 2].tick_params(axis="x", labelsize=16)
         ax[0, 2].tick_params(axis="y", labelsize=16)
+        ax[0, 2].axis("on")
 
         canvas.draw()
         buf = canvas.buffer_rgba()
