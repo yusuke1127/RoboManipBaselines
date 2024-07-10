@@ -87,6 +87,13 @@ ckpt_name = args.ckpt_name
 im_size = 64
 joint_dim = 7
 policy = ACTPolicy(policy_config)
+def forward_fook(self, _input, _output):
+    # Output of MultiheadAttention is a tuple (attn_output, attn_output_weights)
+    # https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html
+    self.correlation_mat = _output[1][0].detach().cpu().numpy()
+for layer in policy.model.transformer.encoder.layers:
+    layer.self_attn.correlation_mat = None
+    layer.self_attn.register_forward_hook(forward_fook)
 
 ## Load weight
 ckpt_path = os.path.join(ckpt_dir, ckpt_name)
@@ -94,7 +101,7 @@ try:
     loading_status = policy.load_state_dict(torch.load(ckpt_path))
 except RuntimeError as e:
     if "size mismatch" in str(e.args):
-        sys.stderr.write(f"\n{sys.stderr.name} {args.chunk_size=}\n\n")  # may be helpful 
+        sys.stderr.write(f"\n{sys.stderr.name} {args.chunk_size=}\n\n")  # may be helpful
     raise
 print(loading_status)
 policy.cuda()
@@ -128,8 +135,10 @@ pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 
 # Setup window for policy image
 matplotlib.use("agg")
-fig, ax = plt.subplots(1, 2, figsize=(14, 6), dpi=60)
-ax = ax.reshape(-1, 2)
+fig, ax = plt.subplots(2, max(2, enc_layers), figsize=(13.4, 6.0), dpi=60)
+for _ax in np.ravel(ax):
+    _ax.cla()
+    _ax.axis("off")
 canvas = FigureCanvasAgg(fig)
 pred_joint_list = np.empty((0, joint_dim))
 canvas.draw()
@@ -224,13 +233,12 @@ while True:
     # Draw policy images
     skip_draw = 10
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip_draw == 0:
-        for j in range(ax.shape[0]):
-            for k in range(ax.shape[1]):
-                ax[j, k].cla()
+        for _ax in np.ravel(ax):
+            _ax.cla()
+            _ax.axis("off")
 
         # Draw camera front_image
         ax[0, 0].imshow(front_image)
-        ax[0, 0].axis("off")
         ax[0, 0].set_title("Input front_image", fontsize=20)
 
         # Plot joint
@@ -243,13 +251,19 @@ while True:
         ax[0, 1].set_title("Joint", fontsize=20)
         ax[0, 1].tick_params(axis="x", labelsize=16)
         ax[0, 1].tick_params(axis="y", labelsize=16)
+        ax[0, 1].axis("on")
+
+        # Draw predicted front_image
+        for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
+            if layer.self_attn.correlation_mat is None:
+                continue
+            ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[2:, 1].reshape((7, 7)))
+            ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
 
         canvas.draw()
         buf = canvas.buffer_rgba()
         policy_image = np.asarray(buf)
         cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
-        if win_xy_policy is not None:
-            cv2.moveWindow("Policy image", *win_xy_policy)
         # plt.draw()
         # plt.pause(0.001)
 
