@@ -86,8 +86,7 @@ policy_image = np.asarray(buf)
 cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
 if win_xy_policy is not None:
     cv2.moveWindow("Policy image", *win_xy_policy)
-
-print("- Press space key to start automatic grasping.")
+cv2.waitKey(1)
 
 rnn_state = None
 while True:
@@ -195,6 +194,7 @@ while True:
         ax[0, 2].tick_params(axis="y", labelsize=16)
         ax[0, 2].axis("on")
 
+        fig.tight_layout()
         canvas.draw()
         buf = canvas.buffer_rgba()
         policy_image = np.asarray(buf)

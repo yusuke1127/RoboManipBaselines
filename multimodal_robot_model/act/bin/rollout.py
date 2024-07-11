@@ -147,8 +147,7 @@ policy_image = np.asarray(buf)
 cv2.imshow("Policy image", cv2.cvtColor(policy_image, cv2.COLOR_RGB2BGR))
 if win_xy_policy is not None:
     cv2.moveWindow("Policy image", *win_xy_policy)
-
-print("- Press space key to start automatic grasping.")
+cv2.waitKey(1)
 
 state = None
 all_actions_history = []
@@ -260,6 +259,7 @@ while True:
             ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[2:, 1].reshape((7, 7)))
             ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
 
+        fig.tight_layout()
         canvas.draw()
         buf = canvas.buffer_rgba()
         policy_image = np.asarray(buf)
