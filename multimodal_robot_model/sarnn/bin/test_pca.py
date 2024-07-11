@@ -131,7 +131,7 @@ def anim_update(i):
     angle = int(loop_ct * i)
     ax.view_init(30, angle)
 
-    c_list = ["C0", "C1"]  # , "C2", "C3", "C4", "C5", "C6", "C7", "C8"]
+    c_list = ["C0", "C1", "C2", "C3", "C4", "C5"]
     for n, color in enumerate(c_list):
         ax.scatter(
             pca_val[n, 1:, 0], pca_val[n, 1:, 1], pca_val[n, 1:, 2], color=color, s=3.0
