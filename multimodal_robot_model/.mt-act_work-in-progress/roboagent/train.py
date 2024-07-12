@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from tqdm import tqdm
 from einops import rearrange
-import wandb
+#import wandb
 from constants import  CAMERA_NAMES
 from utils import load_array, load_data, compute_dict_mean, set_seed, detach_dict
 from policy import ACTPolicy, CNNMLPPolicy
@@ -39,7 +39,6 @@ def main(args):
         print(f"{num=}")
         raise
     # fixed parameters
-    num_episodes = 6000 ## total trajectories for training
     state_dim = 14
     lr_backbone = 1e-5
     backbone = 'resnet18'
@@ -80,7 +79,7 @@ def main(args):
         'batch_size': args['batch_size']
     }
 
-    train_dataloader, val_dataloader, stats, is_sim = load_data(dataset_dir[0], num_episodes, batch_size_train, batch_size_val)
+    train_dataloader, val_dataloader, stats, is_sim = load_data(dataset_dir[0], batch_size_train, batch_size_val)
 
 
     policy_config['camera_names'] = CAMERA_NAMES
@@ -152,7 +151,7 @@ def train_bc(train_dataloader, val_dataloader, config):
     run_name = config['run_name']
     set_seed(seed)
 
-    wandb.init(name=f"{run_name}_B{config['batch_size']}_{config['lr']}", project="cactiv2")
+    #wandb.init(name=f"{run_name}_B{config['batch_size']}_{config['lr']}", project="cactiv2")
     
     policy = make_policy(policy_class, policy_config)
     policy.cuda()
@@ -197,11 +196,11 @@ def train_bc(train_dataloader, val_dataloader, config):
             train_history.append(detach_dict(forward_dict))
         epoch_summary = compute_dict_mean(train_history[(batch_idx+1)*epoch:(batch_idx+1)*(epoch+1)])
         epoch_train_loss = epoch_summary['loss']
-        wandb.log({
-            "Training loss": epoch_train_loss,
-            "Validation loss": epoch_val_loss,
-            "Epoch": epoch,
-        })
+        #wandb.log({
+        #    "Training loss": epoch_train_loss,
+        #    "Validation loss": epoch_val_loss,
+        #    "Epoch": epoch,
+        #})
         print(f'Train loss: {epoch_train_loss:.5f}')
         summary_string = ''
         for k, v in epoch_summary.items():
