@@ -1,10 +1,12 @@
-# Spatial attention recurrent neural network (SARNN)
+# diffusion_policy
 
 ## Install
 
 Install package
 ```console
 $ pip install -r requirements.txt
+$ # If the urllib3 version is greater than 2, execute this command
+$ pip install 'urllib3<2'
 ```
 
 Install [r3m](https://github.com/facebookresearch/r3m).
@@ -46,7 +48,13 @@ data/teleop_data_sample/
 Make zarr file.
 
 ```console
-$ python ../utils/npz_to_zarr.py --in_dir ./data/teleop_data_sample 
+$ python ../utils/npz_to_zarr.py --in_dir ./data/teleop_data_sample
+```
+
+Replace line 115 of mujoco_diffusion_policy_cnn.yaml with the following
+
+```console
+zarr_path: data/mujoco/<your zarr file name>.zarr
 ```
 
 ## Model Training
