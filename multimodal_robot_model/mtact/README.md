@@ -41,6 +41,7 @@ $ pip install -e .
 Overwrite some of the code in roboagent.
 ```console
 mv multimodal_robot_model/mtact/roboagent-overwrite/constants.py third_party/roboagent/constants.py
+mv multimodal_robot_model/mtact/roboagent-overwrite/detr/main.py third_party/roboagent/detr/main.py
 mv multimodal_robot_model/mtact/roboagent-overwrite/detr/models/detr_vae.py third_party/roboagent/detr/models/detr_vae.py
 mv multimodal_robot_model/mtact/roboagent-overwrite/train.py third_party/roboagent/train.py
 mv multimodal_robot_model/mtact/roboagent-overwrite/utils.py third_party/roboagent/utils.py
