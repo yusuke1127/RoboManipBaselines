@@ -1,11 +1,11 @@
-# diffusion_policy
+# Diffusion Policy
 
 ## Install
 
 Install package
 ```console
 $ pip install -r requirements.txt
-$ # If the urllib3 version is greater than 2, execute this command
+$ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
 ```
 
@@ -65,3 +65,12 @@ Train the model. The trained weights are saved in the `log` folder.
 $ python ./bin/train.py --config-dir=. --config-name=mujoco_diffusion_policy_cnn.yaml training.seed=42 training.device=cuda:0 hydra.run.dir='log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
 ```
 
+## Policy rollout
+
+Change to SARNN's virtual environment and install Diffusion Policy package without av.
+
+Run a trained policy in the simulator.
+
+```console
+$ python ./bin/rollout.py --filename ./log/YEAR.DAY/TIME_POLICY_mujoco/checkpoints/latest.ckpt --pole-pos-idx 1
+```
