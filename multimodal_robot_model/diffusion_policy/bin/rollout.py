@@ -9,11 +9,8 @@ import cv2
 import gymnasium as gym
 import pinocchio as pin
 import torch
-import yaml
 import hydra
 import dill
-import sys
-import os
 
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
@@ -29,16 +26,19 @@ parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy si
 args = parser.parse_args()
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
+joint_dim = 6
+joint_scales = [1.0] * 6 + [0.01]
 
 # Setup model
 sys.path.append(os.path.join(os.path.dirname(__file__),"../../diffusion_policy"))
-#with open("mujoco_diffusion_policy_cnn.yaml") as yml:
-#    config = yaml.safe_load(yml)
 
-#print(config["_target_"])
 payload = torch.load(open(args.filename, 'rb'), pickle_module=dill)
 cfg = payload['cfg']
 model = hydra.utils.instantiate(cfg.policy)
+
+dataset = hydra.utils.instantiate(cfg.task.dataset)
+normalizer = dataset.get_normalizer()
+model.set_normalizer(normalizer)
 device = torch.device("cpu")
 model.to(device)
 model.eval()
@@ -111,30 +111,29 @@ while True:
         front_image_t = torch.Tensor(np.expand_dims(front_image_t, (0, 1)))
 
         # Infer
-        joint_dict = policy.predict_action(obs_dict)
+        obs_dict = dict(image=front_image_t)
+        with torch.no_grad():
+            joint_dict = model.predict_action(obs_dict)
 
         # device_transfer
         np_joint_dict = dict_apply(joint_dict,
             lambda x: x.detach().to('cpu').numpy())
 
         joint = np_joint_dict['action']
-
-        # denormalization
-        pred_joint = tensor2numpy(y_joint[0])
-        pred_joint = normalization(pred_joint, minmax, joint_bounds)
+        pred_joint = np.squeeze(joint, axis=(0, 1))
         pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
     if record_manager.status == RecordStatus.GRASP:
         motion_manager.gripper_pos = env.action_space.high[6]
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.gripper_pos = pred_joint[6]
+        motion_manager.gripper_pos = env.action_space.high[6]
 
     # Set joint command
     if record_manager.status == RecordStatus.PRE_REACH or record_manager.status == RecordStatus.REACH:
         motion_manager.inverseKinematics()
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.joint_pos = pred_joint[:6]
+        motion_manager.joint_pos = pred_joint
 
     # Step environment
     action = motion_manager.getAction()
