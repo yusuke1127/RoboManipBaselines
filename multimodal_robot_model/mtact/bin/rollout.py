@@ -11,7 +11,7 @@ import gymnasium as gym
 import pinocchio as pin
 import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent"))
-from constants import TASKS
+from constants import TASKS, TEXT_EMBEDDINGS
 from policy import ACTPolicy
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
@@ -50,6 +50,21 @@ task_name = args.task_name
 seed = args.seed
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
+taskname = args.task_name
+
+# Task embedding
+task_emb = TEXT_EMBEDDINGS[
+    {
+        t: i for i, t in enumerate(TASKS)
+    }.get(
+        taskname,
+        0  # SINGLE TASK embedding wont be used
+    )
+]
+print(taskname, len(task_emb))
+task_emb = np.asarray(task_emb)
+task_emb = torch.from_numpy(task_emb).float().cuda()
+task_emb = task_emb.unsqueeze(0)
 
 # Get task parameters
 from multimodal_robot_model.mtact import SIM_TASK_CONFIGS
@@ -186,7 +201,7 @@ while True:
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0)).cuda()
 
         # Infer
-        all_actions = policy(joint_t, front_image_t)[0]
+        all_actions = policy(joint_t, front_image_t, task_emb=task_emb)[0]
         all_actions_history.append(tensor2numpy(all_actions))
         if len(all_actions_history) > args.chunk_size:
             all_actions_history.pop(0)
