@@ -265,12 +265,12 @@ while True:
         ax[0, 1].tick_params(axis="y", labelsize=16)
         ax[0, 1].axis("on")
 
-        # Draw predicted front_image
-        for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
-            if layer.self_attn.correlation_mat is None:
-                continue
-            ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[2:, 1].reshape((7, 7)))
-            ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
+        # # Draw predicted front_image
+        #for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
+        #    if layer.self_attn.correlation_mat is None:
+        #        continue
+        #    ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[2:, 1].reshape((7, 7)))
+        #    ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
 
         fig.tight_layout()
         canvas.draw()
