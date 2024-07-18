@@ -39,7 +39,7 @@ model = hydra.utils.instantiate(cfg.policy)
 dataset = hydra.utils.instantiate(cfg.task.dataset)
 normalizer = dataset.get_normalizer()
 model.set_normalizer(normalizer)
-device = torch.device("cpu")
+device = torch.device("cuda:0")
 model.to(device)
 model.eval()
 
