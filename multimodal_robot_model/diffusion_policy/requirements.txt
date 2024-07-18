@@ -4,7 +4,7 @@ pytorch3d
 numpy==1.23.3
 numba==0.56.4
 scipy==1.9.1
-opencv-python==4.6.0.66
+opencv-python
 cffi==1.15.1
 ipykernel==6.16
 matplotlib==3.6.1
@@ -34,9 +34,8 @@ boto3==1.24.96
 accelerate==0.13.2
 datasets==2.6.1
 diffusers==0.11.1
-av==10.0.0
+av<9
 cmake==3.24.3
-#llvm-openmp==14
 ray[default,tune]==2.2.0
 free-mujoco-py==2.1.6
 pygame==2.1.2

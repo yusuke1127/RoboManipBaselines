@@ -4,6 +4,7 @@
 
 Install package
 ```console
+$ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
 $ pip install -r requirements.txt
 $ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
@@ -15,6 +16,21 @@ $ # Go to the top directory of this repository
 $ cd third_party
 $ git clone https://github.com/facebookresearch/r3m
 $ cd r3m
+$ pip install -e .
+```
+
+Install [EIPL](https://github.com/ogata-lab/eipl).
+```console
+$ # Go to the top directory of this repository
+$ git submodule update --init --recursive
+$ cd third_party/eipl
+$ pip install -r requirements.txt
+$ pip install -e .
+```
+
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel).
+```console
+$ # Go to the top directory of this repository
 $ pip install -e .
 ```
 
@@ -66,8 +82,6 @@ $ python ./bin/train.py --config-dir=. --config-name=mujoco_diffusion_policy_cnn
 ```
 
 ## Policy rollout
-
-Change to SARNN's virtual environment and install Diffusion Policy package without av.
 
 Run a trained policy in the simulator.
 
