@@ -10,15 +10,6 @@ $ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
 ```
 
-Install [r3m](https://github.com/facebookresearch/r3m).
-```console
-$ # Go to the top directory of this repository
-$ cd third_party
-$ git clone https://github.com/facebookresearch/r3m
-$ cd r3m
-$ pip install -e .
-```
-
 Install [EIPL](https://github.com/ogata-lab/eipl).
 ```console
 $ # Go to the top directory of this repository
@@ -31,6 +22,13 @@ $ pip install -e .
 Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel).
 ```console
 $ # Go to the top directory of this repository
+$ pip install -e .
+```
+
+Install [r3m](https://github.com/facebookresearch/r3m).
+```console
+$ # Go to the top directory of this repository
+$ cd third_party/r3m
 $ pip install -e .
 ```
 

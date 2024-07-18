@@ -1,88 +1,40 @@
-# Diffusion Policy
+# [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel)
+Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
 ## Install
+1. Install Pinocchio from the robotpkg apt repository.  
+https://stack-of-tasks.github.io/pinocchio/download.html#Install_4
 
-Install package
+2. Install this package via pip.
 ```console
-$ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
-$ pip install -r requirements.txt
-$ # If urllib3 version is greater than 2, execute this command
-$ pip install 'urllib3<2'
-```
-
-Install [EIPL](https://github.com/ogata-lab/eipl).
-```console
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/eipl
-$ pip install -r requirements.txt
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel).
+## Models
+### [SARNN](./multimodal_robot_model/sarnn)
+Spatial attention recurrent neural network
+
+### [ACT](./multimodal_robot_model/act)
+Action Chunking with Transformers
+
+## Utilities
+See [utils](./multimodal_robot_model/utils).
+
+## Data collection in MuJoCo
+### Sample data
+Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1potaosirh/teleop_data_20240414.zip?rlkey=2vt1h5gde7l42vrwz4axj10da&dl=0).
+
+### Record teleoperation data
 ```console
-$ # Go to the top directory of this repository
-$ pip install -e .
+$ cd multimodal_robot_model/demos/
+$ # Connect SpaceMouse to your PC.
+$ python Demo_UR5eCableEnv_Teleop.py
 ```
 
-Install [r3m](https://github.com/facebookresearch/r3m).
+### Playback teleoperation data
 ```console
-$ # Go to the top directory of this repository
-$ cd third_party/r3m
-$ pip install -e .
+$ cd multimodal_robot_model/demos/
+$ python Demo_UR5eCableEnv_Playback.py ./teleop_data/env0/UR5eCableEnv_env0_000.npz
 ```
 
-## Dataset preparation
-
-Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
-
-```console
-$ tree data/teleop_data_sample/
-data/teleop_data_sample/
-├── env0
-│   ├── UR5eCableEnv_env0_000.npz
-│   └── UR5eCableEnv_env0_006.npz
-├── env1
-│   ├── UR5eCableEnv_env1_001.npz
-│   └── UR5eCableEnv_env1_007.npz
-├── env2
-│   ├── UR5eCableEnv_env2_002.npz
-│   └── UR5eCableEnv_env2_008.npz
-├── env3
-│   ├── UR5eCableEnv_env3_003.npz
-│   └── UR5eCableEnv_env3_009.npz
-├── env4
-│   ├── UR5eCableEnv_env4_004.npz
-│   └── UR5eCableEnv_env4_010.npz
-└── env5
-    ├── UR5eCableEnv_env5_005.npz
-    └── UR5eCableEnv_env5_011.npz
-```
-
-Make zarr file.
-
-```console
-$ python ../utils/npz_to_zarr.py --in_dir ./data/teleop_data_sample
-```
-
-Replace line 115 of mujoco_diffusion_policy_cnn.yaml with the following
-
-```console
-zarr_path: data/mujoco/<your zarr file name>.zarr
-```
-
-## Model Training
-
-Train the model. The trained weights are saved in the `log` folder.
-
-```console
-$ python ./bin/train.py --config-dir=. --config-name=mujoco_diffusion_policy_cnn.yaml training.seed=42 training.device=cuda:0 hydra.run.dir='log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
-```
-
-## Policy rollout
-
-Run a trained policy in the simulator.
-
-```console
-$ python ./bin/rollout.py --filename ./log/YEAR.DAY/TIME_POLICY_mujoco/checkpoints/latest.ckpt --pole-pos-idx 1
-```
+https://github.com/isri-aist/MultimodalRobotModel/assets/6636600/df5665c2-97fc-4913-8891-27fbfb4fad52
