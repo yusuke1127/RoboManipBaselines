@@ -47,6 +47,16 @@ mv multimodal_robot_model/mtact/roboagent-overwrite/train.py third_party/roboage
 mv multimodal_robot_model/mtact/roboagent-overwrite/utils.py third_party/roboagent/utils.py
 ```
 
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
+```console
+$ # Go to the top directory of this repository
+$ pip install -e .
+```
+**Note**: The above installation resulted the following error message. I ignored this error message and proceeded the next steps.
+```console
+ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2.3.7 which is incompatible.
+```
+
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
@@ -75,38 +85,54 @@ data/teleop_data_sample/
 Make numpy files in each of `train` (for training) and `test` directories (for validation).
 
 ```console
-$ skip=2
-$ train_ratio=0.8
 $ python ../utils/make_multi_dataset.py \
---in_dir  ./data/ \
---out_dir ./data/skip_$skip/train_ratio_`echo $train_ratio|tr -d .` \
---skip $skip \
---train_ratio $train_ratio \
+--in_dir ./data/teleop_data_sample \
+--out_dir ./data/learning_data_sample \
+--skip 2 \
+--train_ratio 0.8 \
 --nproc `nproc`
 ```
 
 ## Model Training
 
 Train the model. The trained weights are saved in the `log` folder.
+The training hyperparameters here (such as chunk_size) are the same as those in [act#training-models](https://github.com/isri-aist/MultimodalRobotModel/tree/master/multimodal_robot_model/act#model-training).
 
 ```console
-$ skip=2
-$ train_ratio=0.8
 $ python ../third_party/roboagent/train.py \
---dataset_dir ./data/skip_$skip/train_ratio_`echo $train_ratio|tr -d .` \
---ckpt_dir     ./log/skip_$skip/train_ratio_`echo $train_ratio|tr -d .` \
+--dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME \
 --policy_class ACT \
 --kl_weight 10 \
---chunk_size 20 \
+--chunk_size 100 \
 --hidden_dim 512 \
---batch_size 64 \
+--batch_size 8 \
 --dim_feedforward 3200 \
 --seed 0 \
 --temporal_agg \
---num_epochs 2000 \
+--num_epochs 20000 \
 --lr 1e-5 \
 --multi_task \
---task_name pick_butter \
 --run_name multi_task_run
 ```
 
+## Policy rollout
+Run a trained policy in the simulator.
+
+```console
+$ python ./bin/rollout.py \
+--ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name task0_between-two \
+--skip 2 \
+--policy_class ACT --chunk_size 100 --num_epochs 0 \
+--kl_weight 10 \
+--hidden_dim 512 \
+--dim_feedforward 3200 \
+--seed 0 \
+--multi_task \
+--pole-pos-idx 0
+```
+
+Repeatedly run a trained policy in different environments in the simulator.
+
+```console
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt
+```
