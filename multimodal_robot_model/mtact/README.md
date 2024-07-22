@@ -114,8 +114,12 @@ $ python ../utils/make_multi_dataset.py \
 --in_dir ./data/teleop_data_sample \
 --out_dir ./data/learning_data_sample \
 --skip 2 \
+<<<<<<< HEAD
 --train_keywords env1 env5 \
 --test_keywords env3 \
+=======
+--train_ratio 0.8 \
+>>>>>>> refs/remotes/origin/master
 --nproc `nproc`
 ```
 
