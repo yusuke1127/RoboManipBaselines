@@ -40,11 +40,11 @@ $ pip install -e .
 
 Overwrite some of the code in roboagent.
 ```console
-mv multimodal_robot_model/mtact/roboagent-overwrite/constants.py third_party/roboagent/constants.py
-mv multimodal_robot_model/mtact/roboagent-overwrite/detr/main.py third_party/roboagent/detr/main.py
-mv multimodal_robot_model/mtact/roboagent-overwrite/detr/models/detr_vae.py third_party/roboagent/detr/models/detr_vae.py
-mv multimodal_robot_model/mtact/roboagent-overwrite/train.py third_party/roboagent/train.py
-mv multimodal_robot_model/mtact/roboagent-overwrite/utils.py third_party/roboagent/utils.py
+$ mv multimodal_robot_model/mtact/roboagent-overwrite/constants.py third_party/roboagent/constants.py \
+&& mv multimodal_robot_model/mtact/roboagent-overwrite/detr/main.py third_party/roboagent/detr/main.py \
+&& mv multimodal_robot_model/mtact/roboagent-overwrite/detr/models/detr_vae.py third_party/roboagent/detr/models/detr_vae.py \
+&& mv multimodal_robot_model/mtact/roboagent-overwrite/train.py third_party/roboagent/train.py \
+&& mv multimodal_robot_model/mtact/roboagent-overwrite/utils.py third_party/roboagent/utils.py
 ```
 
 Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
@@ -60,6 +60,7 @@ ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
+Data for multiple tasks has been uploaded to [mujoco_ur5e_cable_wiring > teleop_data > 20240711](https://aist.box.com/s/9qtkspyyzcxqvrssvumahfgvi31h5cet).
 
 ```console
 $ tree data/teleop_data_sample/
