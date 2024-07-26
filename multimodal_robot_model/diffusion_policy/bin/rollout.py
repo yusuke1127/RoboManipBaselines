@@ -35,6 +35,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__),"../../diffusion_policy")
 payload = torch.load(open(args.filename, 'rb'), pickle_module=dill)
 cfg = payload['cfg']
 model = hydra.utils.instantiate(cfg.policy)
+obs_step = cfg.policy.n_obs_steps
+action_step = cfg.policy.n_action_steps
 
 dataset = hydra.utils.instantiate(cfg.task.dataset)
 normalizer = dataset.get_normalizer()
@@ -78,7 +80,7 @@ if win_xy_policy is not None:
     cv2.moveWindow("Policy image", *win_xy_policy)
 cv2.waitKey(1)
 
-rnn_state = None
+front_image_list = []
 while True:
     # Set arm command
     if record_manager.status == RecordStatus.PRE_REACH:
@@ -108,19 +110,29 @@ while True:
         #front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
         front_image_t = front_image.transpose(2, 0, 1)
         front_image_t = normalization(front_image_t, (0, 255), (0, 1))
-        front_image_t = torch.Tensor(np.expand_dims(front_image_t, (0, 1)))
+        if time_idx == 0:
+            for i in range(obs_step):
+                front_image_list.append(front_image_t)
+        else:
+            front_image_list.append(front_image_t)
+            del front_image_list[0]
+        front_image_t = np.array(front_image_list)
+        front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0))
 
-        # Infer
-        obs_dict = dict(image=front_image_t)
-        with torch.no_grad():
-            joint_dict = model.predict_action(obs_dict)
+        if time_idx % (skip*action_step) == 0:
+            # Infer
+            obs_dict = dict(image=front_image_t)
+            with torch.no_grad():
+                joint_dict = model.predict_action(obs_dict)
 
-        # device_transfer
-        np_joint_dict = dict_apply(joint_dict,
-            lambda x: x.detach().to('cpu').numpy())
+            # device_transfer
+            np_joint_dict = dict_apply(joint_dict,
+                lambda x: x.detach().to('cpu').numpy())
 
-        joint = np_joint_dict['action']
-        pred_joint = np.squeeze(joint, axis=(0, 1))
+            joint = np.squeeze(np_joint_dict['action'], axis=0)
+        
+        #pred_joint = joint[0]
+        pred_joint = joint[int(time_idx/skip) % action_step]
         pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
