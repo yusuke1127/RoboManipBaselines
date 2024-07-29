@@ -1,5 +1,5 @@
 from gym import spaces
-from diffusion_policy.env.mujoco.pusht_env import PushTEnv
+from lib.env.mujoco.pusht_env import PushTEnv
 import numpy as np
 import cv2
 
