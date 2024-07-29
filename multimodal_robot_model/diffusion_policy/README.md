@@ -32,6 +32,13 @@ $ cd third_party/r3m
 $ pip install -e .
 ```
 
+Install [diffusion policy](https://github.com/real-stanford/diffusion_policy).
+```console
+$ # Go to the top directory of this repository
+$ cd third_party/diffusion_policy
+$ pip install -e .
+```
+
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
