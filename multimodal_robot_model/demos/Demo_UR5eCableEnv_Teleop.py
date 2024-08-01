@@ -10,7 +10,11 @@ from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordMan
 env = gym.make(
   "multimodal_robot_model/UR5eCableEnv-v0",
   render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (480, 640)}, {"name": "side", "size": (480, 640)}]
+  extra_camera_configs=[
+      {"name": "front", "size": (480, 640)},
+      {"name": "side", "size": (480, 640)},
+      {"name": "hand", "size": (480, 640)},
+  ]
 )
 obs, info = env.reset(seed=42)
 
@@ -87,11 +91,13 @@ while True:
     obs, _, _, _, info = env.step(action)
 
     # Draw images
-    front_image_ratio = float(info["images"]["front"].shape[1]) / info["images"]["front"].shape[0]
-    side_image_ratio = float(info["images"]["side"].shape[1]) / info["images"]["side"].shape[0]
-    window_image = np.concatenate([cv2.resize(info["images"]["front"], (224, int(224 / front_image_ratio))),
-                                   cv2.resize(info["images"]["side"], (224, int(224 / side_image_ratio))),
-                                   record_manager.getStatusImage()])
+    window_images = []
+    for camera_name in ("front", "side", "hand"):
+        image_size = env.unwrapped.cameras[camera_name]["size"]
+        image_ratio = image_size[1] / image_size[0]
+        window_images.append(cv2.resize(info["images"][camera_name], (224, int(224 / image_ratio))))
+    window_images.append(record_manager.getStatusImage())
+    window_image = np.concatenate(window_images)
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
 
