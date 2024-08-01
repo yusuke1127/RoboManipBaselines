@@ -1,6 +1,6 @@
 #!/bin/bash
 
-[[ $# < 1 ]] && echo "$0 <CKPT_DIR> [<CKPT_NAME>]" && exit 1
+[[ $# < 1 ]] && echo "$0 <CKPT_DIR> [<CKPT_NAME>] [<SKIP>]" && exit 1
 
 CKPT_DIR=$1
 CKPT_NAME=${2:-policy_best.ckpt}
@@ -20,6 +20,6 @@ for i in "${array[@]}"; do
 --skip ${SKIP} \
 --policy_class ACT --chunk_size 100 --num_epochs 0 \
 --seed 0 \
---win_xy_policy 0 600 --win_xy_simulation 900 0 \
+--win_xy_policy 0 700 --win_xy_simulation 900 0 \
 --pole-pos-idx $i
 done
