@@ -52,34 +52,38 @@ while True:
     if record_manager.status == RecordStatus.GRASP:
         motion_manager.gripper_pos = env.action_space.high[6]
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.gripper_pos = record_manager.getSingleData(RecordKey.JOINT, time_idx)[6]
+        motion_manager.gripper_pos = record_manager.getSingleData(RecordKey.ACTION, time_idx)[6]
 
     # Solve IK
     if record_manager.status == RecordStatus.PRE_REACH or record_manager.status == RecordStatus.REACH:
         motion_manager.inverseKinematics()
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.joint_pos = record_manager.getSingleData(RecordKey.JOINT, time_idx)[:6]
+        motion_manager.joint_pos = record_manager.getSingleData(RecordKey.ACTION, time_idx)[:6]
 
     # Step environment
     action = motion_manager.getAction()
     _, _, _, _, info = env.step(action)
 
     # Draw images
+    online_images = []
+    for camera_name in ("front", "side", "hand"):
+        image_size = env.unwrapped.cameras[camera_name]["size"]
+        image_ratio = image_size[1] / image_size[0]
+        online_images.append(cv2.resize(info["images"][camera_name], (224, int(224 / image_ratio))))
     status_image = record_manager.getStatusImage()
-    front_image_ratio = float(info["images"]["front"].shape[1]) / info["images"]["front"].shape[0]
-    side_image_ratio = float(info["images"]["side"].shape[1]) / info["images"]["side"].shape[0]
-    online_image = cv2.vconcat([cv2.resize(info["images"]["front"], (224, int(224 / front_image_ratio))),
-                                cv2.resize(info["images"]["side"], (224, int(224 / side_image_ratio))),
-                                status_image])
-    # TODO: Fix slow access to record images
-    # if record_manager.status == RecordStatus.TELEOP:
-    #     record_image = cv2.vconcat([record_manager.getSingleData(RecordKey.FRONT_IMAGE, time_idx),
-    #                                 record_manager.getSingleData(RecordKey.SIDE_IMAGE, time_idx),
-    #                                 np.full_like(status_image, 255)])
-    # else:
-    #     record_image = np.full_like(online_image, 255)
-    # window_image = cv2.hconcat([online_image, record_image])
-    window_image = online_image
+    online_images.append(status_image)
+    online_image = cv2.vconcat(online_images)
+    if record_manager.status == RecordStatus.TELEOP:
+        record_images = []
+        for record_key in (RecordKey.FRONT_IMAGE, RecordKey.SIDE_IMAGE, RecordKey.HAND_IMAGE):
+            image = record_manager.getSingleData(record_key, time_idx)
+            image_ratio = image.shape[1] / image.shape[0]
+            record_images.append(cv2.resize(image, (224, int(224 / image_ratio))))
+        record_images.append(np.full_like(status_image, 255))
+        record_image = cv2.vconcat(record_images)
+    else:
+        record_image = np.full_like(online_image, 255)
+    window_image = cv2.hconcat([online_image, record_image])
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
 
