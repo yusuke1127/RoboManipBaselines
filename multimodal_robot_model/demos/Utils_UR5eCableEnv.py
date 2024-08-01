@@ -79,6 +79,19 @@ class MotionManager(object):
         """Get action for Gym."""
         return np.concatenate([self.joint_pos, [self.gripper_pos]])
 
+    def getJointPos(self, obs):
+        """Get joint position from observation."""
+        arm_qpos = obs[0:6]
+        gripper_pos = np.rad2deg(obs[12:16].mean(keepdims=True)) / 45.0 * 255.0
+        return np.concatenate((arm_qpos, gripper_pos))
+
+    def getJointVel(self, obs):
+        """Get joint velocity from observation."""
+        arm_qvel = obs[6:12]
+        # Set zero as a dummy because the joint velocity of gripper cannot be obtained
+        gripper_vel = np.zeros(1)
+        return np.concatenate((arm_qvel, gripper_vel))
+
     @property
     def current_se3(self):
         """Get the current pose of the end-effector."""
@@ -108,10 +121,12 @@ class RecordStatus(Enum):
 class RecordKey(Enum):
     """Data key for recording."""
     TIME = 0
-    JOINT = 1
-    FRONT_IMAGE = 2
-    SIDE_IMAGE = 3
-    WRENCH = 4
+    JOINT_POS = 1
+    JOINT_VEL = 2
+    FRONT_IMAGE = 3
+    SIDE_IMAGE = 4
+    WRENCH = 5
+    ACTION = 6
 
     def key(self):
         """Get the key of the dictionary."""

@@ -70,17 +70,21 @@ while True:
     # Solve IK
     motion_manager.inverseKinematics()
 
-    # Step environment
+    # Get action
     action = motion_manager.getAction()
-    obs, _, _, _, info = env.step(action)
 
     # Record data
     if record_manager.status == RecordStatus.TELEOP:
         record_manager.appendSingleData(RecordKey.TIME, record_manager.status_elapsed_duration)
-        record_manager.appendSingleData(RecordKey.JOINT, action)
+        record_manager.appendSingleData(RecordKey.JOINT_POS, motion_manager.getJointPos(obs))
+        record_manager.appendSingleData(RecordKey.JOINT_VEL, motion_manager.getJointVel(obs))
         record_manager.appendSingleData(RecordKey.FRONT_IMAGE, info["images"]["front"])
         record_manager.appendSingleData(RecordKey.SIDE_IMAGE, info["images"]["side"])
         record_manager.appendSingleData(RecordKey.WRENCH, obs[16:])
+        record_manager.appendSingleData(RecordKey.ACTION, action)
+
+    # Step environment
+    obs, _, _, _, info = env.step(action)
 
     # Draw images
     front_image_ratio = float(info["images"]["front"].shape[1]) / info["images"]["front"].shape[0]
