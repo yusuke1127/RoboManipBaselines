@@ -69,7 +69,7 @@ data/teleop_data_sample/
 Make zarr file.
 
 ```console
-$ python ../utils/npz_to_zarr.py --in_dir ./data/teleop_data_sample
+$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample
 ```
 
 Replace line 115 of mujoco_diffusion_policy_cnn.yaml with the following
