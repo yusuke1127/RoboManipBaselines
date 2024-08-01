@@ -39,7 +39,7 @@ If you encounter the following error,
 pip._vendor.packaging.requirements.InvalidRequirement: Expected end or semicolon (after version specifier)
     opencv-python>=3.
 ```
-replace all `opencv-python>=3.` in `<venv directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt` with `opencv-python>=3.0 Replace `opencv-python>=3.` with `opencv-python>=3.0`.
+replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
 
 ## Dataset preparation
 
@@ -82,7 +82,9 @@ https://stackoverflow.com/a/71457141
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py --config-dir=./lib/config/ --config-name=mujoco_diffusion_policy_cnn.yaml task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
+$ python ./bin/train.py \
+--config-dir=./lib/config/ --config-name=mujoco_diffusion_policy_cnn.yaml \
+task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
 ```
 
 ## Policy rollout
