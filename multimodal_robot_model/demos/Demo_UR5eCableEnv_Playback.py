@@ -16,7 +16,11 @@ args = parser.parse_args()
 env = gym.make(
   "multimodal_robot_model/UR5eCableEnv-v0",
   render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (480, 640)}, {"name": "side", "size": (480, 640)}]
+  extra_camera_configs=[
+      {"name": "front", "size": (480, 640)},
+      {"name": "side", "size": (480, 640)},
+      {"name": "hand", "size": (480, 640)},
+  ]
 )
 obs, info = env.reset(seed=42)
 

@@ -125,8 +125,9 @@ class RecordKey(Enum):
     JOINT_VEL = 2
     FRONT_IMAGE = 3
     SIDE_IMAGE = 4
-    WRENCH = 5
-    ACTION = 6
+    HAND_IMAGE = 5
+    WRENCH = 6
+    ACTION = 7
 
     def key(self):
         """Get the key of the dictionary."""

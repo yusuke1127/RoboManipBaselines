@@ -84,6 +84,7 @@ while True:
         record_manager.appendSingleData(RecordKey.JOINT_VEL, motion_manager.getJointVel(obs))
         record_manager.appendSingleData(RecordKey.FRONT_IMAGE, info["images"]["front"])
         record_manager.appendSingleData(RecordKey.SIDE_IMAGE, info["images"]["side"])
+        record_manager.appendSingleData(RecordKey.HAND_IMAGE, info["images"]["hand"])
         record_manager.appendSingleData(RecordKey.WRENCH, obs[16:])
         record_manager.appendSingleData(RecordKey.ACTION, action)
 
