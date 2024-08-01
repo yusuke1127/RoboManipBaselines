@@ -170,7 +170,10 @@ class RecordManager(object):
 
     def loadData(self, filename):
         """Load data."""
-        self.data_seq = np.load(filename)
+        npz_data = np.load(filename)
+        self.data_seq = dict()
+        for key in npz_data.keys():
+            self.data_seq[key] = np.copy(npz_data[key])
 
     def goToNextStatus(self):
         """Go to the next status."""
