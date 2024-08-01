@@ -14,6 +14,6 @@ for i in "${array[@]}"; do
     echo "[sarnn/iterate_rollout.sh] pole-pos-idx: $i"
     python ${SCRIPT_DIR}/../bin/rollout.py \
 --filename ${CKPT_DIR}/${CKPT_NAME} \
---win_xy_policy 0 600 --win_xy_simulation 900 0 \
+--win_xy_policy 0 700 --win_xy_simulation 900 0 \
 --pole-pos-idx $i
 done

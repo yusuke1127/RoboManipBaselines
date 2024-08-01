@@ -2,7 +2,7 @@
 Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
 ## Install
-1. Install Pinocchio from the robotpkg apt repository.  
+1. Install Pinocchio. In Ubuntu 20.04, install it from robotpkg apt repository; in Ubuntu 22.04, install it with pip.  
 https://stack-of-tasks.github.io/pinocchio/download.html#Install_4
 
 2. Install this package via pip.
@@ -16,6 +16,9 @@ Spatial attention recurrent neural network
 
 ### [ACT](./multimodal_robot_model/act)
 Action Chunking with Transformers
+
+### [DiffusionPolicy](./multimodal_robot_model/diffusion_policy)
+Diffusion Policy
 
 ## Utilities
 See [utils](./multimodal_robot_model/utils).

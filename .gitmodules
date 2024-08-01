@@ -4,3 +4,9 @@
 [submodule "third_party/act"]
 	path = third_party/act
 	url = https://github.com/mmurooka/act.git
+[submodule "third_party/diffusion_policy"]
+	path = third_party/diffusion_policy
+	url = https://github.com/real-stanford/diffusion_policy.git
+[submodule "third_party/r3m"]
+	path = third_party/r3m
+	url = https://github.com/facebookresearch/r3m.git
