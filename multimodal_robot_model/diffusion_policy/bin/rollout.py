@@ -1,6 +1,8 @@
 import os
 import sys
 import argparse
+import hydra
+import dill
 import numpy as np
 import matplotlib
 import matplotlib.pylab as plt
@@ -9,41 +11,38 @@ import cv2
 import gymnasium as gym
 import pinocchio as pin
 import torch
-import hydra
-import dill
-
-from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
+from diffusion_policy.common.pytorch_util import dict_apply
 import multimodal_robot_model
 from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
-sys.path.append(os.path.join(os.path.dirname(__file__),"../../diffusion_policy"))
-from diffusion_policy.common.pytorch_util import dict_apply
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
+# command line parameters
 parser = argparse.ArgumentParser()
-parser.add_argument("--filename", type=str, default=None, help=".ckpt file that PyTorch loads as checkpoint for model")
+parser.add_argument("--filename", type=str, default=None, help=".ckpt file that PyTorch loads as checkpoint for policy")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
+parser.add_argument('--skip', default=10, type=int, help='skip', required=False)
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
 args = parser.parse_args()
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
-joint_dim = 6
-joint_scales = [1.0] * 6 + [0.01]
 
 # Setup model
-sys.path.append(os.path.join(os.path.dirname(__file__),"../../diffusion_policy"))
-
-payload = torch.load(open(args.filename, 'rb'), pickle_module=dill)
-cfg = payload['cfg']
-model = hydra.utils.instantiate(cfg.policy)
-obs_step = cfg.policy.n_obs_steps
-action_step = cfg.policy.n_action_steps
-
+ckpt_data = torch.load(args.filename)
+cfg = ckpt_data["cfg"]
+policy = hydra.utils.instantiate(cfg.policy)
+policy.load_state_dict(ckpt_data["state_dicts"]["ema_model"])
 dataset = hydra.utils.instantiate(cfg.task.dataset)
 normalizer = dataset.get_normalizer()
-model.set_normalizer(normalizer)
-device = torch.device("cuda:0")
-model.to(device)
-model.eval()
+policy.set_normalizer(normalizer)
+joint_dim = cfg.shape_meta.action.shape[0]
+joint_scales = [1.0] * 6 + [0.01]
+n_obs_steps = cfg.n_obs_steps
+
+policy.cuda()
+policy.eval()
+
+print(f'Loaded: {args.filename}')
 
 # Setup gym
 env = gym.make(
@@ -65,8 +64,8 @@ pole_swing_phase_offset = 2.0 * np.pi * np.random.rand()
 
 # Setup window for policy image
 matplotlib.use("agg")
-fig, ax = plt.subplots(1, 3, figsize=(13.4, 5.0), dpi=60)
-ax = ax.reshape(-1, 3)
+fig, ax = plt.subplots(1, 2, figsize=(13.4, 5.0), dpi=60)
+ax = ax.reshape(-1, 2)
 for _ax in np.ravel(ax):
     _ax.cla()
     _ax.axis("off")
@@ -80,7 +79,9 @@ if win_xy_policy is not None:
     cv2.moveWindow("Policy image", *win_xy_policy)
 cv2.waitKey(1)
 
-front_image_list = []
+action_seq = []
+front_image_seq = None
+joint_seq = None
 while True:
     # Set arm command
     if record_manager.status == RecordStatus.PRE_REACH:
@@ -99,53 +100,54 @@ while True:
         env.unwrapped.model.body("poles").pos[0] = original_pole_pos_x + \
             pole_swing_scale * np.sin(2.0 * np.pi * pole_swing_freq * record_manager.status_elapsed_duration + pole_swing_phase_offset)
 
-    skip = 10
+    skip = args.skip
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
-        # Load data and normalization
         front_image = info["images"]["front"]
-        #cropped_img_size = 128
-        #[fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
-        #[fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
-        #front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
-        #front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
-        front_image_t = front_image.transpose(2, 0, 1)
-        front_image_t = normalization(front_image_t, (0, 255), (0, 1))
-        if time_idx == 0:
-            for i in range(obs_step):
-                front_image_list.append(front_image_t)
+        if front_image_seq is None:
+            front_image_seq = []
+            for _ in range(n_obs_steps):
+                front_image_seq.append(np.copy(front_image))
         else:
-            front_image_list.append(front_image_t)
-            del front_image_list[0]
-        front_image_t = np.array(front_image_list)
-        front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0))
+            front_image_seq.pop(0)
+            front_image_seq.append(front_image)
+        joint = motion_manager.getAction()
+        if joint_seq is None:
+            joint_seq = []
+            for _ in range(n_obs_steps):
+                joint_seq.append(np.copy(joint))
+        else:
+            joint_seq.pop(0)
+            joint_seq.append(joint)
+        if len(action_seq) == 0:
+            # Load data and normalization
+            np_front_image_seq = np.moveaxis(np.array(front_image_seq).astype(np.float32) / 255, -1, 1)
+            np_joint_seq = np.array(joint_seq).astype(np.float32)
+            np_obs_dict = {
+                "image": np.expand_dims(np_front_image_seq, 0),
+                "joint": np.expand_dims(np_joint_seq, 0)
+            }
+            obs_dict = dict_apply(np_obs_dict, lambda x: torch.from_numpy(x).to(device=policy.device))
+            # import ipdb; ipdb.set_trace()
 
-        if time_idx % (skip*action_step) == 0:
             # Infer
-            obs_dict = dict(image=front_image_t)
-            with torch.no_grad():
-                joint_dict = model.predict_action(obs_dict)
-
-            # device_transfer
-            np_joint_dict = dict_apply(joint_dict,
-                lambda x: x.detach().to('cpu').numpy())
-
-            joint = np.squeeze(np_joint_dict['action'], axis=0)
-        
-        #pred_joint = joint[0]
-        pred_joint = joint[int(time_idx/skip) % action_step]
-        pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
+            action_dict = policy.predict_action(obs_dict)
+            np_action_dict = dict_apply(action_dict, lambda x: x.detach().to("cpu").numpy())
+            action_seq = list(np_action_dict["action"][0])
+        pred_joint = action_seq.pop(0)
+        if time_idx % skip_draw == 0:
+            pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
     if record_manager.status == RecordStatus.GRASP:
         motion_manager.gripper_pos = env.action_space.high[6]
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.gripper_pos = env.action_space.high[6]
+        motion_manager.gripper_pos = pred_joint[6]
 
     # Set joint command
     if record_manager.status == RecordStatus.PRE_REACH or record_manager.status == RecordStatus.REACH:
         motion_manager.inverseKinematics()
     elif record_manager.status == RecordStatus.TELEOP:
-        motion_manager.joint_pos = pred_joint
+        motion_manager.joint_pos = pred_joint[:6]
 
     # Step environment
     action = motion_manager.getAction()
@@ -161,27 +163,27 @@ while True:
             cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
-    if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
+    skip_draw = 10
+    if record_manager.status == RecordStatus.TELEOP and time_idx % skip_draw == 0:
         for _ax in np.ravel(ax):
             _ax.cla()
             _ax.axis("off")
 
         # Draw camera front_image
         ax[0, 0].imshow(front_image)
-        ax[0, 0].axis("off")
         ax[0, 0].set_title("Input front_image", fontsize=20)
 
         # Plot joint
         T = 100
-        ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-        ax[0, 2].set_xlim(0, T)
+        ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        ax[0, 1].set_xlim(0, T)
         for joint_idx in range(pred_joint_list.shape[1]):
-            ax[0, 2].plot(np.arange(pred_joint_list.shape[0]), pred_joint_list[:, joint_idx] * joint_scales[joint_idx])
-        ax[0, 2].set_xlabel("Step", fontsize=20)
-        ax[0, 2].set_title("Joint", fontsize=20)
-        ax[0, 2].tick_params(axis="x", labelsize=16)
-        ax[0, 2].tick_params(axis="y", labelsize=16)
-        ax[0, 2].axis("on")
+            ax[0, 1].plot(np.arange(pred_joint_list.shape[0]), pred_joint_list[:, joint_idx] * joint_scales[joint_idx])
+        ax[0, 1].set_xlabel("Step", fontsize=20)
+        ax[0, 1].set_title("Joint", fontsize=20)
+        ax[0, 1].tick_params(axis="x", labelsize=16)
+        ax[0, 1].tick_params(axis="y", labelsize=16)
+        ax[0, 1].axis("on")
 
         fig.tight_layout()
         canvas.draw()
