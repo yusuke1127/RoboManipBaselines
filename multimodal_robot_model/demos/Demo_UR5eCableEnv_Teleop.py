@@ -82,9 +82,12 @@ while True:
         record_manager.appendSingleData(RecordKey.TIME, record_manager.status_elapsed_duration)
         record_manager.appendSingleData(RecordKey.JOINT_POS, motion_manager.getJointPos(obs))
         record_manager.appendSingleData(RecordKey.JOINT_VEL, motion_manager.getJointVel(obs))
-        record_manager.appendSingleData(RecordKey.FRONT_IMAGE, info["images"]["front"])
-        record_manager.appendSingleData(RecordKey.SIDE_IMAGE, info["images"]["side"])
-        record_manager.appendSingleData(RecordKey.HAND_IMAGE, info["images"]["hand"])
+        record_manager.appendSingleData(RecordKey.FRONT_RGB_IMAGE, info["rgb_images"]["front"])
+        record_manager.appendSingleData(RecordKey.SIDE_RGB_IMAGE, info["rgb_images"]["side"])
+        record_manager.appendSingleData(RecordKey.HAND_RGB_IMAGE, info["rgb_images"]["hand"])
+        record_manager.appendSingleData(RecordKey.FRONT_DEPTH_IMAGE, info["depth_images"]["front"])
+        record_manager.appendSingleData(RecordKey.SIDE_DEPTH_IMAGE, info["depth_images"]["side"])
+        record_manager.appendSingleData(RecordKey.HAND_DEPTH_IMAGE, info["depth_images"]["hand"])
         record_manager.appendSingleData(RecordKey.WRENCH, obs[16:])
         record_manager.appendSingleData(RecordKey.ACTION, action)
 
@@ -96,7 +99,7 @@ while True:
     for camera_name in ("front", "side", "hand"):
         image_size = env.unwrapped.cameras[camera_name]["size"]
         image_ratio = image_size[1] / image_size[0]
-        window_images.append(cv2.resize(info["images"][camera_name], (224, int(224 / image_ratio))))
+        window_images.append(cv2.resize(info["rgb_images"][camera_name], (224, int(224 / image_ratio))))
     window_images.append(record_manager.getStatusImage())
     window_image = np.concatenate(window_images)
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))

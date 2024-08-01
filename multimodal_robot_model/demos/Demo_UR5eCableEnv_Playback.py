@@ -69,13 +69,13 @@ while True:
     for camera_name in ("front", "side", "hand"):
         image_size = env.unwrapped.cameras[camera_name]["size"]
         image_ratio = image_size[1] / image_size[0]
-        online_images.append(cv2.resize(info["images"][camera_name], (224, int(224 / image_ratio))))
+        online_images.append(cv2.resize(info["rgb_images"][camera_name], (224, int(224 / image_ratio))))
     status_image = record_manager.getStatusImage()
     online_images.append(status_image)
     online_image = cv2.vconcat(online_images)
     if record_manager.status == RecordStatus.TELEOP:
         record_images = []
-        for record_key in (RecordKey.FRONT_IMAGE, RecordKey.SIDE_IMAGE, RecordKey.HAND_IMAGE):
+        for record_key in (RecordKey.FRONT_RGB_IMAGE, RecordKey.SIDE_RGB_IMAGE, RecordKey.HAND_RGB_IMAGE):
             image = record_manager.getSingleData(record_key, time_idx)
             image_ratio = image.shape[1] / image.shape[0]
             record_images.append(cv2.resize(image, (224, int(224 / image_ratio))))

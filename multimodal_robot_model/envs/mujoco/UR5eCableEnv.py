@@ -127,10 +127,19 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
     def _get_info(self):
         info = {}
         if len(self.cameras) > 0:
-            info["images"] = {}
+            info["rgb_images"] = {}
+            info["depth_images"] = {}
             for camera in self.cameras.values():
                 camera["viewer"].make_context_current()
-                info["images"][camera["name"]] = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+                rgb_image = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+                info["rgb_images"][camera["name"]] = rgb_image
+                depth_image = camera["viewer"].render(render_mode="depth_array", camera_id=camera["id"])
+                # See https://github.com/google-deepmind/mujoco/blob/631b16e7ad192df936195658fe79f2ada85f755c/python/mujoco/renderer.py#L170-L178
+                extent = self.model.stat.extent
+                near = self.model.vis.map.znear * extent
+                far = self.model.vis.map.zfar * extent
+                depth_image = near / (1 - depth_image * (1 - near / far))
+                info["depth_images"][camera["name"]] = depth_image
         return info
 
     def _get_reset_info(self):
