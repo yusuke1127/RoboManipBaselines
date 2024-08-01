@@ -16,7 +16,7 @@ args = parser.parse_args()
 env = gym.make(
   "multimodal_robot_model/UR5eCableEnv-v0",
   render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (224, 224)}, {"name": "side", "size": (224, 224)}]
+  extra_camera_configs=[{"name": "front", "size": (480, 640)}, {"name": "side", "size": (480, 640)}]
 )
 obs, info = env.reset(seed=42)
 
@@ -62,7 +62,11 @@ while True:
 
     # Draw images
     status_image = record_manager.getStatusImage()
-    online_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+    front_image_ratio = float(info["images"]["front"].shape[1]) / info["images"]["front"].shape[0]
+    side_image_ratio = float(info["images"]["side"].shape[1]) / info["images"]["side"].shape[0]
+    online_image = cv2.vconcat([cv2.resize(info["images"]["front"], (224, int(224 / front_image_ratio))),
+                                cv2.resize(info["images"]["side"], (224, int(224 / side_image_ratio))),
+                                status_image])
     # TODO: Fix slow access to record images
     # if record_manager.status == RecordStatus.TELEOP:
     #     record_image = cv2.vconcat([record_manager.getSingleData(RecordKey.FRONT_IMAGE, time_idx),
