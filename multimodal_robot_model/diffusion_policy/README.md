@@ -2,32 +2,19 @@
 
 ## Install
 
-Install package
+Install dependent packages.
 ```console
 $ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
+$ sudo aptitude install libavdevice-dev libavfilter-dev # Required for Ubuntu 22.04 / Python 3.8.16
 $ pip install -r requirements.txt
 $ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
 ```
 
-Install [EIPL](https://github.com/ogata-lab/eipl).
-```console
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/eipl
-$ pip install -r requirements.txt
-$ pip install -e .
-```
-
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel).
-```console
-$ # Go to the top directory of this repository
-$ pip install -e .
-```
-
 Install [r3m](https://github.com/facebookresearch/r3m).
 ```console
 $ # Go to the top directory of this repository
+$ git submodule update --init --recursive
 $ cd third_party/r3m
 $ pip install -e .
 ```
@@ -38,6 +25,21 @@ $ # Go to the top directory of this repository
 $ cd third_party/diffusion_policy
 $ pip install -e .
 ```
+
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
+```console
+$ # Go to the top directory of this repository
+$ pip install -e .
+```
+
+### Trouble-shooting
+
+If you encounter the following error,
+```python
+pip._vendor.packaging.requirements.InvalidRequirement: Expected end or semicolon (after version specifier)
+    opencv-python>=3.
+```
+replace all `opencv-python>=3.` in `<venv directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt` with `opencv-python>=3.0 Replace `opencv-python>=3.` with `opencv-python>=3.0`.
 
 ## Dataset preparation
 
@@ -72,18 +74,15 @@ Make zarr file.
 $ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample
 ```
 
-Replace line 115 of mujoco_diffusion_policy_cnn.yaml with the following
-
-```console
-zarr_path: data/mujoco/<your zarr file name>.zarr
-```
+If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  
+https://stackoverflow.com/a/71457141
 
 ## Model Training
 
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py --config-dir=. --config-name=mujoco_diffusion_policy_cnn.yaml training.seed=42 training.device=cuda:0 hydra.run.dir='log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+$ python ./bin/train.py --config-dir=./lib/config/ --config-name=mujoco_diffusion_policy_cnn.yaml task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
 ```
 
 ## Policy rollout
@@ -91,5 +90,13 @@ $ python ./bin/train.py --config-dir=. --config-name=mujoco_diffusion_policy_cnn
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/rollout.py --filename ./log/YEAR.DAY/TIME_POLICY_mujoco/checkpoints/latest.ckpt --pole-pos-idx 1
+$ python ./bin/rollout.py \
+--filename ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
+--pole-pos-idx 1
+```
+
+Repeatedly run a trained policy in different environments in the simulator.
+
+```console
+$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt
 ```
