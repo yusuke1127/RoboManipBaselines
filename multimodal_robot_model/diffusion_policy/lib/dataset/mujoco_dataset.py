@@ -23,7 +23,7 @@ class MujocoDataset(BaseImageDataset):
         
         super().__init__()
         self.replay_buffer = ReplayBuffer.copy_from_path(
-            zarr_path, keys=['img', 'action'])
+            zarr_path, keys=['img', 'joint', 'action'])
         val_mask = get_val_mask(
             n_episodes=self.replay_buffer.n_episodes, 
             val_ratio=val_ratio,
@@ -60,6 +60,7 @@ class MujocoDataset(BaseImageDataset):
     def get_normalizer(self, mode='limits', **kwargs):
         data = {
             'action': self.replay_buffer['action'],
+            'joint': self.replay_buffer['joint'],
         }
         normalizer = LinearNormalizer()
         normalizer.fit(data=data, last_n_dims=1, mode=mode, **kwargs)
@@ -70,13 +71,15 @@ class MujocoDataset(BaseImageDataset):
         return len(self.sampler)
 
     def _sample_to_data(self, sample):
+        joint = sample['joint'].astype(np.float32)
         image = np.moveaxis(sample['img'],-1,1)/255
 
         data = {
             'obs': {
                 'image': image, # T, 3, 224, 224
+                'joint': joint, # T, 7
             },
-            'action': sample['action'].astype(np.float32) # T, 6
+            'action': sample['action'].astype(np.float32) # T, 7
         }
         return data
     
@@ -90,7 +93,7 @@ class MujocoDataset(BaseImageDataset):
 def test():
     import os
     zarr_path = os.path.expanduser('~/dev/diffusion_policy/data/pusht/pusht_cchi_v7_replay.zarr')
-    dataset = PushTImageDataset(zarr_path, horizon=16)
+    dataset = MujocoDataset(zarr_path, horizon=16)
 
     # from matplotlib import pyplot as plt
     # normalizer = dataset.get_normalizer()

@@ -1,170 +1,155 @@
-_target_: diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace.TrainDiffusionUnetHybridWorkspace
-checkpoint:
-  save_last_ckpt: true
-  save_last_snapshot: false
-  topk:
-    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
-    k: 5
-    mode: max
-    monitor_key: test_mean_score
-dataloader:
-  batch_size: 64
-  num_workers: 8
-  persistent_workers: false
-  pin_memory: true
-  shuffle: true
-dataset_obs_steps: 1
-ema:
-  _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
-  inv_gamma: 1.0
-  max_value: 0.9999
-  min_value: 0.0
-  power: 0.75
-  update_after_step: 0
-exp_name: default
-horizon: 16
-keypoint_visible_rate: 1.0
-logging:
-  group: null
-  id: null
-  mode: online
-  name: 2023.01.16-20.20.06_train_diffusion_unet_hybrid_mujoco
-  project: diffusion_policy_debug
-  resume: true
-  tags:
-  - train_diffusion_unet_hybrid
-  - mujoco
-  - default
-multi_run:
-  run_dir: data/outputs/2023.01.16/20.20.06_train_diffusion_unet_hybrid_mujoco
-  wandb_name_base: 2023.01.16-20.20.06_train_diffusion_unet_hybrid_mujoco
-n_action_steps: 1
-n_latency_steps: 0
-n_obs_steps: 1
 name: train_diffusion_unet_hybrid
-obs_as_global_cond: true
-optimizer:
-  _target_: torch.optim.AdamW
-  betas:
-  - 0.95
-  - 0.999
-  eps: 1.0e-08
-  lr: 0.0001
-  weight_decay: 1.0e-06
-past_action_visible: false
+_target_: lib.workspace.train_diffusion_unet_hybrid_no_sim_workspace.TrainDiffusionUnetHybridNoSimWorkspace
+
+task_name: ${task.name}
+shape_meta: ${task.shape_meta}
+exp_name: "default"
+
+horizon: 16
+n_obs_steps: 2
+n_action_steps: 8
+n_latency_steps: 0
+dataset_obs_steps: ${n_obs_steps}
+past_action_visible: False
+keypoint_visible_rate: 1.0
+obs_as_global_cond: True
+
 policy:
   _target_: diffusion_policy.policy.diffusion_unet_hybrid_image_policy.DiffusionUnetHybridImagePolicy
-  cond_predict_scale: true
-  crop_shape:
-  - 84
-  - 84
-  diffusion_step_embed_dim: 128
-  down_dims:
-  - 512
-  - 1024
-  - 2048
-  eval_fixed_crop: true
-  horizon: 16
-  kernel_size: 5
-  n_action_steps: 1
-  n_groups: 8
-  n_obs_steps: 1
+
+  shape_meta: ${shape_meta}
+
   noise_scheduler:
     _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
     beta_end: 0.02
     beta_schedule: squaredcos_cap_v2
     beta_start: 0.0001
-    clip_sample: true
+    clip_sample: True
     num_train_timesteps: 100
     prediction_type: epsilon
     variance_type: fixed_small
+
+  horizon: ${horizon}
+  n_action_steps: ${eval:'${n_action_steps}+${n_latency_steps}'}
+  n_obs_steps: ${n_obs_steps}
   num_inference_steps: 100
-  obs_as_global_cond: true
-  obs_encoder_group_norm: true
-  shape_meta:
-    action:
-      shape:
-      - 6
-    obs:
-      image:
-        shape:
-        - 3
-        - 224
-        - 224
-        type: rgb
-shape_meta:
-  action:
-    shape:
-    - 6
-  obs:
-    image:
-      shape:
-      - 3
-      - 224
-      - 224
-      type: rgb
-task:
-  dataset:
-    _target_: lib.dataset.mujoco_dataset.MujocoDataset
-    horizon: 16
-    max_train_episodes: 90
-    pad_after: 7
-    pad_before: 1
-    seed: 42
-    val_ratio: 0.02
-    zarr_path: data/mujoco/mujoco_sim.zarr
-  env_runner:
-    _target_: lib.env_runner.mujoco_runner.MujocoRunner
-    fps: 10
-    legacy_test: true
-    max_steps: 300
-    n_action_steps: 1
-    n_envs: null
-    n_obs_steps: 1
-    n_test: 50
-    n_test_vis: 4
-    n_train: 6
-    n_train_vis: 2
-    past_action: false
-    test_start_seed: 100000
-    train_start_seed: 0
-  image_shape:
-  - 3
-  - 224
-  - 224
-  name: mujoco
-  shape_meta:
-    action:
-      shape:
-      - 6
-    obs:
-      image:
-        shape:
-        - 3
-        - 224
-        - 224
-        type: rgb
-task_name: mujoco
-training:
-  checkpoint_every: 50
-  debug: false
-  device: cuda:0
-  gradient_accumulate_every: 1
-  lr_scheduler: cosine
-  lr_warmup_steps: 500
-  max_train_steps: null
-  max_val_steps: null
-  num_epochs: 3050
-  resume: true
-  rollout_every: 50
-  sample_every: 5
-  seed: 42
-  tqdm_interval_sec: 1.0
-  use_ema: true
-  val_every: 1
+  obs_as_global_cond: ${obs_as_global_cond}
+  crop_shape: [196, 196]
+  diffusion_step_embed_dim: 128
+  down_dims: [512, 1024, 2048]
+  kernel_size: 5
+  n_groups: 8
+  cond_predict_scale: True
+  obs_encoder_group_norm: True
+  eval_fixed_crop: True
+
+ema:
+  _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
+  update_after_step: 0
+  inv_gamma: 1.0
+  power: 0.75
+  min_value: 0.0
+  max_value: 0.9999
+
+dataloader:
+  batch_size: 64
+  num_workers: 8
+  shuffle: True
+  pin_memory: True
+  persistent_workers: False
+
 val_dataloader:
   batch_size: 64
   num_workers: 8
-  persistent_workers: false
-  pin_memory: true
-  shuffle: false
+  shuffle: False
+  pin_memory: True
+  persistent_workers: False
+
+optimizer:
+  _target_: torch.optim.AdamW
+  lr: 1.0e-4
+  betas: [0.95, 0.999]
+  eps: 1.0e-8
+  weight_decay: 1.0e-6
+
+training:
+  device: "cuda:0"
+  seed: 42
+  debug: False
+  resume: True
+  # optimization
+  lr_scheduler: cosine
+  lr_warmup_steps: 500
+  num_epochs: 2000
+  gradient_accumulate_every: 1
+  # EMA destroys performance when used with BatchNorm
+  # replace BatchNorm with GroupNorm.
+  use_ema: True
+  # training loop control
+  # in epochs
+  rollout_every: 100
+  checkpoint_every: 100
+  val_every: 1
+  sample_every: 5
+  # steps per epoch
+  max_train_steps: null
+  max_val_steps: null
+  # misc
+  tqdm_interval_sec: 1.0
+
+logging:
+  project: diffusion_policy_debug
+  resume: True
+  mode: online
+  name: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
+  tags: ["${name}", "${task_name}", "${exp_name}"]
+  id: null
+  group: null
+
+checkpoint:
+  topk:
+    monitor_key: test_mean_score
+    mode: max
+    k: 5
+    format_str: 'epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt'
+  save_last_ckpt: True
+  save_last_snapshot: False
+
+multi_run:
+  run_dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
+
+hydra:
+  job:
+    override_dirname: ${name}
+  run:
+    dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+  sweep:
+    dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+    subdir: ${hydra.job.num}
+
+task:
+  name: MujocoUR5eCable
+
+  image_shape: &image_shape [3, 224, 224]
+  shape_meta: &shape_meta
+    # acceptable types: rgb, low_dim
+    obs:
+      image:
+        shape: *image_shape
+        type: rgb
+      joint:
+        shape: [7]
+        type: low_dim
+    action:
+      shape: [7]
+
+  dataset:
+    _target_: lib.dataset.mujoco_dataset.MujocoDataset
+    zarr_path: data/teleop_data/learning_data.zarr
+    horizon: ${horizon}
+    pad_before: ${eval:'${n_obs_steps}-1'}
+    pad_after: ${eval:'${n_action_steps}-1'}
+    seed: 42
+    val_ratio: 0.02
+    max_train_episodes: 90
