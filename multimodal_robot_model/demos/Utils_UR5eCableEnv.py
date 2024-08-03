@@ -185,10 +185,10 @@ class RecordManager(object):
 
     def getStatusImage(self):
         """Get the image corresponding to the current status."""
-        status_image = np.zeros((50, 224, 3), dtype=np.uint8)
+        status_image = np.zeros((50, 160, 3), dtype=np.uint8)
         if self.status == RecordStatus.INITIAL:
             status_image[:, :] = np.array([200, 255, 200])
-        elif self.status == RecordStatus.PRE_REACH or self.status == RecordStatus.REACH or self.status == RecordStatus.GRASP:
+        elif self.status in {RecordStatus.PRE_REACH, RecordStatus.REACH, RecordStatus.GRASP}:
             status_image[:, :] = np.array([255, 255, 200])
         elif self.status == RecordStatus.TELEOP:
             status_image[:, :] = np.array([255, 200, 200])

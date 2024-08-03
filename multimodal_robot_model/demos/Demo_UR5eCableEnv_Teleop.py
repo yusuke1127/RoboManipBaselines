@@ -95,13 +95,22 @@ while True:
     obs, _, _, _, info = env.step(action)
 
     # Draw images
-    window_images = []
+    status_image = record_manager.getStatusImage()
+    rgb_images = []
+    depth_images = []
     for camera_name in ("front", "side", "hand"):
         image_size = env.unwrapped.cameras[camera_name]["size"]
         image_ratio = image_size[1] / image_size[0]
-        window_images.append(cv2.resize(info["rgb_images"][camera_name], (224, int(224 / image_ratio))))
-    window_images.append(record_manager.getStatusImage())
-    window_image = np.concatenate(window_images)
+        resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
+        rgb_images.append(cv2.resize(info["rgb_images"][camera_name], resized_image_size))
+        depth_image = info["depth_images"][camera_name]
+        depth_image = (255 * ((depth_image - depth_image.min()) / (depth_image.max() - depth_image.min()))).astype(np.uint8)
+        depth_image = cv2.merge((depth_image,) * 3)
+        depth_images.append(cv2.resize(depth_image, resized_image_size))
+    rgb_images.append(status_image)
+    depth_images.append(np.full_like(status_image, 255))
+    window_image = cv2.hconcat((cv2.vconcat(rgb_images), cv2.vconcat(depth_images)))
+    cv2.namedWindow("image", flags=(cv2.WINDOW_AUTOSIZE | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_GUI_NORMAL))
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
 

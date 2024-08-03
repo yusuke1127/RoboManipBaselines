@@ -65,25 +65,41 @@ while True:
     _, _, _, _, info = env.step(action)
 
     # Draw images
-    online_images = []
+    status_image = record_manager.getStatusImage()
+    online_rgb_images = []
+    online_depth_images = []
     for camera_name in ("front", "side", "hand"):
         image_size = env.unwrapped.cameras[camera_name]["size"]
         image_ratio = image_size[1] / image_size[0]
-        online_images.append(cv2.resize(info["rgb_images"][camera_name], (224, int(224 / image_ratio))))
-    status_image = record_manager.getStatusImage()
-    online_images.append(status_image)
-    online_image = cv2.vconcat(online_images)
+        resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
+        online_rgb_images.append(cv2.resize(info["rgb_images"][camera_name], resized_image_size))
+        depth_image = info["depth_images"][camera_name]
+        depth_image = (255 * ((depth_image - depth_image.min()) / (depth_image.max() - depth_image.min()))).astype(np.uint8)
+        depth_image = cv2.merge((depth_image,) * 3)
+        online_depth_images.append(cv2.resize(depth_image, resized_image_size))
+    online_rgb_images.append(status_image)
+    online_depth_images.append(np.full_like(status_image, 255))
     if record_manager.status == RecordStatus.TELEOP:
-        record_images = []
-        for record_key in (RecordKey.FRONT_RGB_IMAGE, RecordKey.SIDE_RGB_IMAGE, RecordKey.HAND_RGB_IMAGE):
-            image = record_manager.getSingleData(record_key, time_idx)
-            image_ratio = image.shape[1] / image.shape[0]
-            record_images.append(cv2.resize(image, (224, int(224 / image_ratio))))
-        record_images.append(np.full_like(status_image, 255))
-        record_image = cv2.vconcat(record_images)
+        record_rgb_images = []
+        record_depth_images = []
+        for record_rgb_key, record_depth_key in ((RecordKey.FRONT_RGB_IMAGE, RecordKey.FRONT_DEPTH_IMAGE),
+                                                 (RecordKey.SIDE_RGB_IMAGE, RecordKey.SIDE_DEPTH_IMAGE),
+                                                 (RecordKey.HAND_RGB_IMAGE, RecordKey.HAND_DEPTH_IMAGE)):
+            rgb_image = record_manager.getSingleData(record_rgb_key, time_idx)
+            image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
+            resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
+            record_rgb_images.append(cv2.resize(rgb_image, resized_image_size))
+            depth_image = record_manager.getSingleData(record_depth_key, time_idx)
+            depth_image = (255 * ((depth_image - depth_image.min()) / (depth_image.max() - depth_image.min()))).astype(np.uint8)
+            depth_image = cv2.merge((depth_image,) * 3)
+            record_depth_images.append(cv2.resize(depth_image, resized_image_size))
+        record_rgb_images.append(np.full_like(status_image, 255))
+        record_depth_images.append(np.full_like(status_image, 255))
+        window_image = cv2.hconcat((cv2.vconcat(online_rgb_images), cv2.vconcat(record_rgb_images),
+                                    cv2.vconcat(record_depth_images), cv2.vconcat(online_depth_images)))
     else:
-        record_image = np.full_like(online_image, 255)
-    window_image = cv2.hconcat([online_image, record_image])
+        window_image = cv2.hconcat((cv2.vconcat(online_rgb_images), cv2.vconcat(online_depth_images)))
+    cv2.namedWindow("image", flags=(cv2.WINDOW_AUTOSIZE | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_GUI_NORMAL))
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
 
