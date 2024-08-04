@@ -196,7 +196,7 @@ class RecordManager(object):
             status_image[:, :] = np.array([200, 200, 255])
         else:
             raise ValueError("Unknown status: {}".format(self.status))
-        cv2.putText(status_image, self.status.name, (5, 35), cv2.FONT_HERSHEY_DUPLEX, 1.0, (0, 0, 0), 2)
+        cv2.putText(status_image, self.status.name, (5, 35), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 2)
         return status_image
 
     def setupSimWorld(self, pole_pos_idx=None):
@@ -234,3 +234,8 @@ class RecordManager(object):
         """Set the status."""
         self._status = new_status
         self.status_start_time = self.env.unwrapped.data.time
+
+def convertDepthImageToColorImage(image):
+    """Convert depth image (float type) to color image (uint8 type)."""
+    image = (255 * ((image - image.min()) / (image.max() - image.min()))).astype(np.uint8)
+    return cv2.merge((image,) * 3)

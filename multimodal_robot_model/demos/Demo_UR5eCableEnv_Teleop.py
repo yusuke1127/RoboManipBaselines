@@ -4,7 +4,7 @@ import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
 import pyspacemouse
-from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
+from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager, convertDepthImageToColorImage
 
 # Setup gym
 env = gym.make(
@@ -36,7 +36,7 @@ while True:
         record_manager.setupSimWorld()
         obs, info = env.reset()
         print("== [UR5eCableEnv] data_idx: {}, world_idx: {} ==".format(record_manager.data_idx, record_manager.world_idx))
-        print("- Press space key to start automatic grasping.")
+        print("- Press the 'n' key to start automatic grasping.")
         reset = False
 
     # Read spacemouse
@@ -99,13 +99,11 @@ while True:
     rgb_images = []
     depth_images = []
     for camera_name in ("front", "side", "hand"):
-        image_size = env.unwrapped.cameras[camera_name]["size"]
-        image_ratio = image_size[1] / image_size[0]
+        rgb_image = info["rgb_images"][camera_name]
+        image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
         resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
-        rgb_images.append(cv2.resize(info["rgb_images"][camera_name], resized_image_size))
-        depth_image = info["depth_images"][camera_name]
-        depth_image = (255 * ((depth_image - depth_image.min()) / (depth_image.max() - depth_image.min()))).astype(np.uint8)
-        depth_image = cv2.merge((depth_image,) * 3)
+        rgb_images.append(cv2.resize(rgb_image, resized_image_size))
+        depth_image = convertDepthImageToColorImage(info["depth_images"][camera_name])
         depth_images.append(cv2.resize(depth_image, resized_image_size))
     rgb_images.append(status_image)
     depth_images.append(np.full_like(status_image, 255))
@@ -116,7 +114,7 @@ while True:
 
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
-        if key == 32: # space key
+        if key == ord("n"):
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.PRE_REACH:
         pre_reach_duration = 0.7 # [s]
@@ -126,13 +124,13 @@ while True:
         reach_duration = 0.3 # [s]
         if record_manager.status_elapsed_duration > reach_duration:
             record_manager.goToNextStatus()
-            print("- Press space key to start teleoperation after robot grasps the cable.")
+            print("- Press the 'n' key to start teleoperation after robot grasps the cable.")
     elif record_manager.status == RecordStatus.GRASP:
-        if key == 32: # space key
+        if key == ord("n"):
             record_manager.goToNextStatus()
-            print("- Press space key to finish teleoperation.")
+            print("- Press the 'n' key to finish teleoperation.")
     elif record_manager.status == RecordStatus.TELEOP:
-        if key == 32: # space key
+        if key == ord("n"):
             print("- Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed. (duration: {:.1f} [s])".format(
                 record_manager.status_elapsed_duration))
             record_manager.goToNextStatus()
