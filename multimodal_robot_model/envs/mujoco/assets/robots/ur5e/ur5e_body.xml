@@ -155,7 +155,7 @@
                   <geom mesh="d435i_7" material="RGB_Pupil" class="d435i_visual"/>
                   <geom mesh="d435i_8" mass="0.072" material="Metal_Casing" class="d435i_visual"/>
                   <geom class="d435i_collision" type="capsule" mesh="d435i_8"/>
-                  <camera name="hand" fovy="58" euler="0 3.1415 0"/>
+                  <camera name="hand" fovy="62" euler="0 3.1415 0"/>
                   <body name="camera_frame"/>
                 </body>
               </body>
