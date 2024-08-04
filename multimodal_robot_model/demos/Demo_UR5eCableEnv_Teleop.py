@@ -5,7 +5,8 @@ import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
 import pyspacemouse
-from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager, convertDepthImageToColorImage
+from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager, \
+    convertDepthImageToColorImage, convertDepthImageToPointCloud
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--enable-3d-plot", action="store_true", help="whether to enable 3d plot")
@@ -28,6 +29,7 @@ motion_manager = MotionManager(env)
 
 # Setup record manager
 record_manager = RecordManager(env)
+record_manager.setupCameraInfo((RecordKey.FRONT_DEPTH_IMAGE, RecordKey.SIDE_DEPTH_IMAGE, RecordKey.HAND_DEPTH_IMAGE))
 
 # Setup spacemouse
 pyspacemouse.open()
@@ -130,15 +132,8 @@ while True:
         for camera_idx, camera_name in enumerate(("front", "side", "hand")):
             depth_image_skip = 10
             small_depth_image = info["depth_images"][camera_name][::depth_image_skip, ::depth_image_skip]
-            focal_scaling = (1.0 / np.tan(np.deg2rad(env.unwrapped.model.cam_fovy[camera_idx]) / 2.0)) * small_depth_image.shape[0] / 2.0
-            xyz_array = np.array([(i, j)
-                                 for i in range(small_depth_image.shape[0])
-                                 for j in range(small_depth_image.shape[1])], dtype=np.float32)
-            xyz_array = (xyz_array - 0.5 * np.array(small_depth_image.shape[:2], dtype=np.float32)) / focal_scaling
-            xyz_array *= small_depth_image.flatten()[:, np.newaxis]
-            xyz_array = np.hstack((xyz_array[:, [1,0]], small_depth_image.flatten()[:, np.newaxis]))
-            dist_thre = 3.0 # [m]
-            xyz_array = xyz_array[np.argwhere(small_depth_image.flatten() < dist_thre)[:, 0]]
+            xyz_array = convertDepthImageToPointCloud(
+                small_depth_image, fovy=env.unwrapped.model.cam_fovy[camera_idx], dist_thre=3.0)
             if scatter_list[camera_idx] is None:
                 ax[camera_idx].view_init(elev=-90, azim=-90)
                 ax[camera_idx].set_xlim(xyz_array[:, 0].min(), xyz_array[:, 0].max())

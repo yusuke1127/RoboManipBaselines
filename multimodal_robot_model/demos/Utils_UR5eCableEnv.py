@@ -146,7 +146,10 @@ class RecordManager(object):
         self.world_idx = 0
         self.world_info = {}
 
-        self._original_pole_pos = self.env.unwrapped.model.body("poles").pos.copy()
+        self.camera_info = {}
+
+        if self.env is not None:
+            self._original_pole_pos = self.env.unwrapped.model.body("poles").pos.copy()
 
         self.reset()
 
@@ -169,7 +172,7 @@ class RecordManager(object):
     def saveData(self, filename):
         """Save data."""
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        np.savez(filename, **self.data_seq, **self.world_info)
+        np.savez(filename, **self.data_seq, **self.world_info, **self.camera_info)
         self.data_idx += 1
 
     def loadData(self, filename):
@@ -219,6 +222,11 @@ class RecordManager(object):
         self.world_info = {"world_idx": self.world_idx,
                            "pole_pos_idx": pole_pos_idx}
 
+    def setupCameraInfo(self, depth_image_key_list):
+        """Set camera info."""
+        for camera_idx, depth_image_key in enumerate(depth_image_key_list):
+            self.camera_info[depth_image_key.key() + "_fovy"] = self.env.unwrapped.model.cam_fovy[camera_idx]
+
     @property
     def status_elapsed_duration(self):
         """Get the elapsed duration of the current status."""
@@ -233,9 +241,23 @@ class RecordManager(object):
     def status(self, new_status):
         """Set the status."""
         self._status = new_status
-        self.status_start_time = self.env.unwrapped.data.time
+        if self.env is None:
+            self.status_start_time = 0.0
+        else:
+            self.status_start_time = self.env.unwrapped.data.time
 
 def convertDepthImageToColorImage(image):
     """Convert depth image (float type) to color image (uint8 type)."""
     image = (255 * ((image - image.min()) / (image.max() - image.min()))).astype(np.uint8)
     return cv2.merge((image,) * 3)
+
+def convertDepthImageToPointCloud(image, fovy, dist_thre=None):
+    """Convert depth image (float type) to point cloud (array of 3D position)."""
+    focal_scaling = (1.0 / np.tan(np.deg2rad(fovy) / 2.0)) * image.shape[0] / 2.0
+    xyz_array = np.array([(i, j) for i in range(image.shape[0]) for j in range(image.shape[1])], dtype=np.float32)
+    xyz_array = (xyz_array - 0.5 * np.array(image.shape[:2], dtype=np.float32)) / focal_scaling
+    xyz_array *= image.flatten()[:, np.newaxis]
+    xyz_array = np.hstack((xyz_array[:, [1, 0]], image.flatten()[:, np.newaxis]))
+    if dist_thre:
+        xyz_array = xyz_array[np.argwhere(image.flatten() < dist_thre)[:, 0]]
+    return xyz_array
