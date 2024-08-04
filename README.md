@@ -35,6 +35,8 @@ Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1
 $ cd multimodal_robot_model/demos/
 $ # Connect SpaceMouse to your PC.
 $ python Demo_UR5eCableEnv_Teleop.py
+$ # To add a 3D plot of the point cloud, add the following option
+$ # python Demo_UR5eCableEnv_Teleop.py --enable-3d-plot
 ```
 
 ### Playback teleoperation data

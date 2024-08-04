@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 import cv2
 import gymnasium as gym
@@ -5,6 +6,10 @@ import multimodal_robot_model
 import pinocchio as pin
 import pyspacemouse
 from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager, convertDepthImageToColorImage
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--enable-3d-plot", action="store_true", help="whether to enable 3d plot")
+args = parser.parse_args()
 
 # Setup gym
 env = gym.make(
@@ -26,6 +31,14 @@ record_manager = RecordManager(env)
 
 # Setup spacemouse
 pyspacemouse.open()
+
+# Setup 3D plot
+if args.enable_3d_plot:
+    import matplotlib.pylab as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    fig, ax = plt.subplots(len(env.unwrapped.cameras), 1, subplot_kw=dict(projection="3d"))
+    fig.tight_layout()
+    scatter_list = [None] * len(env.unwrapped.cameras)
 
 reset = True
 while True:
@@ -111,6 +124,33 @@ while True:
     cv2.namedWindow("image", flags=(cv2.WINDOW_AUTOSIZE | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_GUI_NORMAL))
     cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
     key = cv2.waitKey(1)
+
+    # Draw point clouds
+    if args.enable_3d_plot:
+        for camera_idx, camera_name in enumerate(("front", "side", "hand")):
+            depth_image_skip = 10
+            small_depth_image = info["depth_images"][camera_name][::depth_image_skip, ::depth_image_skip]
+            focal_scaling = (1.0 / np.tan(np.deg2rad(env.unwrapped.model.cam_fovy[camera_idx]) / 2.0)) * small_depth_image.shape[0] / 2.0
+            xyz_array = np.array([(i, j)
+                                 for i in range(small_depth_image.shape[0])
+                                 for j in range(small_depth_image.shape[1])], dtype=np.float32)
+            xyz_array = (xyz_array - 0.5 * np.array(small_depth_image.shape[:2], dtype=np.float32)) / focal_scaling
+            xyz_array *= small_depth_image.flatten()[:, np.newaxis]
+            xyz_array = np.hstack((xyz_array[:, [1,0]], small_depth_image.flatten()[:, np.newaxis]))
+            dist_thre = 3.0 # [m]
+            xyz_array = xyz_array[np.argwhere(small_depth_image.flatten() < dist_thre)[:, 0]]
+            if scatter_list[camera_idx] is None:
+                ax[camera_idx].view_init(elev=-90, azim=-90)
+                ax[camera_idx].set_xlim(xyz_array[:, 0].min(), xyz_array[:, 0].max())
+                ax[camera_idx].set_ylim(xyz_array[:, 1].min(), xyz_array[:, 1].max())
+                ax[camera_idx].set_zlim(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+            else:
+                scatter_list[camera_idx].remove()
+            ax[camera_idx].set_aspect("equal")
+            scatter_list[camera_idx] = ax[camera_idx].scatter(
+                xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=xyz_array[:, 2], cmap="viridis")
+        plt.draw()
+        plt.pause(0.001)
 
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
