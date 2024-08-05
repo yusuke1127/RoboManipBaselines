@@ -15,13 +15,14 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 class UR5eCableEnv(MujocoEnv, utils.EzPickle):
+    frame_skip = 8
     metadata = {
         "render_modes": [
             "human",
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 50,
+        "render_fps": int(1 / (0.004 * frame_skip)),
     }
 
     def __init__(
@@ -45,7 +46,7 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         MujocoEnv.__init__(
             self,
             model_path=xml_file,
-            frame_skip=5,
+            frame_skip=self.frame_skip,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
