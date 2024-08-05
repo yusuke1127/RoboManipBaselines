@@ -38,6 +38,7 @@ pyspacemouse.open()
 if args.enable_3d_plot:
     import matplotlib.pylab as plt
     from mpl_toolkits.mplot3d import Axes3D
+    plt.rcParams["keymap.quit"] = ["q", "escape"]
     fig, ax = plt.subplots(len(env.unwrapped.cameras), 1, subplot_kw=dict(projection="3d"))
     fig.tight_layout()
     scatter_list = [None] * len(env.unwrapped.cameras)
@@ -129,21 +130,26 @@ while True:
 
     # Draw point clouds
     if args.enable_3d_plot:
+        dist_thre_list = (3.0, 3.0, 0.8) # [m]
         for camera_idx, camera_name in enumerate(("front", "side", "hand")):
-            depth_image_skip = 10
-            small_depth_image = info["depth_images"][camera_name][::depth_image_skip, ::depth_image_skip]
-            xyz_array = convertDepthImageToPointCloud(
-                small_depth_image, fovy=env.unwrapped.model.cam_fovy[camera_idx], dist_thre=3.0)
+            point_cloud_skip = 10
+            small_depth_image = info["depth_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
+            small_rgb_image = info["rgb_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
+            fovy = env.unwrapped.model.cam_fovy[camera_idx]
+            xyz_array, rgb_array = convertDepthImageToPointCloud(
+                small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[camera_idx])
             if scatter_list[camera_idx] is None:
+                get_min_max = lambda v_min, v_max: (0.75 * v_min + 0.25 * v_max, 0.25 * v_min + 0.75 * v_max)
                 ax[camera_idx].view_init(elev=-90, azim=-90)
-                ax[camera_idx].set_xlim(xyz_array[:, 0].min(), xyz_array[:, 0].max())
-                ax[camera_idx].set_ylim(xyz_array[:, 1].min(), xyz_array[:, 1].max())
-                ax[camera_idx].set_zlim(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+                ax[camera_idx].set_xlim(*get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max()))
+                ax[camera_idx].set_ylim(*get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max()))
+                ax[camera_idx].set_zlim(*get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max()))
             else:
                 scatter_list[camera_idx].remove()
+            ax[camera_idx].axis("off")
             ax[camera_idx].set_aspect("equal")
             scatter_list[camera_idx] = ax[camera_idx].scatter(
-                xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=xyz_array[:, 2], cmap="viridis")
+                xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array)
         plt.draw()
         plt.pause(0.001)
 

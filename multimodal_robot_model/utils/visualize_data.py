@@ -7,8 +7,10 @@ from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordMan
 
 parser = argparse.ArgumentParser()
 parser.add_argument("teleop_filename", type=str, help="whether to enable 3d plot")
+parser.add_argument('--skip', default=10, type=int, help='skip', required=False)
 args = parser.parse_args()
 
+plt.rcParams["keymap.quit"] = ["q", "escape"]
 fig, ax = plt.subplots(4, 3)
 for ax_idx in range(1,4):
     ax[ax_idx, -1].remove()
@@ -39,8 +41,16 @@ joint_pos_list = []
 joint_vel_list = []
 wrench_list = []
 
-time_skip = 10
-for time_idx in range(0, len(record_manager.data_seq["time"]), time_skip):
+break_flag = False
+def key_event(event):
+    if event.key == "q" or event.key == "escape":
+        global break_flag
+        break_flag = True
+
+for time_idx in range(0, len(record_manager.data_seq["time"]), args.skip):
+    if break_flag:
+        break
+
     time_list.append(record_manager.data_seq["time"][time_idx])
     action_list.append(record_manager.getSingleData(RecordKey.ACTION, time_idx))
     joint_pos_list.append(record_manager.getSingleData(RecordKey.JOINT_POS, time_idx))
@@ -59,6 +69,7 @@ for time_idx in range(0, len(record_manager.data_seq["time"]), time_skip):
     ax[0, 2].cla()
     ax[0, 2].plot(time_list, wrench_list)
 
+    dist_thre_list = (3.0, 3.0, 0.8) # [m]
     for ax_idx, (record_rgb_key, record_depth_key) in enumerate(
             ((RecordKey.FRONT_RGB_IMAGE, RecordKey.FRONT_DEPTH_IMAGE),
              (RecordKey.SIDE_RGB_IMAGE, RecordKey.SIDE_DEPTH_IMAGE),
@@ -76,20 +87,25 @@ for time_idx in range(0, len(record_manager.data_seq["time"]), time_skip):
 
         point_cloud_skip = 10
         small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
+        small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
         fovy = record_manager.data_seq[f"{record_depth_key.key()}_fovy"].tolist()
-        xyz_array = convertDepthImageToPointCloud(small_depth_image, fovy=fovy, dist_thre=3.0)
+        xyz_array, rgb_array = convertDepthImageToPointCloud(
+            small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[ax_idx - 1])
         if scatter_list[ax_idx - 1] is None:
+            get_min_max = lambda v_min, v_max: (0.75 * v_min + 0.25 * v_max, 0.25 * v_min + 0.75 * v_max)
             ax[ax_idx, 2].view_init(elev=-90, azim=-90)
-            ax[ax_idx, 2].set_xlim(xyz_array[:, 0].min(), xyz_array[:, 0].max())
-            ax[ax_idx, 2].set_ylim(xyz_array[:, 1].min(), xyz_array[:, 1].max())
-            ax[ax_idx, 2].set_zlim(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+            ax[ax_idx, 2].set_xlim(*get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max()))
+            ax[ax_idx, 2].set_ylim(*get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max()))
+            ax[ax_idx, 2].set_zlim(*get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max()))
         else:
             scatter_list[ax_idx - 1].remove()
+        ax[ax_idx, 2].axis("off")
         ax[ax_idx, 2].set_aspect("equal")
         scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
-            xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=xyz_array[:, 2], cmap="viridis")
+            xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array)
 
     plt.draw()
     plt.pause(0.001)
+    fig.canvas.mpl_connect("key_press_event", key_event)
 
 plt.show()
