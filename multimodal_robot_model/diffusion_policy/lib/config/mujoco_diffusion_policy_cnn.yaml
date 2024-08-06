@@ -1,6 +1,8 @@
 name: train_diffusion_unet_hybrid
 _target_: lib.workspace.train_diffusion_unet_hybrid_no_sim_workspace.TrainDiffusionUnetHybridNoSimWorkspace
 
+enable_wandb: True # added in multimodal_robot_model
+
 task_name: ${task.name}
 shape_meta: ${task.shape_meta}
 exp_name: "default"
