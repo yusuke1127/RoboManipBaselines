@@ -3,7 +3,7 @@
 [[ $# < 1 ]] && echo "$0 <CKPT_PATH> [<SKIP>]" && exit 1
 
 CKPT_PATH=$1
-SKIP=${2:-1}
+SKIP=${2:-4}
 
 echo "[diffusion_policy/iterate_rollout.sh] CKPT_PATH: ${CKPT_PATH}"
 echo "[diffusion_policy/iterate_rollout.sh] SKIP: ${SKIP}"

@@ -7,7 +7,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)
 parser.add_argument("--out_path", type=str)
-parser.add_argument("--skip", type=int, default=10)
+parser.add_argument("--skip", type=int, default=4)
 args = parser.parse_args()
 
 in_file_names = glob.glob(os.path.join(args.in_dir, "**/*.npz"), recursive=True)
