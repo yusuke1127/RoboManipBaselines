@@ -20,6 +20,9 @@ Action Chunking with Transformers
 ### [DiffusionPolicy](./multimodal_robot_model/diffusion_policy)
 Diffusion Policy
 
+### [MT-ACT](./multimodal_robot_model/mt_act)
+Multi-Task Action Chunking Transformer
+
 ## Utilities
 See [utils](./multimodal_robot_model/utils).
 
