@@ -2,14 +2,12 @@
 
 ## Install
 
-Clone roboagent.
-``` console
-$ cd third_party/
-$ git clone https://github.com/robopen/roboagent.git
-``` 
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
 
-Install the required packages. 
+Install [roboagent](https://github.com/robopen/roboagent.git).
 ``` console
+$ # Go to the top directory of this repository
+$ git submodule update --init --recursive
 $ pip install \
 torchvision \
 torch \
@@ -26,33 +24,15 @@ packaging \
 h5py \
 h5py_cache
 $ pip install ipython lru_cache click
-$ cd ../third_party/roboagent/detr && pip install -e .
-```
-
-Install [EIPL](https://github.com/ogata-lab/eipl).
-``` console
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/eipl
-$ pip install -r requirements.txt
+$ cd third_party/roboagent/detr
 $ pip install -e .
 ```
 
-Overwrite some of the code in roboagent.
+Check the version of `mujoco` with `pip show mujoco` and if it is not `2.3.7`, do the following commands.
 ```console
-$ mv multimodal_robot_model/mtact/roboagent-overwrite/constants.py third_party/roboagent/constants.py \
-&& mv multimodal_robot_model/mtact/roboagent-overwrite/detr/main.py third_party/roboagent/detr/main.py \
-&& mv multimodal_robot_model/mtact/roboagent-overwrite/detr/models/detr_vae.py third_party/roboagent/detr/models/detr_vae.py \
-&& mv multimodal_robot_model/mtact/roboagent-overwrite/train.py third_party/roboagent/train.py \
-&& mv multimodal_robot_model/mtact/roboagent-overwrite/utils.py third_party/roboagent/utils.py
+$ pip install mujoco==2.3.7
 ```
-
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
-```console
-$ # Go to the top directory of this repository
-$ pip install -e .
-```
-**Note**: The above installation resulted the following error message. I ignored this error message and proceeded the next steps.
+During the above installation, you may see the following error message. You may ignore this error message and proceed to the next step.
 ```console
 ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2.3.7 which is incompatible.
 ```
@@ -60,7 +40,10 @@ ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
-Data for multiple tasks has been uploaded to [mujoco_ur5e_cable_wiring > teleop_data > 20240711](https://aist.box.com/s/9qtkspyyzcxqvrssvumahfgvi31h5cet).
+
+Sample data can be downloaded from the following links.
+- [Full data (270 trials)](https://aist.box.com/s/9qtkspyyzcxqvrssvumahfgvi31h5cet)
+- [Partial data (24 trials)](https://aist.box.com/s/ks8l2ajmxhj48abxdvg4lowtp9134by5)
 
 ```console
 $ tree data/teleop_data_sample/
@@ -114,12 +97,8 @@ $ python ../utils/make_multi_dataset.py \
 --in_dir ./data/teleop_data_sample \
 --out_dir ./data/learning_data_sample \
 --skip 2 \
-<<<<<<< HEAD
 --train_keywords env1 env5 \
 --test_keywords env3 \
-=======
---train_ratio 0.8 \
->>>>>>> refs/remotes/origin/master
 --nproc `nproc`
 ```
 
@@ -129,7 +108,7 @@ Train the model. The trained weights are saved in the `log` folder.
 The training hyperparameters here (such as chunk_size) are the same as those in [act#training-models](https://github.com/isri-aist/MultimodalRobotModel/tree/master/multimodal_robot_model/act#model-training).
 
 ```console
-$ python ../third_party/roboagent/train.py \
+$ python ./bin/train.py \
 --dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME \
 --policy_class ACT \
 --kl_weight 10 \

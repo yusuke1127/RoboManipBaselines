@@ -4,8 +4,8 @@
 
 CKPT_DIR=$1
 CKPT_NAME=${2:-policy_best.ckpt}
-CHUNK_SIZE=${3:-100}  # ACT:100, MT-ACT:20
-SKIP=${4:-2} 
+CHUNK_SIZE=${3:-100}
+SKIP=${4:-2}
 
 echo "[act/iterate_rollout.sh] CKPT_DIR: ${CKPT_DIR}"
 echo "[act/iterate_rollout.sh] CKPT_NAME: ${CKPT_NAME}"
@@ -17,8 +17,8 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 array_pole=(0 1 2 3 4 5)
 array_task=("task0_between-two" "task1_around-red" "task2_turn-blue" "task3_around-two")
 for POLE_POS_IDX in "${array_pole[@]}"; do
-    echo "[act/iterate_rollout.sh] POLE_POS_IDX: ${POLE_POS_IDX}"
     for TASK_NAME in "${array_task[@]}"; do
+        echo "[act/iterate_rollout.sh] POLE_POS_IDX: ${POLE_POS_IDX}"
         echo "[act/iterate_rollout.sh] TASK_NAME: ${TASK_NAME}"
         python ${SCRIPT_DIR}/../bin/rollout.py \
         --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} --task_name ${TASK_NAME} \

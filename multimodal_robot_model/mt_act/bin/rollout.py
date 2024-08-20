@@ -10,10 +10,10 @@ import cv2
 import gymnasium as gym
 import pinocchio as pin
 import torch
+from eipl.utils import tensor2numpy, resize_img
+from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS, SIM_TASK_CONFIGS
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent"))
-from constants import TASKS, TEXT_EMBEDDINGS
 from policy import ACTPolicy
-from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
 from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
 
@@ -67,7 +67,6 @@ task_emb = torch.from_numpy(task_emb).float().cuda()
 task_emb = task_emb.unsqueeze(0)
 
 # Get task parameters
-from multimodal_robot_model.mtact import SIM_TASK_CONFIGS
 task_config = SIM_TASK_CONFIGS[task_name]
 camera_names = task_config['camera_names']
 
@@ -265,12 +264,12 @@ while True:
         ax[0, 1].tick_params(axis="y", labelsize=16)
         ax[0, 1].axis("on")
 
-        # # Draw predicted front_image
-        #for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
-        #    if layer.self_attn.correlation_mat is None:
-        #        continue
-        #    ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[2:, 1].reshape((7, 7)))
-        #    ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
+        # Draw predicted front_image
+        for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
+           if layer.self_attn.correlation_mat is None:
+               continue
+           ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[3:, 1].reshape((7, 7)))
+           ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
 
         fig.tight_layout()
         canvas.draw()

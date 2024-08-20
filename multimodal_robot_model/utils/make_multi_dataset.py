@@ -1,10 +1,3 @@
-#
-# Copyright (c) Since 2023 Ogata Laboratory, Waseda University
-#
-# Released under the AGPL license.
-# see https://www.gnu.org/licenses/agpl-3.0.txt
-#
-
 import sys
 import os
 import glob
@@ -18,7 +11,7 @@ from eipl.utils import resize_img, calc_minmax, list_to_numpy
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")
 parser.add_argument("--out_dir", type=str, default="./data/")
-parser.add_argument('--task_names', nargs='*', default=['task0_between-two', 'task1_around-red', 'task2_turn-blue', 'task3_around-two'])  # 'pick_butter', 'place_butter'
+parser.add_argument("--task_names", nargs="*", default=["task0_between-two", "task1_around-red", "task2_turn-blue", "task3_around-two"])
 parser.add_argument("--train_ratio", type=float, required=False)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
