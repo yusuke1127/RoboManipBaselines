@@ -12,4 +12,4 @@
 	url = https://github.com/facebookresearch/r3m.git
 [submodule "third_party/roboagent"]
 	path = third_party/roboagent
-	url = https://github.com/robopen/roboagent.git
+	url = https://github.com/mmurooka/roboagent.git
