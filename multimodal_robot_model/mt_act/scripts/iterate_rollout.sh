@@ -28,9 +28,8 @@ for POLE_POS_IDX in "${array_pole[@]}"; do
         --hidden_dim 512 \
         --dim_feedforward 3200 \
         --seed 0 \
-        --temporal_agg \
         --multi_task \
-        --win_xy_policy 0 600 --win_xy_simulation 900 0 \
+        --win_xy_policy 0 700 --win_xy_simulation 900 0 \
         --pole-pos-idx ${POLE_POS_IDX}
     done
 done
