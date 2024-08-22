@@ -10,6 +10,8 @@ from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordMan
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--enable-3d-plot", action="store_true", help="whether to enable 3d plot")
+parser.add_argument("--compress-rgb", type=int, default=1, help="whether to compress rgb image")
+parser.add_argument("--compress-depth", type=int, default=0, help="whether to compress depth image (slow)")
 args = parser.parse_args()
 
 # Setup gym
@@ -180,6 +182,14 @@ while True:
             # Save data
             filename = "teleop_data/env{:0>1}/UR5eCableEnv_env{:0>1}_{:0>3}.npz".format(
                 record_manager.world_idx, record_manager.world_idx, record_manager.data_idx)
+            if args.compress_rgb:
+                print("- Compress rgb images")
+                for rgb_key in (RecordKey.SIDE_RGB_IMAGE, RecordKey.FRONT_RGB_IMAGE, RecordKey.HAND_RGB_IMAGE):
+                    record_manager.compressData(rgb_key, "jpg")
+            if args.compress_depth:
+                print("- Compress depth images")
+                for depth_key in (RecordKey.FRONT_DEPTH_IMAGE, RecordKey.SIDE_DEPTH_IMAGE, RecordKey.HAND_DEPTH_IMAGE):
+                    record_manager.compressData(depth_key, "exr")
             record_manager.saveData(filename)
             print("- Teleoperation succeeded: Save the data as {}".format(filename))
             reset = True

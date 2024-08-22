@@ -6,6 +6,10 @@ import gymnasium as gym
 import pinocchio as pin
 import mujoco
 
+# https://github.com/opencv/opencv/issues/21326
+import os
+os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
+
 class MotionManager(object):
     """
     Motion manager for robot arm and gripper.
@@ -167,17 +171,40 @@ class RecordManager(object):
 
     def getSingleData(self, record_key, time_idx):
         """Get single data from the data sequence."""
-        return self.data_seq[record_key.key()][time_idx]
+        key = record_key.key()
+        data = self.data_seq[key][time_idx]
+        if "rgb" in key:
+            if data.ndim == 1:
+                data = cv2.imdecode(data, flags=cv2.IMREAD_COLOR)
+        elif "depth" in key:
+            if data.ndim == 1:
+                data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
+        return data
+
+    def compressData(self, record_key, compress_flag):
+        """Compress data."""
+        key = record_key.key()
+        for time_idx, data in enumerate(self.data_seq[key]):
+            if compress_flag == "jpg":
+                self.data_seq[key][time_idx] = cv2.imencode(".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95))[1]
+            elif compress_flag == "exr":
+                self.data_seq[key][time_idx] = cv2.imencode(".exr", data)[1]
 
     def saveData(self, filename):
         """Save data."""
+        # If each element has a different shape, save it as an object array
+        for key in self.data_seq.keys():
+            if isinstance(self.data_seq[key], list) and \
+               len({data.shape if isinstance(data, np.ndarray) else None for data in self.data_seq[key]}) > 1:
+                self.data_seq[key] = np.array(self.data_seq[key], dtype=object)
+
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         np.savez(filename, **self.data_seq, **self.world_info, **self.camera_info)
         self.data_idx += 1
 
     def loadData(self, filename):
         """Load data."""
-        npz_data = np.load(filename)
+        npz_data = np.load(filename, allow_pickle=True)
         self.data_seq = dict()
         for key in npz_data.keys():
             self.data_seq[key] = np.copy(npz_data[key])

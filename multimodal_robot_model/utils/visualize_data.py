@@ -6,7 +6,7 @@ import cv2
 from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordManager, convertDepthImageToPointCloud
 
 parser = argparse.ArgumentParser()
-parser.add_argument("teleop_filename", type=str, help="whether to enable 3d plot")
+parser.add_argument("teleop_filename", type=str)
 parser.add_argument('--skip', default=10, type=int, help='skip', required=False)
 args = parser.parse_args()
 
