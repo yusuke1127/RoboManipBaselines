@@ -15,13 +15,14 @@ DEFAULT_CAMERA_CONFIG = {
 }
 
 class UR5eCableEnv(MujocoEnv, utils.EzPickle):
+    frame_skip = 8
     metadata = {
         "render_modes": [
             "human",
             "rgb_array",
             "depth_array",
         ],
-        "render_fps": 50,
+        "render_fps": int(1 / (0.004 * frame_skip)),
     }
 
     def __init__(
@@ -45,7 +46,7 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
         MujocoEnv.__init__(
             self,
             model_path=xml_file,
-            frame_skip=5,
+            frame_skip=self.frame_skip,
             observation_space=observation_space,
             default_camera_config=DEFAULT_CAMERA_CONFIG,
             **kwargs,
@@ -127,10 +128,19 @@ class UR5eCableEnv(MujocoEnv, utils.EzPickle):
     def _get_info(self):
         info = {}
         if len(self.cameras) > 0:
-            info["images"] = {}
+            info["rgb_images"] = {}
+            info["depth_images"] = {}
             for camera in self.cameras.values():
                 camera["viewer"].make_context_current()
-                info["images"][camera["name"]] = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+                rgb_image = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+                info["rgb_images"][camera["name"]] = rgb_image
+                depth_image = camera["viewer"].render(render_mode="depth_array", camera_id=camera["id"])
+                # See https://github.com/google-deepmind/mujoco/blob/631b16e7ad192df936195658fe79f2ada85f755c/python/mujoco/renderer.py#L170-L178
+                extent = self.model.stat.extent
+                near = self.model.vis.map.znear * extent
+                far = self.model.vis.map.zfar * extent
+                depth_image = near / (1 - depth_image * (1 - near / far))
+                info["depth_images"][camera["name"]] = depth_image
         return info
 
     def _get_reset_info(self):

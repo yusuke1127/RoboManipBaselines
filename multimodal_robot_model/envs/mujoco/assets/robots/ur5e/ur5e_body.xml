@@ -142,6 +142,22 @@
                     </body>
                   </body>
                 </body>
+
+                <!-- camera: d435i -->
+                <body name="d435i" childclass="d435i" pos="0 0.1 -0.05" euler="-1.5708 0 0">
+                  <geom mesh="d435i_0" material="IR_Lens" class="d435i_visual"/>
+                  <geom mesh="d435i_1" material="IR_Emitter_Lens" class="d435i_visual"/>
+                  <geom mesh="d435i_2" material="IR_Rim" class="d435i_visual"/>
+                  <geom mesh="d435i_3" material="IR_Lens" class="d435i_visual"/>
+                  <geom mesh="d435i_4" material="Cameras_Gray" class="d435i_visual"/>
+                  <geom mesh="d435i_5" material="Black_Acrylic" class="d435i_visual"/>
+                  <geom mesh="d435i_6" material="Black_Acrylic" class="d435i_visual"/>
+                  <geom mesh="d435i_7" material="RGB_Pupil" class="d435i_visual"/>
+                  <geom mesh="d435i_8" mass="0.072" material="Metal_Casing" class="d435i_visual"/>
+                  <geom class="d435i_collision" type="capsule" mesh="d435i_8"/>
+                  <camera name="hand" fovy="62" euler="0 3.1415 0"/>
+                  <body name="camera_frame"/>
+                </body>
               </body>
             </body>
           </body>
