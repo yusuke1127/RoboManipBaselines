@@ -25,6 +25,7 @@ class MotionManager(object):
         self.pin_model = pin.buildModelFromUrdf(self.env.unwrapped.urdf_path)
         self.pin_model.jointPlacements[1] = root_se3.act(self.pin_model.jointPlacements[1]) # Set root link pose
         self.pin_data = self.pin_model.createData()
+        self.pin_data_obs = self.pin_model.createData()
 
         # Setup arm
         self.joint_pos = self.env.unwrapped.init_qpos[:6].copy()
@@ -96,6 +97,17 @@ class MotionManager(object):
         gripper_vel = np.zeros(1)
         return np.concatenate((arm_qvel, gripper_vel))
 
+    def getMeasuredEef(self, obs):
+        """Get measured end-effector pose (tx, ty, tz, rx, ry, rz, rw) from observation."""
+        arm_qpos = obs[0:6]
+        pin.forwardKinematics(self.pin_model, self.pin_data_obs, arm_qpos)
+        measured_se3 = self.pin_data_obs.oMi[self.eef_joint_id]
+        return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()])
+
+    def getCommandEef(self):
+        """Get command end-effector pose (tx, ty, tz, rx, ry, rz, rw)."""
+        return np.concatenate([self.target_se3.translation, pin.Quaternion(self.target_se3.rotation).coeffs()])
+
     @property
     def current_se3(self):
         """Get the current pose of the end-effector."""
@@ -134,7 +146,9 @@ class RecordKey(Enum):
     SIDE_DEPTH_IMAGE = 7
     HAND_DEPTH_IMAGE = 8
     WRENCH = 9
-    ACTION = 10
+    MEASURED_EEF = 10
+    COMMAND_EEF = 11
+    ACTION = 12
 
     def key(self):
         """Get the key of the dictionary."""

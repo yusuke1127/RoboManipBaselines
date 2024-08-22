@@ -11,10 +11,11 @@ parser.add_argument('--skip', default=10, type=int, help='skip', required=False)
 args = parser.parse_args()
 
 plt.rcParams["keymap.quit"] = ["q", "escape"]
-fig, ax = plt.subplots(4, 3)
-for ax_idx in range(1,4):
-    ax[ax_idx, -1].remove()
-    ax[ax_idx, -1] = fig.add_subplot(4, 3, 3 * (ax_idx + 1), projection="3d")
+fig, ax = plt.subplots(4, 4)
+for ax_idx in range(1, 4):
+    ax[ax_idx, 2].remove()
+    ax[ax_idx, 3].remove()
+    ax[ax_idx, 2] = fig.add_subplot(4, 4, 4 * (ax_idx + 1) - 1, projection="3d")
 fig.tight_layout(pad=0.1)
 
 record_manager = RecordManager(env=None)
@@ -26,13 +27,20 @@ ax[0, 1].set_xlim(*time_range)
 ax[0, 2].set_xlim(*time_range)
 action_data = record_manager.data_seq[RecordKey.ACTION.key()]
 joint_pos_data = record_manager.data_seq[RecordKey.JOINT_POS.key()]
-ax[0, 0].set_ylim(np.min((joint_pos_data[:, :-1], action_data[:, :-1])), np.max((joint_pos_data[:, :-1], action_data[:, :-1])))
+q_data = np.concatenate([action_data, joint_pos_data])
+ax[0, 0].set_ylim(q_data[:, :-1].min(), q_data[:, :-1].max())
 ax00_twin = ax[0, 0].twinx()
-ax00_twin.set_ylim(np.min((joint_pos_data[:, -1], action_data[:, -1])), np.max((joint_pos_data[:, -1], action_data[:, -1])))
+ax00_twin.set_ylim(q_data[:, -1].min(), q_data[:, -1].max())
 joint_vel_data = record_manager.data_seq[RecordKey.JOINT_VEL.key()]
 ax[0, 1].set_ylim(joint_vel_data.min(), joint_vel_data.max())
 wrench_data = record_manager.data_seq[RecordKey.WRENCH.key()]
 ax[0, 2].set_ylim(wrench_data.min(), wrench_data.max())
+measured_eef_data = record_manager.data_seq[RecordKey.MEASURED_EEF.key()]
+command_eef_data = record_manager.data_seq[RecordKey.COMMAND_EEF.key()]
+eef_data = np.concatenate([measured_eef_data, command_eef_data])
+ax[0, 3].set_ylim(eef_data[:, 0:3].min(), eef_data[:, 0:3].max())
+ax03_twin = ax[0, 3].twinx()
+ax03_twin.set_ylim(-1.0, 1.0)
 
 scatter_list = [None] * 3
 time_list = []
@@ -40,6 +48,8 @@ action_list = []
 joint_pos_list = []
 joint_vel_list = []
 wrench_list = []
+command_eef_list = []
+measured_eef_list = []
 
 break_flag = False
 def key_event(event):
@@ -56,18 +66,29 @@ for time_idx in range(0, len(record_manager.data_seq["time"]), args.skip):
     joint_pos_list.append(record_manager.getSingleData(RecordKey.JOINT_POS, time_idx))
     joint_vel_list.append(record_manager.getSingleData(RecordKey.JOINT_VEL, time_idx))
     wrench_list.append(record_manager.getSingleData(RecordKey.WRENCH, time_idx))
+    command_eef_list.append(record_manager.getSingleData(RecordKey.COMMAND_EEF, time_idx))
+    measured_eef_list.append(record_manager.getSingleData(RecordKey.MEASURED_EEF, time_idx))
+
     ax[0, 0].cla()
     ax00_twin.cla()
-    ax[0, 0].plot(time_list, np.array(action_list)[:, :-1], linestyle="--")
+    ax[0, 0].plot(time_list, np.array(action_list)[:, :-1], linestyle="--", linewidth=3)
     ax[0, 0].set_prop_cycle(None)
     ax[0, 0].plot(time_list, np.array(joint_pos_list)[:, :-1])
-    ax00_twin.plot(time_list, np.array(action_list)[:, [-1]], linestyle="--")
+    ax00_twin.plot(time_list, np.array(action_list)[:, [-1]], linestyle="--", linewidth=3)
     ax00_twin.set_prop_cycle(None)
     ax00_twin.plot(time_list, np.array(joint_pos_list)[:, [-1]])
     ax[0, 1].cla()
     ax[0, 1].plot(time_list, np.array(joint_vel_list)[:, :-1])
     ax[0, 2].cla()
     ax[0, 2].plot(time_list, wrench_list)
+    ax[0, 3].cla()
+    ax03_twin.cla()
+    ax[0, 3].plot(time_list, np.array(command_eef_list)[:, :3], linestyle="--", linewidth=3)
+    ax[0, 3].set_prop_cycle(None)
+    ax[0, 3].plot(time_list, np.array(measured_eef_list)[:, :3])
+    ax03_twin.plot(time_list, np.array(command_eef_list)[:, 3:], linestyle="--", linewidth=3)
+    ax03_twin.set_prop_cycle(None)
+    ax03_twin.plot(time_list, np.array(measured_eef_list)[:, 3:])
 
     dist_thre_list = (3.0, 3.0, 0.8) # [m]
     for ax_idx, (record_rgb_key, record_depth_key) in enumerate(
