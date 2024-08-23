@@ -31,16 +31,15 @@ class EpisodicDataset(torch.utils.data.Dataset):
     def __getitem__(self, episode_id):
         sample_full_episode = False # hardcode
 
-        original_joint = load_array(self.dataset_dir, "**/joints.npy")[episode_id]
-        episode_len = original_joint.shape[0]
-        original_action = original_joint
+        original_action = load_array(self.dataset_dir, "**/actions.npy")[episode_id]
         original_action_shape = original_action.shape
+        episode_len = original_action_shape[0]
         if sample_full_episode:
             start_ts = 0
         else:
             start_ts = np.random.choice(episode_len)
         # get observation at start_ts only
-        joint = original_joint[start_ts]
+        joint = load_array(self.dataset_dir, "**/joints.npy")[episode_id][start_ts]
         image_dict = dict()
         for cam_name in self.camera_names:
             try:
@@ -97,15 +96,14 @@ def get_norm_stats(train_dataset_dir, val_dataset_dir):
     for dataset_dir in (train_dataset_dir, val_dataset_dir):
         try:
             joint = load_array(dataset_dir, "**/joints.npy")
+            action = load_array(dataset_dir, "**/actions.npy")
         except IndexError:
             print(f"dataset_dir:\t{dataset_dir}")
             raise
-        action = joint
         all_joint_data.append(torch.from_numpy(joint))
         all_action_data.append(torch.from_numpy(action))
     all_joint_data = torch.cat(all_joint_data)
     all_action_data = torch.cat(all_action_data)
-    all_action_data = all_action_data
 
     # normalize action data
     action_mean = all_action_data.mean(dim=[0, 1], keepdim=True)
@@ -141,26 +139,3 @@ def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_va
     val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
 
     return train_dataloader, val_dataloader, norm_stats, train_dataset.is_sim
-
-
-### helper functions
-
-def compute_dict_mean(epoch_dicts):
-    result = {k: None for k in epoch_dicts[0]}
-    num_items = len(epoch_dicts)
-    for k in result:
-        value_sum = 0
-        for epoch_dict in epoch_dicts:
-            value_sum += epoch_dict[k]
-        result[k] = value_sum / num_items
-    return result
-
-def detach_dict(d):
-    new_d = dict()
-    for k, v in d.items():
-        new_d[k] = v.detach()
-    return new_d
-
-def set_seed(seed):
-    torch.manual_seed(seed)
-    np.random.seed(seed)

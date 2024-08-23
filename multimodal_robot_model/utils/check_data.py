@@ -18,12 +18,17 @@ from eipl.utils import normalization
 parser = argparse.ArgumentParser()
 parser.add_argument("--idx", type=int, default=0)
 parser.add_argument("--in_dir", type=str, default="./data/")
+parser.add_argument("--measured_joints", action="store_true")
 args = parser.parse_args()
 
 idx = int(args.idx)
 print("in_dir: ", args.in_dir)
-joints = np.load(os.path.join(args.in_dir, "test/actions.npy"))
-joint_bounds = np.load(os.path.join(args.in_dir, "action_bounds.npy"))
+if args.measured_joints:
+    joints = np.load(os.path.join(args.in_dir, "test/joints.npy"))
+    joint_bounds = np.load(os.path.join(args.in_dir, "joint_bounds.npy"))
+else:
+    joints = np.load(os.path.join(args.in_dir, "test/actions.npy"))
+    joint_bounds = np.load(os.path.join(args.in_dir, "action_bounds.npy"))
 front_images = np.load(os.path.join(args.in_dir, "test/front_images.npy"))
 side_images = np.load(os.path.join(args.in_dir, "test/side_images.npy"))
 wrenches = np.load(os.path.join(args.in_dir, "test/wrenches.npy"))

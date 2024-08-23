@@ -7,8 +7,9 @@ import argparse
 import matplotlib.pyplot as plt
 from copy import deepcopy
 from tqdm import tqdm
-from multimodal_robot_model.act import load_data, compute_dict_mean, set_seed, detach_dict
+from multimodal_robot_model.act import load_data
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
+from utils import compute_dict_mean, set_seed, detach_dict
 from policy import ACTPolicy, CNNMLPPolicy
 
 import IPython
