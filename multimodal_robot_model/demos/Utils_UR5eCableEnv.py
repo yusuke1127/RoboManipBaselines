@@ -195,6 +195,18 @@ class RecordManager(object):
                 data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
         return data
 
+    def getData(self, record_key):
+        """Get data."""
+        key = record_key.key()
+        data_seq = self.data_seq[key]
+        if "rgb" in key:
+            if data_seq[0].ndim == 1:
+                data_seq = np.array([cv2.imdecode(data, flags=cv2.IMREAD_COLOR) for data in data_seq])
+        elif "depth" in key:
+            if data_seq[0].ndim == 1:
+                data_seq = np.array([cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED) for data in data_seq])
+        return data_seq
+
     def compressData(self, record_key, compress_flag):
         """Compress data."""
         key = record_key.key()

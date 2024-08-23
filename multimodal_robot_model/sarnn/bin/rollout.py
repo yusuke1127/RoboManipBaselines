@@ -12,7 +12,7 @@ import torch
 from eipl.model import SARNN
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
+from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
@@ -57,7 +57,11 @@ model.eval()
 env = gym.make(
   "multimodal_robot_model/UR5eCableEnv-v0",
   render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (224, 224)}, {"name": "side", "size": (224, 224)}]
+  extra_camera_configs=[
+      {"name": "front", "size": (480, 640)},
+      {"name": "side", "size": (480, 640)},
+      {"name": "hand", "size": (480, 640)},
+  ]
 )
 obs, info = env.reset(seed=42)
 
@@ -107,11 +111,11 @@ while True:
         env.unwrapped.model.body("poles").pos[0] = original_pole_pos_x + \
             pole_swing_scale * np.sin(2.0 * np.pi * pole_swing_freq * record_manager.status_elapsed_duration + pole_swing_phase_offset)
 
-    skip = 10
+    skip = 6
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
-        front_image = info["images"]["front"]
-        cropped_img_size = 128
+        front_image = info["rgb_images"]["front"]
+        cropped_img_size = 280
         [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
         [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
         front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
@@ -156,7 +160,7 @@ while True:
     enable_simulation_image = False
     if enable_simulation_image:
         status_image = record_manager.getStatusImage()
-        window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+        window_image = cv2.vconcat([info["rgb_images"]["front"], info["rgb_images"]["side"], status_image])
         cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
         if win_xy_simulation is not None:
             cv2.moveWindow("Simulation image", *win_xy_simulation)

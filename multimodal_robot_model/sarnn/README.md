@@ -47,7 +47,7 @@ data/teleop_data_sample/
 Make numpy files in each of `train` (for training) and `test` directories (for validation).
 
 ```console
-$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 10 --cropped_img_size 128 --resized_img_size 64
+$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 6 --cropped_img_size 280 --resized_img_size 64
 ```
 
 Visualize the generated data (optional).

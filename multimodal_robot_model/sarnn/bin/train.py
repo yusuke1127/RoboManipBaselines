@@ -85,8 +85,8 @@ for bound_file in bound_files:
     shutil.copy(bound_file, os.path.join(log_dir_path, bound_file.name))
 
 train_data_dir = data_dir / "train"
-joint_bounds = np.load(data_dir / "joint_bounds.npy")
-joints_raw = np.load(sorted(train_data_dir.glob("**/joints.npy"))[0])
+joint_bounds = np.load(data_dir / "action_bounds.npy")
+joints_raw = np.load(sorted(train_data_dir.glob("**/actions.npy"))[0])
 joints = normalization(joints_raw, joint_bounds, minmax)
 if not args.no_wrench:
     wrench_bounds = np.load(data_dir / "wrench_bounds.npy")
@@ -137,7 +137,7 @@ train_loader = DataLoader(
 )
 
 test_data_dir = data_dir / "test"
-joints_raw = np.load(sorted(test_data_dir.glob("**/joints.npy"))[0])
+joints_raw = np.load(sorted(test_data_dir.glob("**/actions.npy"))[0])
 joints = normalization(joints_raw, joint_bounds, minmax)
 if not args.no_wrench:
     wrenches_raw = np.load(sorted(test_data_dir.glob("**/wrenches.npy"))[0])
