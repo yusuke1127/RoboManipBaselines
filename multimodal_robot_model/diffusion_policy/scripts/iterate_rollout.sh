@@ -3,12 +3,13 @@
 [[ $# < 1 ]] && echo "$0 <CKPT_PATH> [<SKIP>]" && exit 1
 
 CKPT_PATH=$1
-SKIP=${2:-4}
+SKIP=${2:-3}
 
 echo "[diffusion_policy/iterate_rollout.sh] CKPT_PATH: ${CKPT_PATH}"
 echo "[diffusion_policy/iterate_rollout.sh] SKIP: ${SKIP}"
 
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
+FIRST_OPTION="--wait_before_start"
 
 array=(0 1 2 3 4 5)
 for i in "${array[@]}"; do
@@ -17,5 +18,6 @@ for i in "${array[@]}"; do
 --filename ${CKPT_PATH} \
 --skip ${SKIP} \
 --win_xy_policy 0 700 --win_xy_simulation 900 0 \
---pole-pos-idx $i
+--pole-pos-idx $i $FIRST_OPTION
+    FIRST_OPTION=""
 done

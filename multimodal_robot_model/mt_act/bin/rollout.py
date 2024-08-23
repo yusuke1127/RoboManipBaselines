@@ -238,7 +238,7 @@ while True:
             cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
-    skip_draw = 10
+    skip_draw = 4
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip_draw == 0:
         for _ax in np.ravel(ax):
             _ax.cla()

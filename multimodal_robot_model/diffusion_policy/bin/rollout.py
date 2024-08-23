@@ -13,16 +13,17 @@ import pinocchio as pin
 import torch
 from diffusion_policy.common.pytorch_util import dict_apply
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
+from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # command line parameters
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".ckpt file that PyTorch loads as checkpoint for policy")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
-parser.add_argument('--skip', default=4, type=int, help='skip', required=False)
+parser.add_argument('--skip', default=3, type=int, help='skip', required=False)
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
+parser.add_argument('--wait_before_start', action="store_true", help='whether to wait a key input before starting simulation')
 args = parser.parse_args()
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
@@ -48,7 +49,11 @@ print(f'Loaded: {args.filename}')
 env = gym.make(
   "multimodal_robot_model/UR5eCableEnv-v0",
   render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (224, 224)}, {"name": "side", "size": (224, 224)}]
+  extra_camera_configs=[
+      {"name": "front", "size": (480, 640)},
+      {"name": "side", "size": (480, 640)},
+      {"name": "hand", "size": (480, 640)},
+  ]
 )
 obs, info = env.reset(seed=42)
 
@@ -102,7 +107,7 @@ while True:
 
     skip = args.skip
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
-        front_image = info["images"]["front"]
+        front_image = cv2.resize(info["rgb_images"]["front"], (320, 240))
         if front_image_seq is None:
             front_image_seq = []
             for _ in range(n_obs_steps):
@@ -110,7 +115,7 @@ while True:
         else:
             front_image_seq.pop(0)
             front_image_seq.append(front_image)
-        joint = motion_manager.getAction()
+        joint = motion_manager.getJointPos(obs)
         if joint_seq is None:
             joint_seq = []
             for _ in range(n_obs_steps):
@@ -134,7 +139,7 @@ while True:
             np_action_dict = dict_apply(action_dict, lambda x: x.detach().to("cpu").numpy())
             action_seq = list(np_action_dict["action"][0])
         pred_joint = action_seq.pop(0)
-        if time_idx % skip_draw == 0:
+        if time_idx % skip == 0:
             pred_joint_list = np.concatenate([pred_joint_list, np.expand_dims(pred_joint, 0)])
 
     # Set gripper command
@@ -151,20 +156,19 @@ while True:
 
     # Step environment
     action = motion_manager.getAction()
-    _, _, _, _, info = env.step(action)
+    obs, _, _, _, info = env.step(action)
 
     # Draw simulation images
     enable_simulation_image = False
     if enable_simulation_image:
         status_image = record_manager.getStatusImage()
-        window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+        window_image = cv2.vconcat([info["rgb_images"]["front"], info["rgb_images"]["side"], status_image])
         cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
         if win_xy_simulation is not None:
             cv2.moveWindow("Simulation image", *win_xy_simulation)
 
     # Draw policy images
-    skip_draw = 10
-    if record_manager.status == RecordStatus.TELEOP and time_idx % skip_draw == 0:
+    if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         for _ax in np.ravel(ax):
             _ax.cla()
             _ax.axis("off")
@@ -198,7 +202,8 @@ while True:
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
         initial_duration = 1.0 # [s]
-        if record_manager.status_elapsed_duration > initial_duration:
+        if (not args.wait_before_start and record_manager.status_elapsed_duration > initial_duration) or \
+           (args.wait_before_start and key == ord("n")):
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.PRE_REACH:
         pre_reach_duration = 0.7 # [s]
@@ -213,14 +218,14 @@ while True:
         if record_manager.status_elapsed_duration > grasp_duration:
             time_idx = 0
             record_manager.goToNextStatus()
-            print("- Press space key to finish policy rollout.")
+            print("- Press the 'n' key to finish policy rollout.")
     elif record_manager.status == RecordStatus.TELEOP:
         time_idx += 1
-        if key == 32: # space key
+        if key == ord("n"):
             record_manager.goToNextStatus()
-            print("- Press space key to exit.")
+            print("- Press the 'n' key to exit.")
     elif record_manager.status == RecordStatus.END:
-        if key == 32: # space key
+        if key == ord("n"):
             break
     if key == 27: # escape key
         break

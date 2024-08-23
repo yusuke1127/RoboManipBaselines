@@ -36,7 +36,7 @@ policy:
   n_obs_steps: ${n_obs_steps}
   num_inference_steps: 100
   obs_as_global_cond: ${obs_as_global_cond}
-  crop_shape: [196, 196]
+  crop_shape: [216, 288] # https://github.com/real-stanford/diffusion_policy/blob/548a52bbb105518058e27bf34dcf90bf6f73681a/diffusion_policy/config/train_diffusion_unet_real_hybrid_workspace.yaml#L45
   diffusion_step_embed_dim: 128
   down_dims: [512, 1024, 2048]
   kernel_size: 5
@@ -133,7 +133,7 @@ hydra:
 task:
   name: MujocoUR5eCable
 
-  image_shape: &image_shape [3, 224, 224]
+  image_shape: &image_shape [3, 240, 320] # https://github.com/real-stanford/diffusion_policy/blob/548a52bbb105518058e27bf34dcf90bf6f73681a/diffusion_policy/config/task/real_pusht_image.yaml#L3
   shape_meta: &shape_meta
     # acceptable types: rgb, low_dim
     obs:
