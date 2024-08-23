@@ -19,6 +19,7 @@ parser.add_argument("--filename", type=str, default=None, help=".pth file that P
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
+parser.add_argument('--wait_before_start', action="store_true", help='whether to wait a key input before starting simulation')
 args = parser.parse_args()
 win_xy_policy = args.win_xy_policy
 win_xy_simulation = args.win_xy_simulation
@@ -211,7 +212,8 @@ while True:
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
         initial_duration = 1.0 # [s]
-        if record_manager.status_elapsed_duration > initial_duration:
+        if (not args.wait_before_start and record_manager.status_elapsed_duration > initial_duration) or \
+           (args.wait_before_start and key == ord("n")):
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.PRE_REACH:
         pre_reach_duration = 0.7 # [s]
@@ -226,14 +228,14 @@ while True:
         if record_manager.status_elapsed_duration > grasp_duration:
             time_idx = 0
             record_manager.goToNextStatus()
-            print("- Press space key to finish policy rollout.")
+            print("- Press the 'n' key to finish policy rollout.")
     elif record_manager.status == RecordStatus.TELEOP:
         time_idx += 1
-        if key == 32: # space key
+        if key == ord("n"):
             record_manager.goToNextStatus()
-            print("- Press space key to exit.")
+            print("- Press the 'n' key to exit.")
     elif record_manager.status == RecordStatus.END:
-        if key == 32: # space key
+        if key == ord("n"):
             break
     if key == 27: # escape key
         break
