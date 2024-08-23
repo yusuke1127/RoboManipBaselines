@@ -68,8 +68,8 @@ for bag_path in bag_path_list:
     np.savez(
         npz_path,
         time=times,
-        joint=joints,
-        front_image=images,
+        joint_pos=joints,
+        front_rgb_image=images,
         wrench=np.zeros((seq_len, 6)), # TODO: dummy
-        side_image=np.zeros_like(images), # TODO: dummy
+        side_rgb_image=np.zeros_like(images), # TODO: dummy
     )

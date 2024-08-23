@@ -33,8 +33,8 @@ print("    'r' : Reset start/end indexes")
 for in_npz_path in in_npz_path_list:
     print(f"[trim_npz] Load a npz file: {in_npz_path}")
     npz_data = np.load(in_npz_path)
-    joints = npz_data["joint"]
-    images = npz_data["front_image"]
+    joints = npz_data["joint_pos"]
+    images = npz_data["front_rgb_image"]
     seq_len = len(joints)
 
     start_idx, end_idx = None, None
@@ -114,8 +114,8 @@ for in_npz_path in in_npz_path_list:
         np.savez(
             out_npz_path,
             time=npz_data["time"],
-            joint=npz_data["joint"],
+            joint=npz_data["joint_pos"],
             wrench=npz_data["wrench"],
-            front_image=npz_data["front_image"],
-            side_image=npz_data["side_image"],
+            front_image=npz_data["front_rgb_image"],
+            side_image=npz_data["side_rgb_image"],
         )
