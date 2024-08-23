@@ -7,6 +7,7 @@ from multiprocessing import Pool
 from pathlib import Path
 import random
 from eipl.utils import resize_img, calc_minmax, list_to_numpy
+from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")
@@ -36,10 +37,11 @@ def set_seed(seed):
 def load_skip_resize_data(file_info):
     skip, resized_img_size, filename = file_info
     print(" " * 4 + filename)
-    npz_data = np.load(filename)
+    record_manager = RecordManager(env=None)
+    record_manager.loadData(filename)
     try:
-        _front_images = npz_data["front_image"][::skip]
-        _side_images = npz_data["side_image"][::skip]
+        _front_images = record_manager.getData(RecordKey.FRONT_RGB_IMAGE)[::skip]
+        _side_images = record_manager.getData(RecordKey.SIDE_RGB_IMAGE)[::skip]
         if args.cropped_img_size is not None:
             [fro_lef, fro_top, sid_lef, sid_top] = [
                 (
@@ -59,15 +61,17 @@ def load_skip_resize_data(file_info):
         if resized_img_size is not None:
             _front_images = resize_img(_front_images, (resized_img_size, resized_img_size))
             _side_images = resize_img(_side_images, (resized_img_size, resized_img_size))
-        _wrenches = npz_data["wrench"][::skip]
-        _joints = npz_data["joint"][::skip]
+        _wrenches = record_manager.getData(RecordKey.WRENCH)[::skip]
+        _joints = record_manager.getData(RecordKey.JOINT_POS)[::skip]
+        _actions = record_manager.getData(RecordKey.ACTION)[::skip]
     except KeyError as e:
         print(f"{e.__class__.__name__}: filename={filename}")
         raise
     assert len(_front_images) == len(_side_images)
     assert len(_front_images) == len(_wrenches)
     assert len(_front_images) == len(_joints)
-    return (_front_images, _side_images, _wrenches, _joints)
+    assert len(_front_images) == len(_actions)
+    return (_front_images, _side_images, _wrenches, _joints, _actions)
 
 
 def save_arr(out_base_name, out_subpath_name, arr_data, quiet):
@@ -84,6 +88,7 @@ def load_data(in_dir, task_names, skip, resized_img_size, nproc):
     side_images = []
     wrenches = []
     joints = []
+    actions = []
     tasks = []
     masks = []
 
@@ -112,25 +117,27 @@ def load_data(in_dir, task_names, skip, resized_img_size, nproc):
     )
 
     seq_length = []
-    for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
+    for (_front_images, _side_images, _wrenches, _joints, _actions) in loaded_data:
         seq_length.append(len(_joints))
     max_seq = max(seq_length)
 
-    for (_front_images, _side_images, _wrenches, _joints) in loaded_data:
+    for (_front_images, _side_images, _wrenches, _joints, _actions) in loaded_data:
         front_images.append(_front_images)
         side_images.append(_side_images)
         wrenches.append(_wrenches)
         joints.append(_joints)
+        actions.append(_actions)
         masks.append(np.concatenate((np.ones(len(_joints)), np.zeros(max_seq - len(_joints)))))
 
     front_images = list_to_numpy(front_images, max_seq)
     side_images = list_to_numpy(side_images, max_seq)
     wrenches = list_to_numpy(wrenches, max_seq)
     joints = list_to_numpy(joints, max_seq)
+    actions = list_to_numpy(actions, max_seq)
     tasks = np.stack(tasks)
     masks = np.stack(masks)
 
-    return front_images, side_images, wrenches, joints, tasks, masks, in_file_names
+    return front_images, side_images, wrenches, joints, actions, tasks, masks, in_file_names
 
 
 if __name__ == "__main__":
@@ -139,7 +146,7 @@ if __name__ == "__main__":
     # Load data
     if not args.quiet:
         print("[make_dataset] input files:")
-    front_images, side_images, wrenches, joints, tasks, masks, in_file_names = load_data(
+    front_images, side_images, wrenches, joints, actions, tasks, masks, in_file_names = load_data(
         args.in_dir, args.task_names, args.skip, args.resized_img_size, args.nproc
     )
 
@@ -177,18 +184,17 @@ if __name__ == "__main__":
     save_arr(args.out_dir, "train/side_images.npy", side_images[train_idx_list].astype(np.uint8), args.quiet)
     save_arr(args.out_dir, "train/wrenches.npy", wrenches[train_idx_list].astype(np.float32), args.quiet)
     save_arr(args.out_dir, "train/joints.npy", joints[train_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "train/actions.npy", actions[train_idx_list].astype(np.float32), args.quiet)
     save_arr(args.out_dir, "train/tasks.npy", tasks[train_idx_list].astype(str), args.quiet)
     save_arr(args.out_dir, "test/masks.npy", masks[test_idx_list].astype(np.float32), args.quiet)
     save_arr(args.out_dir, "test/front_images.npy", front_images[test_idx_list].astype(np.uint8), args.quiet)
     save_arr(args.out_dir, "test/side_images.npy", side_images[test_idx_list].astype(np.uint8), args.quiet)
     save_arr(args.out_dir, "test/wrenches.npy", wrenches[test_idx_list].astype(np.float32), args.quiet)
     save_arr(args.out_dir, "test/joints.npy", joints[test_idx_list].astype(np.float32), args.quiet)
+    save_arr(args.out_dir, "test/actions.npy", actions[test_idx_list].astype(np.float32), args.quiet)
     save_arr(args.out_dir, "test/tasks.npy", tasks[test_idx_list].astype(str), args.quiet)
 
-    # save joint bounds
-    joint_bounds = calc_minmax(joints)
-    save_arr(args.out_dir, "joint_bounds.npy", joint_bounds, args.quiet)
-
-    # save wrench bounds
-    wrench_bounds = calc_minmax(wrenches)
-    save_arr(args.out_dir, "wrench_bounds.npy", wrench_bounds, args.quiet)
+    # save bounds
+    save_arr(args.out_dir, "wrench_bounds.npy", calc_minmax(wrenches), args.quiet)
+    save_arr(args.out_dir, "joint_bounds.npy", calc_minmax(joints), args.quiet)
+    save_arr(args.out_dir, "action_bounds.npy", calc_minmax(actions), args.quiet)

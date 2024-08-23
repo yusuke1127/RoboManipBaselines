@@ -96,7 +96,7 @@ Make numpy files in each of `train` (for training) and `test` directories (for v
 $ python ../utils/make_multi_dataset.py \
 --in_dir ./data/teleop_data_sample \
 --out_dir ./data/learning_data_sample \
---skip 2 \
+--skip 1 \
 --train_keywords env1 env5 \
 --test_keywords env3 \
 --nproc `nproc`
@@ -130,7 +130,7 @@ Run a trained policy in the simulator.
 ```console
 $ python ./bin/rollout.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name task0_between-two \
---skip 2 \
+--skip 1 \
 --policy_class ACT --chunk_size 100 --num_epochs 0 \
 --kl_weight 10 \
 --hidden_dim 512 \

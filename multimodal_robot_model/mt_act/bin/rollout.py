@@ -15,7 +15,7 @@ from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS, SIM_TASK_CONFI
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent"))
 from policy import ACTPolicy
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager
+from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
 
 # command line parameters
 parser = argparse.ArgumentParser()
@@ -28,6 +28,7 @@ parser.add_argument('--seed', action='store', type=int, help='seed', required=Tr
 parser.add_argument('--skip', default=1, type=int, help='skip', required=False)
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
+parser.add_argument('--wait_before_start', action="store_true", help='whether to wait a key input before starting simulation')
 # for ACT
 parser.add_argument('--kl_weight', default=10, type=int, help='KL Weight', required=False)
 parser.add_argument('--chunk_size', default=20, type=int, help='chunk_size', required=False)
@@ -71,8 +72,6 @@ task_config = SIM_TASK_CONFIGS[task_name]
 camera_names = task_config['camera_names']
 
 # Set fixed parameters
-apply_crop = False
-apply_resize = False
 lr_backbone = 1e-5
 backbone = 'resnet18'
 if policy_class == 'ACT':
@@ -129,9 +128,13 @@ post_process = lambda _action: _action * stats['action_std'] + stats['action_mea
 
 # Setup gym
 env = gym.make(
-  "multimodal_robot_model/UR5eCableEnv-v0",
-  render_mode="human",
-  extra_camera_configs=[{"name": "front", "size": (224, 224)}, {"name": "side", "size": (224, 224)}]
+    "multimodal_robot_model/UR5eCableEnv-v0",
+    render_mode="human",
+    extra_camera_configs=[
+        {"name": "front", "size": (480, 640)},
+        {"name": "side", "size": (480, 640)},
+        {"name": "hand", "size": (480, 640)},
+    ]
 )
 obs, info = env.reset(seed=seed)
 
@@ -184,18 +187,11 @@ while True:
     skip = args.skip
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
-        front_image = info["images"]["front"]
-        if apply_crop:
-            cropped_img_size = 128
-            [fro_lef, fro_top] = [(front_image.shape[ax] - cropped_img_size) // 2 for ax in [0, 1]]
-            [fro_rig, fro_bot] = [(p + cropped_img_size) for p in [fro_lef, fro_top]]
-            front_image = front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
-        if apply_resize:
-            front_image = resize_img(np.expand_dims(front_image, 0), (im_size, im_size))[0]
+        front_image = info["rgb_images"]["front"]
         front_image_t = front_image.transpose(2, 0, 1)
         front_image_t = front_image_t.astype(np.float32) / 255.0
         front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0)).cuda().unsqueeze(0)
-        joint = motion_manager.getAction()
+        joint = motion_manager.getJointPos(obs)
         joint_t = pre_process(joint)
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0)).cuda()
 
@@ -230,13 +226,13 @@ while True:
 
     # Step environment
     action = motion_manager.getAction()
-    _, _, _, _, info = env.step(action)
+    obs, _, _, _, info = env.step(action)
 
     # Draw simulation images
     enable_simulation_image = False
     if enable_simulation_image:
         status_image = record_manager.getStatusImage()
-        window_image = cv2.vconcat([info["images"]["front"], info["images"]["side"], status_image])
+        window_image = cv2.vconcat([info["rgb_images"]["front"], info["rgb_images"]["side"], status_image])
         cv2.imshow("Simulation image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
         if win_xy_simulation is not None:
             cv2.moveWindow("Simulation image", *win_xy_simulation)
@@ -268,7 +264,7 @@ while True:
         for layer_idx, layer in enumerate(policy.model.transformer.encoder.layers):
            if layer.self_attn.correlation_mat is None:
                continue
-           ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[3:, 1].reshape((7, 7)))
+           ax[1, layer_idx].imshow(layer.self_attn.correlation_mat[3:, 1].reshape((15, 20)))
            ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
 
         fig.tight_layout()
@@ -284,7 +280,8 @@ while True:
     # Manage status
     if record_manager.status == RecordStatus.INITIAL:
         initial_duration = 1.0 # [s]
-        if record_manager.status_elapsed_duration > initial_duration:
+        if (not args.wait_before_start and record_manager.status_elapsed_duration > initial_duration) or \
+           (args.wait_before_start and key == ord("n")):
             record_manager.goToNextStatus()
     elif record_manager.status == RecordStatus.PRE_REACH:
         pre_reach_duration = 0.7 # [s]
@@ -299,14 +296,14 @@ while True:
         if record_manager.status_elapsed_duration > grasp_duration:
             time_idx = 0
             record_manager.goToNextStatus()
-            print("- Press space key to finish policy rollout.")
+            print("- Press the 'n' key to finish policy rollout.")
     elif record_manager.status == RecordStatus.TELEOP:
         time_idx += 1
-        if key == 32: # space key
+        if key == ord("n"):
             record_manager.goToNextStatus()
-            print("- Press space key to exit.")
+            print("- Press the 'n' key to exit.")
     elif record_manager.status == RecordStatus.END:
-        if key == 32: # space key
+        if key == ord("n"):
             break
     if key == 27: # escape key
         break

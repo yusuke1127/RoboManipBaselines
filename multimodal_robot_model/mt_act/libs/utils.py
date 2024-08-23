@@ -21,6 +21,7 @@ def load_array(dir_path, glob_pattern):
 @dataclass
 class Trials:
     original_joints: np.ndarray = None
+    original_actions: np.ndarray = None
     original_images: np.ndarray = None
     original_masks: np.ndarray = None
 
@@ -51,6 +52,7 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
             )
         )
 
+        self.trials.original_actions = load_array(self.dataset_dir, "**/actions.npy")
         self.trials.original_joints = load_array(self.dataset_dir, "**/joints.npy")
         for cam_name in CAMERA_NAMES:
             try:
@@ -72,8 +74,8 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         sample_full_episode = False # hardcode
         task_emb = self.task_emb_per_trial[episode_id]
 
+        original_action = self.trials.original_actions[episode_id]
         original_joint = self.trials.original_joints[episode_id]
-        original_action = original_joint
         original_action_shape = original_action.shape
         cutoff = 2 #10#5
         episode_len = original_action_shape[0] -cutoff ## cutoff last few
@@ -90,7 +92,6 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         # get mask
         original_mask = self.trials.original_masks[episode_id].astype(bool)
         # get all actions after and including start_ts
-        original_action = original_action
         action = original_action[max(0, start_ts - 1):].astype(np.float32) # hack, to make timesteps more aligned
         action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
         mask = original_mask[max(0, start_ts - 1):]
@@ -133,15 +134,14 @@ def get_norm_stats_robopen(train_dataset_dir, val_dataset_dir):
     for dataset_dir in (train_dataset_dir, val_dataset_dir):
         try:
             joint = load_array(Path(dataset_dir), "**/joints.npy")
+            action = load_array(Path(dataset_dir), "**/actions.npy")
         except IndexError:
             print(f"dataset_dir:\t{dataset_dir}")
             raise
-        action = joint
         all_joint_data.append(torch.from_numpy(joint))
         all_action_data.append(torch.from_numpy(action))
     all_joint_data = torch.cat(all_joint_data)
     all_action_data = torch.cat(all_action_data)
-    all_action_data = all_action_data
 
     # normalize action data
     action_mean = all_action_data.mean(dim=[0, 1], keepdim=True)

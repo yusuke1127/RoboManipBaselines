@@ -179,7 +179,7 @@ while True:
         front_image_t = front_image.transpose(2, 0, 1)
         front_image_t = front_image_t.astype(np.float32) / 255.0
         front_image_t = torch.Tensor(np.expand_dims(front_image_t, 0)).cuda().unsqueeze(0)
-        joint = motion_manager.getAction()
+        joint = motion_manager.getJointPos(obs)
         joint_t = pre_process(joint)
         joint_t = torch.Tensor(np.expand_dims(joint_t, 0)).cuda()
 
@@ -214,7 +214,7 @@ while True:
 
     # Step environment
     action = motion_manager.getAction()
-    _, _, _, _, info = env.step(action)
+    obs, _, _, _, info = env.step(action)
 
     # Draw simulation images
     enable_simulation_image = False
