@@ -17,6 +17,7 @@ from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, Recor
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
 parser.add_argument("--pole-pos-idx", type=int, default=0, help="index of the position of poles (0-5)")
+parser.add_argument('--skip', default=6, type=int, help='skip', required=False)
 parser.add_argument('--win_xy_policy', type=int, nargs=2, help='window xy policy', required=False)
 parser.add_argument('--win_xy_simulation', type=int, nargs=2, help='window xy simulation', required=False)
 parser.add_argument('--wait_before_start', action="store_true", help='whether to wait a key input before starting simulation')
@@ -112,7 +113,7 @@ while True:
         env.unwrapped.model.body("poles").pos[0] = original_pole_pos_x + \
             pole_swing_scale * np.sin(2.0 * np.pi * pole_swing_freq * record_manager.status_elapsed_duration + pole_swing_phase_offset)
 
-    skip = 6
+    skip = args.skip
     if record_manager.status == RecordStatus.TELEOP and time_idx % skip == 0:
         # Load data and normalization
         front_image = info["rgb_images"]["front"]
