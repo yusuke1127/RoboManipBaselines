@@ -1,9 +1,11 @@
+from tqdm import tqdm
 import numpy as np
 import glob
 import zarr
 import argparse
 import os
 import cv2
+from multiprocessing import Pool
 from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordManager
 
 parser = argparse.ArgumentParser()
@@ -11,6 +13,7 @@ parser.add_argument("in_dir", type=str)
 parser.add_argument("--out_path", type=str)
 parser.add_argument("--skip", type=int, default=3)
 parser.add_argument("--train_keywords", nargs="*", required=False)
+parser.add_argument("-j", "--nproc", type=int, default=1)
 args = parser.parse_args()
 
 in_file_names = glob.glob(os.path.join(args.in_dir, "**/*.npz"), recursive=True)
@@ -26,14 +29,24 @@ actions = None
 joints = None
 images = None
 ep_ends = np.zeros(len(in_file_names), dtype=np.int64)
-print("[convert_npz_to_zarr] Load npz files:")
-for idx, in_file_name in enumerate(in_file_names):
+
+
+def get_record_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
     record_manager = RecordManager(env=None)
     record_manager.loadData(in_file_name)
     _actions = record_manager.getData(RecordKey.ACTION)[::args.skip]
     _joints = record_manager.getData(RecordKey.JOINT_POS)[::args.skip]
     _images = record_manager.getData(RecordKey.FRONT_RGB_IMAGE)[::args.skip]
+    return (_actions, _joints, _images)
+
+
+print("[convert_npz_to_zarr] Get npz files:")
+pool = Pool(args.nproc)
+record_data = pool.map(get_record_data, in_file_names)
+
+print("[convert_npz_to_zarr] Concatenate:")
+for idx, (_actions, _joints, _images) in enumerate(tqdm(record_data)):
     if idx == 0:
         actions = _actions
         joints = _joints

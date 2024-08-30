@@ -71,7 +71,7 @@ data/teleop_data_sample/
 Make zarr file (for training).
 
 ```console
-$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample --train_keywords env0 env5
+$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample --train_keywords env0 env5 --nproc `nproc`
 ```
 
 If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  
