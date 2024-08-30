@@ -68,10 +68,10 @@ data/teleop_data_sample/
     └── UR5eCableEnv_env5_011.npz
 ```
 
-Make zarr file.
+Make zarr file (for training).
 
 ```console
-$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample
+$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample --train_keywords env0 env5
 ```
 
 If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  

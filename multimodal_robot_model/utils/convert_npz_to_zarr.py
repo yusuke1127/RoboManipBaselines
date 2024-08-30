@@ -10,9 +10,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)
 parser.add_argument("--out_path", type=str)
 parser.add_argument("--skip", type=int, default=3)
+parser.add_argument("--train_keywords", nargs="*", required=False)
 args = parser.parse_args()
 
 in_file_names = glob.glob(os.path.join(args.in_dir, "**/*.npz"), recursive=True)
+if args.train_keywords is not None:
+    in_file_names = [
+        name for name in in_file_names if any(
+            [(word in name) for word in args.train_keywords]
+        )
+    ]
 in_file_names.sort()
 
 actions = None
