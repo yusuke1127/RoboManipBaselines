@@ -4,7 +4,7 @@ import cv2
 import gymnasium as gym
 import multimodal_robot_model
 import pinocchio as pin
-from Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordKey, RecordManager, convertDepthImageToColorImage
+from DemoUtils import MotionManager, RecordStatus, RecordKey, RecordManager, convertDepthImageToColorImage
 
 parser = argparse.ArgumentParser()
 parser.add_argument("teleop_filename")
@@ -31,7 +31,7 @@ record_manager = RecordManager(env)
 record_manager.loadData(args.teleop_filename)
 pole_pos_idx = args.pole_pos_idx
 if pole_pos_idx is None:
-    pole_pos_idx = record_manager.data_seq["pole_pos_idx"].tolist()
+    pole_pos_idx = record_manager.data_seq["world_idx"].tolist()
 record_manager.setupSimWorld(pole_pos_idx)
 
 print("- Press the 'n' key to start automatic grasping.")

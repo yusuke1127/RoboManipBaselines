@@ -13,7 +13,7 @@ import pinocchio as pin
 import torch
 from diffusion_policy.common.pytorch_util import dict_apply
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # command line parameters

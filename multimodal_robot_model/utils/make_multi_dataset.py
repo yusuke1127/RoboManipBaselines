@@ -7,7 +7,7 @@ from multiprocessing import Pool
 from pathlib import Path
 import random
 from eipl.utils import resize_img, calc_minmax, list_to_numpy
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordManager
+from multimodal_robot_model.demos.DemoUtils import RecordKey, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")

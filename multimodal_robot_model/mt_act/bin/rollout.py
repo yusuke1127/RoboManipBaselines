@@ -15,7 +15,7 @@ from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS, SIM_TASK_CONFI
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent"))
 from policy import ACTPolicy
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 
 # command line parameters
 parser = argparse.ArgumentParser()

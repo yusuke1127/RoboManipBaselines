@@ -12,7 +12,7 @@ import torch
 from eipl.model import SARNN
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
 import multimodal_robot_model
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--filename", type=str, default=None, help=".pth file that PyTorch loads as checkpoint for model")
