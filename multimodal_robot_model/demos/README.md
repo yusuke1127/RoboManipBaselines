@@ -10,13 +10,13 @@ Task to pass the cable between two poles:
 ```console
 $ python DemoTeleopUR5eCable.py
 ```
-https://github.com/user-attachments/assets/8430a5f4-0b4e-4f7c-9dd5-9ef3b3f61c08
+https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
 
 Task to pick a ring and put it around the pole:
 ```console
 $ python DemoTeleopUR5eRing.py
 ```
-https://github.com/user-attachments/assets/d610241b-1a4c-4180-85e2-48b7f2d96ad5
+https://github.com/user-attachments/assets/0eb76bbc-6b9d-43f6-95b1-8600e12a47cf
 
 To add a 3D plot of the point cloud, add the following option:
 ```console
