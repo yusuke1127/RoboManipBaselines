@@ -6,18 +6,25 @@ Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1
 ## Record teleoperation data
 Connect SpaceMouse to your PC before launching the script.
 
-Task to pass the cable between two poles:
+### Task to pass the cable between two poles
 ```console
 $ python DemoTeleopUR5eCable.py
 ```
 https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
 
-Task to pick a ring and put it around the pole:
+### Task to pick a ring and put it around the pole
 ```console
 $ python DemoTeleopUR5eRing.py
 ```
 https://github.com/user-attachments/assets/0eb76bbc-6b9d-43f6-95b1-8600e12a47cf
 
+### Task to scoop up partics
+```console
+$ python DemoTeleopUR5eScoop.py
+```
+https://github.com/user-attachments/assets/305300bd-6685-46ab-9704-5a15d901ed7a
+
+### Other options
 To add a 3D plot of the point cloud, add the following option:
 ```console
 $ python DemoTeleopUR5eCable.py --enable-3d-plot
