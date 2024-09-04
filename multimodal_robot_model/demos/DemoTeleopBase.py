@@ -39,6 +39,10 @@ class DemoTeleopBase(object):
             self.fig.tight_layout()
             self.point_cloud_scatter_list = [None] * len(self.env.unwrapped.cameras)
 
+        # Command configuration
+        self.command_pos_scale = 1e-2
+        self.command_rpy_scale = 5e-3
+
     def run(self):
         reset = True
         while True:
@@ -211,11 +215,9 @@ class DemoTeleopBase(object):
 
     def setArmCommand(self):
         if self.record_manager.status == RecordStatus.TELEOP:
-            pos_scale = 1e-2
-            delta_pos = pos_scale * np.array([
+            delta_pos = self.command_pos_scale * np.array([
                 -1.0 * self.spacemouse_state.y, self.spacemouse_state.x, self.spacemouse_state.z])
-            rpy_scale = 5e-3
-            delta_rpy = rpy_scale * np.array([
+            delta_rpy = self.command_rpy_scale * np.array([
                 -1.0 * self.spacemouse_state.roll, -1.0 * self.spacemouse_state.pitch, -2.0 * self.spacemouse_state.yaw])
             self.motion_manager.setRelativeTargetSE3(delta_pos, delta_rpy)
 
