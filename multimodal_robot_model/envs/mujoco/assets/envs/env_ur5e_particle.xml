@@ -1,4 +1,4 @@
-<mujoco model="ur5e_scoop">
+<mujoco model="ur5e_particle">
   <include file="./env_common.xml"/>
 
   <size memory="1G"/>

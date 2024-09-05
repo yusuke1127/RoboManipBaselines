@@ -3,7 +3,7 @@ import numpy as np
 
 from .UR5eEnvBase import UR5eEnvBase
 
-class UR5eScoopEnv(UR5eEnvBase):
+class UR5eParticleEnv(UR5eEnvBase):
     def __init__(
         self,
         extra_camera_configs=None,
@@ -11,7 +11,7 @@ class UR5eScoopEnv(UR5eEnvBase):
     ):
         UR5eEnvBase.__init__(
             self,
-            path.join(path.dirname(__file__), "assets/envs/env_ur5e_scoop.xml"),
+            path.join(path.dirname(__file__), "assets/envs/env_ur5e_particle.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi]),
             extra_camera_configs,
             **kwargs)

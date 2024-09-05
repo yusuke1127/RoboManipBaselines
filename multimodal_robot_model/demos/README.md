@@ -18,9 +18,9 @@ $ python DemoTeleopUR5eRing.py
 ```
 https://github.com/user-attachments/assets/0eb76bbc-6b9d-43f6-95b1-8600e12a47cf
 
-### Task to scoop up partics
+### Task to scoop up particles
 ```console
-$ python DemoTeleopUR5eScoop.py
+$ python DemoTeleopUR5eParticle.py
 ```
 https://github.com/user-attachments/assets/305300bd-6685-46ab-9704-5a15d901ed7a
 

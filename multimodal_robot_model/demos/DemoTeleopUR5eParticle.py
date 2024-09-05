@@ -5,10 +5,10 @@ import multimodal_robot_model
 from DemoTeleopBase import DemoTeleopBase
 from DemoUtils import RecordStatus
 
-class DemoTeleopUR5eScoop(DemoTeleopBase):
+class DemoTeleopUR5eParticle(DemoTeleopBase):
     def __init__(self):
         env = gym.make(
-            "multimodal_robot_model/UR5eScoopEnv-v0",
+            "multimodal_robot_model/UR5eParticleEnv-v0",
             render_mode="human",
             extra_camera_configs=[
                 {"name": "front", "size": (480, 640)},
@@ -16,7 +16,7 @@ class DemoTeleopUR5eScoop(DemoTeleopBase):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "UR5eScoop")
+        super().__init__(env, "UR5eParticle")
 
         # Command configuration
         self.command_rpy_scale = 1e-2
@@ -34,5 +34,5 @@ class DemoTeleopUR5eScoop(DemoTeleopBase):
             super().setArmCommand()
 
 if __name__ == "__main__":
-    demo_teleop = DemoTeleopUR5eScoop()
+    demo_teleop = DemoTeleopUR5eParticle()
     demo_teleop.run()
