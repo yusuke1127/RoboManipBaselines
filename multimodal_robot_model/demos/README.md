@@ -24,6 +24,12 @@ $ python DemoTeleopUR5eParticle.py
 ```
 https://github.com/user-attachments/assets/305300bd-6685-46ab-9704-5a15d901ed7a
 
+### Task to roll up the cloth
+```console
+$ python DemoTeleopUR5eCloth.py
+```
+https://github.com/user-attachments/assets/88bb9d84-7ca9-4d45-b457-cb9931cfb9a1
+
 ### Other options
 To add a 3D plot of the point cloud, add the following option:
 ```console
