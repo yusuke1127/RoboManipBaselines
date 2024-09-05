@@ -1,25 +1,7 @@
 <mujoco model="ur5e_cable_verticalup">
-  <compiler angle="radian" meshdir="../robots/meshes" texturedir="../robots/textures" autolimits="true"/>
-  <option timestep="0.004" integrator="implicitfast"/>
-  <size memory="2M"/>
-
-  <visual>
-    <headlight diffuse="0.6 0.6 0.6" ambient="0.1 0.1 0.1" specular="0.0 0.0 0.0"/>
-    <rgba haze="1.0 1.0 1.0 1.0"/>
-    <global azimuth="120" elevation="-20"/>
-  </visual>
+  <include file="./env_common.xml"/>
 
   <include file="../robots/ur5e/ur5e_config.xml"/>
-
-  <asset>
-    <texture type="skybox" builtin="gradient" rgb1="0.9 1.0 1.0" rgb2="0.9 1.0 1.0" width="512" height="3072"/>
-    <texture type="2d" name="groundplane" builtin="checker" rgb1="0.6 0.6 0.6" rgb2="0.7 0.7 0.7" width="300" height="300"/>
-    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5"/>
-    <texture name="marble1" file="table/marble1.png" type="2d"/>
-    <material name="marble1" texture="marble1" specular="0.0" shininess="0.0"/>
-    <material name="table_base" rgba="1.0 0.93 0.7 1"/>
-    <material name="stand" rgba="0.05 0.22 0.48 1"/>
-  </asset>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
