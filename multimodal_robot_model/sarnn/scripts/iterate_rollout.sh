@@ -15,11 +15,11 @@ FIRST_OPTION="--wait_before_start"
 
 array=(0 1 2 3 4 5)
 for i in "${array[@]}"; do
-    echo "[sarnn/iterate_rollout.sh] pole-pos-idx: $i"
-    python ${SCRIPT_DIR}/../bin/rollout.py \
---filename ${CKPT_DIR}/${CKPT_NAME} \
+    echo "[sarnn/iterate_rollout.sh] world_idx: $i"
+    python ${SCRIPT_DIR}/../bin/RolloutSarnnUR5eCable.py \
+--checkpoint ${CKPT_DIR}/${CKPT_NAME} \
 --skip ${SKIP} \
---win_xy_policy 0 700 --win_xy_simulation 900 0 \
---pole-pos-idx $i $FIRST_OPTION
+--win_xy_policy 0 700 \
+--world_idx $i $FIRST_OPTION
     FIRST_OPTION=""
 done
