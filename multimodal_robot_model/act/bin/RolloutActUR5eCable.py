@@ -3,9 +3,9 @@ import pinocchio as pin
 import gymnasium as gym
 import multimodal_robot_model
 from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
-from RolloutSarnn import RolloutSarnn
+from RolloutAct import RolloutAct
 
-class RolloutSarnnUR5eCable(RolloutSarnn):
+class RolloutActUR5eCable(RolloutAct):
     def __init__(self):
         env = gym.make(
             "multimodal_robot_model/UR5eCableEnv-v0",
@@ -16,7 +16,7 @@ class RolloutSarnnUR5eCable(RolloutSarnn):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "SarnnUR5eCable")
+        super().__init__(env, "ActUR5eCable")
 
     def setCommand(self):
         # Set joint command
@@ -38,5 +38,5 @@ class RolloutSarnnUR5eCable(RolloutSarnn):
             self.motion_manager.gripper_pos = self.pred_action[6]
 
 if __name__ == "__main__":
-    rollout = RolloutSarnnUR5eCable()
+    rollout = RolloutActUR5eCable()
     rollout.run()

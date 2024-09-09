@@ -14,14 +14,13 @@ SCRIPT_DIR=$(cd $(dirname $0); pwd)
 FIRST_OPTION="--wait_before_start"
 
 array=(0 1 2 3 4 5)
-for i in "${array[@]}"; do
-    echo "[act/iterate_rollout.sh] pole-pos-idx: $i"
-    python ${SCRIPT_DIR}/../bin/rollout.py \
---ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} --task_name sim_ur5ecable \
+for WORLD_IDX in "${array[@]}"; do
+    echo "[act/iterate_rollout.sh] world_idx: ${WORLD_IDX}"
+    python ${SCRIPT_DIR}/../bin/RolloutActUR5eCable.py \
+--ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} \
+--chunk_size 100 --seed 42 \
 --skip ${SKIP} \
---policy_class ACT --chunk_size 100 --num_epochs 0 \
---seed 0 \
---win_xy_policy 0 700 --win_xy_simulation 900 0 \
---pole-pos-idx $i $FIRST_OPTION
+--world_idx ${WORLD_IDX} \
+--win_xy_policy 0 700 ${FIRST_OPTION}
     FIRST_OPTION=""
 done

@@ -71,11 +71,9 @@ $ python ./bin/train.py \
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/rollout.py \
---ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name sim_ur5ecable \
---policy_class ACT --chunk_size 100 --num_epochs 0 \
---seed 0 \
---pole-pos-idx 0
+$ python ./bin/RolloutActUR5eCable.py \
+--ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt \
+--chunk_size 100 --seed 42 --skip 1 --world_idx 0
 ```
 
 Repeatedly run a trained policy in different environments in the simulator.
