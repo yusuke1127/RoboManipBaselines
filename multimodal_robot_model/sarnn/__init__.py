@@ -3,3 +3,4 @@ from .libs.MultimodalDatasetWithMask import MultimodalDatasetWithMask
 from .libs.MultimodalDatasetWithSideimageAndWrench import MultimodalDatasetWithSideimageAndWrench
 from .libs.fullBPTTtrainerWithMask import fullBPTTtrainerWithMask
 from .libs.fullBPTTtrainerWithSideimageAndWrench import fullBPTTtrainerWithSideimageAndWrench, Loss
+from .libs.RolloutSarnn import RolloutSarnn

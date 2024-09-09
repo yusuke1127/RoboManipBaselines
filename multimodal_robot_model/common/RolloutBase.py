@@ -9,16 +9,14 @@ import pinocchio as pin
 from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 
 class RolloutBase(object):
-    def __init__(self, env, demo_name):
+    def __init__(self):
         self.setupArgs()
 
         self.setupPolicy()
 
-        self.setupPlot()
+        self.setupEnv()
 
-        # Setup gym
-        self.env = env
-        self.demo_name = demo_name
+        self.setupPlot()
 
         # Setup motion manager
         self.motion_manager = MotionManager(self.env)
@@ -94,6 +92,9 @@ class RolloutBase(object):
         self.args = parser.parse_args(argv[1:])
 
     def setupPolicy(self):
+        raise NotImplementedError()
+
+    def setupEnv(self):
         raise NotImplementedError()
 
     def setupPlot(self, fig_ax=None):
