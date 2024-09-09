@@ -64,7 +64,7 @@ class RolloutSarnn(RolloutBase):
         if self.auto_time_idx % self.args.skip != 0:
             return
 
-        # Normalize
+        # Preprocess
         self.obs_front_image = self.info["rgb_images"]["front"]
         [fro_lef, fro_top] = [(self.obs_front_image.shape[ax] - self.args.cropped_img_size) // 2 for ax in [0, 1]]
         [fro_rig, fro_bot] = [(p + self.args.cropped_img_size) for p in [fro_lef, fro_top]]
@@ -81,7 +81,7 @@ class RolloutSarnn(RolloutBase):
         front_image_output, joint_output, enc_front_pts_output, dec_front_pts_output, self.rnn_state = \
             self.policy(front_image_input, joint_input, self.rnn_state)
 
-        # Denormalize
+        # Postprocess
         self.pred_front_image = tensor2numpy(front_image_output[0])
         self.pred_front_image = deprocess_img(self.pred_front_image, self.params["vmin"], self.params["vmax"])
         self.pred_front_image = self.pred_front_image.transpose(1, 2, 0)
@@ -113,7 +113,7 @@ class RolloutSarnn(RolloutBase):
         self.ax[0, 1].set_title("Predicted image", fontsize=20)
 
         # Plot joint
-        xlim = 100
+        xlim = 500 // self.args.skip
         self.ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 2].set_xlim(0, xlim)
         for joint_idx in range(self.pred_action_list.shape[1]):

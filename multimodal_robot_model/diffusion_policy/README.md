@@ -93,9 +93,9 @@ To disable logging by wandb, add the option `enable_wandb=False`.
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/rollout.py \
---filename ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
---pole-pos-idx 1
+$ python ./bin/RolloutDiffusionPolicyUR5eCable.py \
+--checkpoint ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
+--skip 3 --world_idx 1
 ```
 
 Repeatedly run a trained policy in different environments in the simulator.

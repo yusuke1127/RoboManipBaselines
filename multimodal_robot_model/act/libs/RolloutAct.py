@@ -17,12 +17,12 @@ class RolloutAct(RolloutBase):
         if parser is None:
             parser = argparse.ArgumentParser()
 
-        parser.add_argument("--ckpt_dir", action="store", type=str, help="ckpt_dir", required=True)
-        parser.add_argument("--ckpt_name", default="policy_best.ckpt", type=str, help="ckpt_name")
-        parser.add_argument("--kl_weight", default=10, type=int, help="KL Weight", required=False)
-        parser.add_argument("--chunk_size", default=100, type=int, help="chunk_size", required=False)
-        parser.add_argument("--hidden_dim", default=512, type=int, help="hidden_dim", required=False)
-        parser.add_argument("--dim_feedforward", default=3200, type=int, help="dim_feedforward", required=False)
+        parser.add_argument("--ckpt_dir", action="store", type=str, help="checkpoint directory", required=True)
+        parser.add_argument("--ckpt_name", default="policy_best.ckpt", type=str, help="ACT policy checkpoint file name (*.ckpt)")
+        parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
+        parser.add_argument("--chunk_size", default=100, type=int, help="action chunking size")
+        parser.add_argument("--hidden_dim", default=512, type=int, help="hidden dimension of ACT policy")
+        parser.add_argument("--dim_feedforward", default=3200, type=int, help="feedforward dimension of ACT policy")
 
         # Add dummy arguments
         parser.add_argument("--task_name", choices=["sim_dummy"], type=str,
@@ -95,7 +95,7 @@ class RolloutAct(RolloutBase):
         if self.auto_time_idx % self.args.skip != 0:
             return
 
-        # Normalize
+        # Preprocess
         self.front_image = self.info["rgb_images"]["front"]
         front_image_input = self.front_image.transpose(2, 0, 1)
         front_image_input = front_image_input.astype(np.float32) / 255.0
@@ -110,7 +110,7 @@ class RolloutAct(RolloutBase):
         if len(self.all_actions_history) > self.args.chunk_size:
             self.all_actions_history.pop(0)
 
-        # Apply temporal ensembling
+        # Postprocess (temporal ensembling)
         k = 0.01
         exp_weights = np.exp(-k * np.arange(len(self.all_actions_history)))
         exp_weights = exp_weights / exp_weights.sum()
@@ -133,7 +133,7 @@ class RolloutAct(RolloutBase):
         self.ax[0, 0].set_title("Observed image", fontsize=20)
 
         # Plot joint
-        xlim = 400
+        xlim = 500 // self.args.skip
         self.ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 1].set_xlim(0, xlim)
         for joint_idx in range(self.pred_action_list.shape[1]):

@@ -13,8 +13,8 @@ echo "[act/iterate_rollout.sh] SKIP: ${SKIP}"
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 FIRST_OPTION="--wait_before_start"
 
-array=(0 1 2 3 4 5)
-for WORLD_IDX in "${array[@]}"; do
+WORLD_IDX_LIST=(0 1 2 3 4 5)
+for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
     echo "[act/iterate_rollout.sh] world_idx: ${WORLD_IDX}"
     python ${SCRIPT_DIR}/../bin/RolloutActUR5eCable.py \
 --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} \
