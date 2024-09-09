@@ -1,3 +1,3 @@
-from .libs.constants import SIM_TASK_CONFIGS
-from .libs.utils import load_data
-from .libs.RolloutAct import RolloutAct
+from .lib.constants import SIM_TASK_CONFIGS
+from .lib.utils import load_data
+from .lib.RolloutAct import RolloutAct
