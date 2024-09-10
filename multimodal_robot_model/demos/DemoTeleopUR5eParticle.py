@@ -7,7 +7,13 @@ from DemoUtils import RecordStatus
 
 class DemoTeleopUR5eParticle(DemoTeleopBase):
     def __init__(self):
-        env = gym.make(
+        super().__init__()
+
+        # Command configuration
+        self.command_rpy_scale = 1e-2
+
+    def setupEnv(self):
+        self.env = gym.make(
             "multimodal_robot_model/UR5eParticleEnv-v0",
             render_mode="human",
             extra_camera_configs=[
@@ -16,10 +22,7 @@ class DemoTeleopUR5eParticle(DemoTeleopBase):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "UR5eParticle")
-
-        # Command configuration
-        self.command_rpy_scale = 1e-2
+        self.demo_name = "UR5eParticle"
 
     def setArmCommand(self):
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):

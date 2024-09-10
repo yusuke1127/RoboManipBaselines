@@ -9,7 +9,7 @@ from DemoUtils import MotionManager, RecordStatus, RecordKey, RecordManager, \
     convertDepthImageToColorImage, convertDepthImageToPointCloud
 
 class DemoTeleopBase(object):
-    def __init__(self, env, demo_name):
+    def __init__(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--enable-3d-plot", action="store_true", help="whether to enable 3d plot")
         parser.add_argument("--compress-rgb", type=int, default=1, help="whether to compress rgb image")
@@ -17,10 +17,9 @@ class DemoTeleopBase(object):
         parser.add_argument("--replay-log", type=str, default=None, help="log file path when replay log motion")
         self.args = parser.parse_args()
 
-        # Setup gym
-        self.env = env
+        # Setup gym environment
+        self.setupEnv()
         self.env.reset(seed=42)
-        self.demo_name = demo_name
 
         # Setup motion manager
         self.motion_manager = MotionManager(self.env)
@@ -212,6 +211,9 @@ class DemoTeleopBase(object):
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
         # self.env.close()
+
+    def setupEnv(self):
+        raise NotImplementedError()
 
     def setArmCommand(self):
         if self.record_manager.status == RecordStatus.TELEOP:

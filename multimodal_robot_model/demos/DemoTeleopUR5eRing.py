@@ -6,8 +6,8 @@ from DemoTeleopBase import DemoTeleopBase
 from DemoUtils import RecordStatus
 
 class DemoTeleopUR5eRing(DemoTeleopBase):
-    def __init__(self):
-        env = gym.make(
+    def setupEnv(self):
+        self.env = gym.make(
             "multimodal_robot_model/UR5eRingEnv-v0",
             render_mode="human",
             extra_camera_configs=[
@@ -16,7 +16,7 @@ class DemoTeleopUR5eRing(DemoTeleopBase):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "UR5eRing")
+        self.demo_name = "UR5eRing"
 
     def setArmCommand(self):
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
