@@ -129,17 +129,11 @@ $ python ./bin/train.py \
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/rollout.py \
+$ python ./bin/RolloutMtActUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name task0_between-two \
---skip 1 \
---policy_class ACT --chunk_size 100 --num_epochs 0 \
---kl_weight 10 \
---hidden_dim 512 \
---dim_feedforward 3200 \
---seed 0 \
---multi_task \
---pole-pos-idx 0
+--chunk_size 100 --seed 42 --skip 1 --world_idx 0
 ```
+The Python script is named `RolloutMtAct<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
