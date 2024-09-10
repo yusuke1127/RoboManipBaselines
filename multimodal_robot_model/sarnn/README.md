@@ -87,6 +87,7 @@ Run a trained policy in the simulator.
 ```console
 $ python ./bin/RolloutSarnnUR5eCable.py --checkpoint ./log/YEAR_DAY_TIME/SARNN.pth --skip 6 --world_idx 1
 ```
+The Python script is named `RolloutSarnn<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 

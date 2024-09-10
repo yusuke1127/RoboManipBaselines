@@ -97,6 +97,7 @@ $ python ./bin/RolloutDiffusionPolicyUR5eCable.py \
 --checkpoint ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
 --skip 3 --world_idx 1
 ```
+The Python script is named `RolloutDiffusionPolicy<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 

@@ -75,6 +75,7 @@ $ python ./bin/RolloutActUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt \
 --chunk_size 100 --seed 42 --skip 1 --world_idx 0
 ```
+The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
