@@ -11,13 +11,13 @@ echo "[diffusion_policy/iterate_rollout.sh] SKIP: ${SKIP}"
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 FIRST_OPTION="--wait_before_start"
 
-array=(0 1 2 3 4 5)
-for i in "${array[@]}"; do
-    echo "[diffusion_policy/iterate_rollout.sh] pole-pos-idx: $i"
-    python ${SCRIPT_DIR}/../bin/rollout.py \
---filename ${CKPT_PATH} \
+WORLD_IDX_LIST=(0 1 2 3 4 5)
+for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
+    echo "[diffusion_policy/iterate_rollout.sh] world_idx: ${WORLD_IDX}"
+    python ${SCRIPT_DIR}/../bin/RolloutDiffusionPolicyUR5eCable.py \
+--checkpoint ${CKPT_PATH} \
 --skip ${SKIP} \
---win_xy_policy 0 700 --win_xy_simulation 900 0 \
---pole-pos-idx $i $FIRST_OPTION
+--world_idx ${WORLD_IDX} \
+--win_xy_policy 0 700 ${FIRST_OPTION}
     FIRST_OPTION=""
 done

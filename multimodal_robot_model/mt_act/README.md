@@ -42,6 +42,7 @@ ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
 
 Sample data can be downloaded from the following links.
+**This data is in an old format and will be replaced with a new format soon.**
 - [Full data (270 trials)](https://aist.box.com/s/9qtkspyyzcxqvrssvumahfgvi31h5cet)
 - [Partial data (24 trials)](https://aist.box.com/s/ks8l2ajmxhj48abxdvg4lowtp9134by5)
 

@@ -6,7 +6,7 @@ import argparse
 import os
 import cv2
 from multiprocessing import Pool
-from multimodal_robot_model.demos.Utils_UR5eCableEnv import RecordKey, RecordManager
+from multimodal_robot_model.demos.DemoUtils import RecordKey, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)

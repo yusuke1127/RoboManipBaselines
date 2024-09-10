@@ -16,12 +16,12 @@ class MotionManager(object):
 
     The manager computes forward and inverse kinematics using Pinocchio, a robot modeling library.
     """
-    def __init__(self, env):
+    def __init__(self, env, root_body_name="ur5e_root_frame"):
         self.env = env
 
         # Setup pinocchio model and data
-        root_se3 = pin.SE3(np.identity(3), np.array([-0.605, 0.0, 0.8])) # env_ur5e_cable_verticalup.xml
-        # root_se3 = pin.SE3(np.matmul(pin.rpy.rpyToMatrix(2.35619, 0.0, 0.0), pin.rpy.rpyToMatrix(0.0, 0.0, -1.5708)), np.array([-0.27, -0.18, 1.32])) # env_ur5e_cable_diagonaldown.xml
+        root_body = env.unwrapped.model.body(root_body_name)
+        root_se3 = pin.SE3(pin.Quaternion(root_body.quat[[1, 2, 3, 0]]), root_body.pos)
         self.pin_model = pin.buildModelFromUrdf(self.env.unwrapped.urdf_path)
         self.pin_model.jointPlacements[1] = root_se3.act(self.pin_model.jointPlacements[1]) # Set root link pose
         self.pin_data = self.pin_model.createData()
@@ -52,7 +52,8 @@ class MotionManager(object):
         J = pin.computeJointJacobian(self.pin_model, self.pin_data, self.joint_pos, self.eef_joint_id) # in joint frame
         J = -1 * np.dot(pin.Jlog6(error_se3.inverse()), J)
         damping_scale = 1e-6
-        delta_joint_pos = -1 * J.T.dot(np.linalg.solve(J.dot(J.T) + (np.dot(error_vec, error_vec) + damping_scale) * np.identity(6), error_vec))
+        delta_joint_pos = -1 * J.T.dot(np.linalg.solve(
+            J.dot(J.T) + (np.dot(error_vec, error_vec) + damping_scale) * np.identity(6), error_vec))
         self.joint_pos = pin.integrate(self.pin_model, self.joint_pos, delta_joint_pos)
         pin.forwardKinematics(self.pin_model, self.pin_data, self.joint_pos)
 
@@ -166,9 +167,6 @@ class RecordManager(object):
 
         self.camera_info = {}
 
-        if self.env is not None:
-            self._original_pole_pos = self.env.unwrapped.model.body("poles").pos.copy()
-
         self.reset()
 
     def reset(self):
@@ -255,30 +253,19 @@ class RecordManager(object):
         cv2.putText(status_image, self.status.name, (5, 35), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 2)
         return status_image
 
-    def setupSimWorld(self, pole_pos_idx=None):
+    def setupSimWorld(self, world_idx=None):
         """Setup the simulation world."""
-        # Set position of poles
-        pole_pos_offsets = np.array([
-            [-0.03, 0, 0.0],
-            [0.0, 0, 0.0],
-            [0.03, 0, 0.0],
-            [0.06, 0, 0.0],
-            [0.09, 0, 0.0],
-            [0.12, 0, 0.0],
-        ]) # [m]
-        if pole_pos_idx is None:
-            pole_pos_idx = self.data_idx % len(pole_pos_offsets)
-        self.env.unwrapped.model.body("poles").pos = self._original_pole_pos + pole_pos_offsets[pole_pos_idx]
+        if world_idx is None:
+            kwargs = {"cumulative_idx": self.data_idx}
+        else:
+            kwargs = {"world_idx": world_idx}
+        self.world_idx = self.env.unwrapped.modify_world(**kwargs)
+        self.world_info = {"world_idx": self.world_idx}
 
-        # Set world index (currently only the position of poles is a dependent parameter)
-        self.world_idx = pole_pos_idx
-        self.world_info = {"world_idx": self.world_idx,
-                           "pole_pos_idx": pole_pos_idx}
-
-    def setupCameraInfo(self, depth_image_key_list):
+    def setupCameraInfo(self, camera_names, depth_keys):
         """Set camera info."""
-        for camera_idx, depth_image_key in enumerate(depth_image_key_list):
-            self.camera_info[depth_image_key.key() + "_fovy"] = self.env.unwrapped.model.cam_fovy[camera_idx]
+        for camera_name, depth_key in zip(camera_names, depth_keys):
+            self.camera_info[depth_key.key() + "_fovy"] = self.env.unwrapped.model.cam(camera_name).fovy[0]
 
     @property
     def status_elapsed_duration(self):
