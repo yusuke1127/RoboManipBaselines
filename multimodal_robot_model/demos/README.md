@@ -31,13 +31,18 @@ $ python DemoTeleopUR5eCloth.py
 https://github.com/user-attachments/assets/88bb9d84-7ca9-4d45-b457-cb9931cfb9a1
 
 ### Other options
+If you want to collect data only in a simulation environment with limited world indices (for example, only 0 and 5), add the following option:
+```console
+$ python DemoTeleopUR5eCable.py --world_idx_list 0 5
+```
+
 To add a 3D plot of the point cloud, add the following option:
 ```console
-$ python DemoTeleopUR5eCable.py --enable-3d-plot
+$ python DemoTeleopUR5eCable.py --enable_3d_plot
 ```
 If you cannot zoom the point cloud view by right-clicking, try changing the matplotlib version: `pip install matplotlib=="3.6.1"`.
 
 To replay the teleoperation motion of the log, add the following option:
 ```console
-$ python DemoTeleopUR5eCable.py --replay-log ./teleop_data/UR5eCable/env0/UR5eCable_env0_000.npz
+$ python DemoTeleopUR5eCable.py --replay_log ./teleop_data/UR5eCable/env0/UR5eCable_env0_000.npz
 ```

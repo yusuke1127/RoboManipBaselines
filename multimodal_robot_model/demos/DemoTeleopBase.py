@@ -11,10 +11,12 @@ from DemoUtils import MotionManager, RecordStatus, RecordKey, RecordManager, \
 class DemoTeleopBase(object):
     def __init__(self):
         parser = argparse.ArgumentParser()
-        parser.add_argument("--enable-3d-plot", action="store_true", help="whether to enable 3d plot")
-        parser.add_argument("--compress-rgb", type=int, default=1, help="whether to compress rgb image")
-        parser.add_argument("--compress-depth", type=int, default=0, help="whether to compress depth image (slow)")
-        parser.add_argument("--replay-log", type=str, default=None, help="log file path when replay log motion")
+        parser.add_argument("--enable_3d_plot", action="store_true", help="whether to enable 3d plot")
+        parser.add_argument("--compress_rgb", type=int, default=1, help="whether to compress rgb image")
+        parser.add_argument("--compress_depth", type=int, default=0, help="whether to compress depth image (slow)")
+        parser.add_argument("--world_idx_list", type=int, nargs="*",
+                            help="list of world indexes (if not given, loop through all world indicies)")
+        parser.add_argument("--replay_log", type=str, default=None, help="log file path when replay log motion")
         self.args = parser.parse_args()
 
         # Setup gym environment
@@ -52,7 +54,10 @@ class DemoTeleopBase(object):
                 self.motion_manager.reset()
                 if self.args.replay_log is None:
                     self.record_manager.reset()
-                    world_idx = None
+                    if self.args.world_idx_list is None:
+                        world_idx = None
+                    else:
+                        world_idx = self.args.world_idx_list[self.record_manager.data_idx % len(self.args.world_idx_list)]
                 else:
                     self.record_manager.loadData(self.args.replay_log)
                     world_idx = self.record_manager.data_seq["world_idx"].tolist()
