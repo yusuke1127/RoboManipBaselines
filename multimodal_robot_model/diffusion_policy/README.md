@@ -102,5 +102,5 @@ The Python script is named `RolloutDiffusionPolicy<task_name>.py`. The following
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt
+$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt UR5eCable 3
 ```

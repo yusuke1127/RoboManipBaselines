@@ -92,5 +92,5 @@ The Python script is named `RolloutSarnn<task_name>.py`. The followings are supp
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME SARNN.pth UR5eCable 6
 ```

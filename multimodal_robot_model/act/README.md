@@ -80,5 +80,5 @@ The Python script is named `RolloutAct<task_name>.py`. The followings are suppor
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt UR5eCable 1
 ```
