@@ -1,13 +1,13 @@
 import numpy as np
-import gymnasium as gym
 import pinocchio as pin
+import gymnasium as gym
 import multimodal_robot_model
-from DemoTeleopBase import DemoTeleopBase
-from DemoUtils import RecordStatus
+from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
+from ..RolloutBase import RolloutBase
 
-class DemoTeleopUR5eRing(DemoTeleopBase):
-    def __init__(self):
-        env = gym.make(
+class RolloutUR5eRing(RolloutBase):
+    def setupEnv(self):
+        self.env = gym.make(
             "multimodal_robot_model/UR5eRingEnv-v0",
             render_mode="human",
             extra_camera_configs=[
@@ -16,9 +16,9 @@ class DemoTeleopUR5eRing(DemoTeleopBase):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "UR5eRing")
 
-    def setArmCommand(self):
+    def setCommand(self):
+        # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = 0.5 * (self.env.unwrapped.data.geom("fook1").xpos +
                                 self.env.unwrapped.data.geom("fook2").xpos)
@@ -27,9 +27,12 @@ class DemoTeleopUR5eRing(DemoTeleopBase):
             elif self.record_manager.status == RecordStatus.REACH:
                 target_pos += np.array([-0.1, 0.05, -0.05]) # [m]
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, np.pi/2), target_pos)
-        else:
-            super().setArmCommand()
+            self.motion_manager.inverseKinematics()
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.joint_pos = self.pred_action[:6]
 
-if __name__ == "__main__":
-    demo_teleop = DemoTeleopUR5eRing()
-    demo_teleop.run()
+        # Set gripper command
+        if self.record_manager.status == RecordStatus.GRASP:
+            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.gripper_pos = self.pred_action[6]

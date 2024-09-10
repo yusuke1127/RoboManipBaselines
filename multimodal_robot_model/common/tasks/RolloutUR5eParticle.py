@@ -1,13 +1,13 @@
 import numpy as np
-import gymnasium as gym
 import pinocchio as pin
+import gymnasium as gym
 import multimodal_robot_model
-from DemoTeleopBase import DemoTeleopBase
-from DemoUtils import RecordStatus
+from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
+from ..RolloutBase import RolloutBase
 
-class DemoTeleopUR5eParticle(DemoTeleopBase):
-    def __init__(self):
-        env = gym.make(
+class RolloutUR5eParticle(RolloutBase):
+    def setupEnv(self):
+        self.env = gym.make(
             "multimodal_robot_model/UR5eParticleEnv-v0",
             render_mode="human",
             extra_camera_configs=[
@@ -16,12 +16,9 @@ class DemoTeleopUR5eParticle(DemoTeleopBase):
                 {"name": "hand", "size": (480, 640)},
             ]
         )
-        super().__init__(env, "UR5eParticle")
 
-        # Command configuration
-        self.command_rpy_scale = 1e-2
-
-    def setArmCommand(self):
+    def setCommand(self):
+        # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = self.env.unwrapped.data.geom("scoop_handle").xpos
             if self.record_manager.status == RecordStatus.PRE_REACH:
@@ -29,9 +26,12 @@ class DemoTeleopUR5eParticle(DemoTeleopBase):
             elif self.record_manager.status == RecordStatus.REACH:
                 target_pos += np.array([0.0, 0.0, 0.15]) # [m]
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi, 0.0, np.pi/2), target_pos)
-        else:
-            super().setArmCommand()
+            self.motion_manager.inverseKinematics()
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.joint_pos = self.pred_action[:6]
 
-if __name__ == "__main__":
-    demo_teleop = DemoTeleopUR5eParticle()
-    demo_teleop.run()
+        # Set gripper command
+        if self.record_manager.status == RecordStatus.GRASP:
+            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.gripper_pos = self.pred_action[6]
