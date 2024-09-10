@@ -45,7 +45,7 @@ data/teleop_data_sample/
 Make numpy files in each of `train` (for training) and `test` directories (for validation).
 
 ```console
-$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 1
+$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 3
 ```
 
 Visualize the generated data (optional).
@@ -73,12 +73,12 @@ Run a trained policy in the simulator.
 ```console
 $ python ./bin/RolloutActUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt \
---chunk_size 100 --seed 42 --skip 1 --world_idx 0
+--chunk_size 100 --seed 42 --skip 3 --world_idx 0
 ```
 The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt UR5eCable 1
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt UR5eCable 3
 ```

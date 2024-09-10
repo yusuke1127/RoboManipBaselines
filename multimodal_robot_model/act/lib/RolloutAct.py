@@ -37,9 +37,9 @@ class RolloutAct(RolloutBase):
         super().setupArgs(parser, argv)
 
         if self.args.skip is None:
-            self.args.skip = 1
+            self.args.skip = 3
         if self.args.skip_draw is None:
-            self.args.skip_draw = 4
+            self.args.skip_draw = self.args.skip
 
     def setupPolicy(self):
         # Define policy

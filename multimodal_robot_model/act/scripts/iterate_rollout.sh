@@ -5,7 +5,7 @@
 CKPT_DIR=$1
 CKPT_NAME=${2:-policy_last.ckpt}
 TASK_NAME=${3:-UR5eCable}
-SKIP=${4:-1}
+SKIP=${4:-3}
 
 echo "[act/iterate_rollout.sh] CKPT_DIR: ${CKPT_DIR}"
 echo "[act/iterate_rollout.sh] CKPT_NAME: ${CKPT_NAME}"
