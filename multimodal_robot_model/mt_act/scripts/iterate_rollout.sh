@@ -22,11 +22,11 @@ for POLICY_TASK_NAME in "${POLICY_TASK_NAME_LIST[@]}"; do
         echo "[mt_act/iterate_rollout.sh] POLICY_TASK_NAME: ${POLICY_TASK_NAME}"
         echo "[mt_act/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
         python ${SCRIPT_DIR}/../bin/RolloutAct${ENV_TASK_NAME}.py \
---ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} --task_name ${POLICY_TASK_NAME} \
---chunk_size 100 --seed 42 \
---skip ${SKIP} \
---world_idx ${WORLD_IDX} \
---win_xy_policy 0 700 ${FIRST_OPTION}
+               --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} --task_name ${POLICY_TASK_NAME} \
+               --chunk_size 100 --seed 42 \
+               --skip ${SKIP} \
+               --world_idx ${WORLD_IDX} \
+               --win_xy_policy 0 700 ${FIRST_OPTION}
         FIRST_OPTION=""
     done
 done

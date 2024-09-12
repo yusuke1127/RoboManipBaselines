@@ -19,10 +19,10 @@ WORLD_IDX_LIST=(0 1 2 3 4 5)
 for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
     echo "[act/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
     python ${SCRIPT_DIR}/../bin/RolloutAct${TASK_NAME}.py \
---ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} \
---chunk_size 100 --seed 42 \
---skip ${SKIP} \
---world_idx ${WORLD_IDX} \
---win_xy_policy 0 700 ${FIRST_OPTION}
+           --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} \
+           --chunk_size 100 --seed 42 \
+           --skip ${SKIP} \
+           --world_idx ${WORLD_IDX} \
+           --win_xy_policy 0 700 ${FIRST_OPTION}
     FIRST_OPTION=""
 done

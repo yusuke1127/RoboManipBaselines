@@ -17,9 +17,9 @@ WORLD_IDX_LIST=(0 1 2 3 4 5)
 for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
     echo "[diffusion_policy/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
     python ${SCRIPT_DIR}/../bin/RolloutDiffusionPolicy${TASK_NAME}.py \
---checkpoint ${CKPT_PATH} \
---skip ${SKIP} \
---world_idx ${WORLD_IDX} \
---win_xy_policy 0 700 ${FIRST_OPTION}
+           --checkpoint ${CKPT_PATH} \
+           --skip ${SKIP} \
+           --world_idx ${WORLD_IDX} \
+           --win_xy_policy 0 700 ${FIRST_OPTION}
     FIRST_OPTION=""
 done
