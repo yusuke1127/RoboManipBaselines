@@ -6,7 +6,7 @@ import cv2
 import torch
 from eipl.model import SARNN
 from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
-from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
 from multimodal_robot_model.common import RolloutBase
 
 class RolloutSarnn(RolloutBase):

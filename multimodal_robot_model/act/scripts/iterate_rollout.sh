@@ -4,7 +4,7 @@
 
 CKPT_DIR=$1
 CKPT_NAME=${2:-policy_last.ckpt}
-TASK_NAME=${3:-UR5eCable}
+TASK_NAME=${3:-MujocoUR5eCable}
 SKIP=${4:-3}
 
 echo "[act/iterate_rollout.sh] CKPT_DIR: ${CKPT_DIR}"
@@ -18,7 +18,7 @@ FIRST_OPTION="--wait_before_start"
 WORLD_IDX_LIST=(0 1 2 3 4 5)
 for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
     echo "[act/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
-    python ${SCRIPT_DIR}/../bin/RolloutAct${TASK_NAME}.py \
+    python ${SCRIPT_DIR}/../bin/rollout/RolloutAct${TASK_NAME}.py \
            --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} \
            --chunk_size 100 --seed 42 \
            --skip ${SKIP} \

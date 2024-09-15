@@ -85,12 +85,14 @@ $ python ./bin/test_pca.py --data_dir ./data/learning_data_sample --filename ./l
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/RolloutSarnnUR5eCable.py --checkpoint ./log/YEAR_DAY_TIME/SARNN.pth --cropped_img_size 280 --skip 6 --world_idx 1
+$ python ./bin/rollout/RolloutSarnnMujocoUR5eCable.py \
+--checkpoint ./log/YEAR_DAY_TIME/SARNN.pth \
+--cropped_img_size 280 --skip 6 --world_idx 1
 ```
-The Python script is named `RolloutSarnn<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
+The Python script is named `RolloutSarnn<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME SARNN.pth UR5eCable 280 6
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME SARNN.pth MujocoUR5eCable 280 6
 ```

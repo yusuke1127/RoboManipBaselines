@@ -26,5 +26,5 @@ Multi-Task Action Chunking Transformer
 ## Utilities
 See [utils](./multimodal_robot_model/utils).
 
-## Demonstration data collection
-See [demos](./multimodal_robot_model/demos).
+## Data collection by teleoperation
+See [teleop](./multimodal_robot_model/teleop).

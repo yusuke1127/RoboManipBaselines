@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import cv2
-from multimodal_robot_model.demos.DemoUtils import RecordKey, RecordManager, convertDepthImageToPointCloud
+from multimodal_robot_model.common import RecordKey, RecordManager, convertDepthImageToPointCloud
 
 parser = argparse.ArgumentParser()
 parser.add_argument("teleop_filename", type=str)

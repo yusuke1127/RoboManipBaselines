@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import pinocchio as pin
-from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
 
 class RolloutBase(object):
     def __init__(self):
