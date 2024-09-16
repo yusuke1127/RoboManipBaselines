@@ -9,7 +9,7 @@
     <global azimuth="120" elevation="-20"/>
   </visual>
 
-  <include file="../robots/ur5e/ur5e_config.xml"/>
+  <include file="../robots/ur5e/ur5e_integrated_config.xml"/>
 
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="1.0 1.0 1.0" rgb2="1.0 1.0 1.0" width="512" height="3072"/>
@@ -32,7 +32,7 @@
     </body>
 
     <body name="ur5e_root_frame" pos="-0.27 -0.18 1.32" euler="2.35619 0 -1.5708">
-      <include file="../robots/ur5e/ur5e_body.xml"/>
+      <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
     <body name="B0" pos="0.1 -0.4 0.9" euler="0 0 1.5708">

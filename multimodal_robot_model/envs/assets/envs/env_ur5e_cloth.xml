@@ -8,7 +8,7 @@
     <material name="cloth" texture="cloth"/>
   </asset>
 
-  <include file="../robots/ur5e/ur5e_config.xml"/>
+  <include file="../robots/ur5e/ur5e_integrated_config.xml"/>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
@@ -28,7 +28,7 @@
     </body>
 
     <body name="ur5e_root_frame" pos="-0.605 0.0 0.8">
-      <include file="../robots/ur5e/ur5e_body.xml"/>
+      <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
     <body name="cloth_root_frame" pos="0.1 -0.02 1.1" euler="0.0 0.0 -0.785398">

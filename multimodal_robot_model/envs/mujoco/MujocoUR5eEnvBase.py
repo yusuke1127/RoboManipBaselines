@@ -55,7 +55,7 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         )
 
         # Setup robot
-        self.urdf_path = path.join(path.dirname(__file__), "assets/robots/ur5e/ur5e.urdf")
+        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/robots/ur5e/ur5e.urdf")
         self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 

@@ -11,7 +11,7 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
     ):
         MujocoUR5eEnvBase.__init__(
             self,
-            path.join(path.dirname(__file__), "assets/envs/env_ur5e_particle.xml"),
+            path.join(path.dirname(__file__), "../assets/envs/env_ur5e_particle.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi, 0.0]),
             extra_camera_configs,
             **kwargs)
