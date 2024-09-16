@@ -58,18 +58,14 @@ class MotionManager(object):
 
     def drawMarkers(self):
         """Draw markers of the current and target poses of the end-effector to viewer."""
-        self.env.unwrapped.mujoco_renderer.viewer.add_marker(
+        self.env.unwrapped.draw_box_marker(
             pos=self.target_se3.translation,
             mat=self.target_se3.rotation,
-            label="",
-            type=mujoco.mjtGeom.mjGEOM_BOX,
             size=(0.02, 0.02, 0.03),
             rgba=(0, 1, 0, 0.5))
-        self.env.unwrapped.mujoco_renderer.viewer.add_marker(
+        self.env.unwrapped.draw_box_marker(
             pos=self.current_se3.translation,
             mat=self.current_se3.rotation,
-            label="",
-            type=mujoco.mjtGeom.mjGEOM_BOX,
             size=(0.02, 0.02, 0.03),
             rgba=(1, 0, 0, 0.5))
 
@@ -79,20 +75,24 @@ class MotionManager(object):
 
     def getJointPos(self, obs):
         """Get joint position from observation."""
-        arm_qpos = obs[0:6]
-        gripper_pos = np.rad2deg(obs[12:16].mean(keepdims=True)) / 45.0 * 255.0
+        arm_qpos = self.env.unwrapped.get_arm_qpos_from_obs(obs)
+        gripper_pos = self.env.unwrapped.get_gripper_pos_from_obs(obs)
         return np.concatenate((arm_qpos, gripper_pos))
 
     def getJointVel(self, obs):
         """Get joint velocity from observation."""
-        arm_qvel = obs[6:12]
+        arm_qvel = self.env.unwrapped.get_arm_qvel_from_obs(obs)
         # Set zero as a dummy because the joint velocity of gripper cannot be obtained
         gripper_vel = np.zeros(1)
         return np.concatenate((arm_qvel, gripper_vel))
 
+    def getEefWrench(self, obs):
+        """Get end-effector wrench from observation."""
+        return self.env.unwrapped.get_eef_wrench_from_obs(obs)
+
     def getMeasuredEef(self, obs):
         """Get measured end-effector pose (tx, ty, tz, rx, ry, rz, rw) from observation."""
-        arm_qpos = obs[0:6]
+        arm_qpos = self.env.unwrapped.get_arm_qpos_from_obs(obs)
         pin.forwardKinematics(self.pin_model, self.pin_data_obs, arm_qpos)
         measured_se3 = self.pin_data_obs.oMi[self.eef_joint_id]
         return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()])

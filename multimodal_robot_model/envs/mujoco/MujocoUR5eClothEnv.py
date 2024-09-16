@@ -12,7 +12,7 @@ class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
         MujocoUR5eEnvBase.__init__(
             self,
             path.join(path.dirname(__file__), "assets/envs/env_ur5e_cloth.xml"),
-            np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.75*np.pi, -0.5*np.pi, 0.0]),
+            np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.75*np.pi, -0.5*np.pi, 0.0, 0.0]),
             extra_camera_configs,
             **kwargs)
 

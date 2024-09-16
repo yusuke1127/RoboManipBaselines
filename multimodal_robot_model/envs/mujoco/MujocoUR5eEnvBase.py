@@ -35,6 +35,8 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         utils.EzPickle.__init__(
             self,
             xml_file,
+            init_qpos,
+            extra_camera_configs,
             **kwargs,
         )
 
@@ -52,8 +54,9 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
-        # Set initial posture
-        self.init_qpos[:6] = init_qpos
+        # Setup robot
+        self.urdf_path = path.join(path.dirname(__file__), "assets/robots/ur5e/ur5e.urdf")
+        self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
         # Setup camera
@@ -76,12 +79,7 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         self._first_render = True
 
     @property
-    def urdf_path(self):
-        return path.join(path.dirname(__file__), "assets/robots/ur5e/ur5e.urdf")
-
-    @property
     def terminated(self):
-        # TODO
         return False
 
     def step(self, action):
@@ -166,5 +164,30 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             camera["viewer"].close()
         MujocoEnv.close(self)
 
+    def get_arm_qpos_from_obs(self, obs):
+        return obs[0:6]
+
+    def get_arm_qvel_from_obs(self, obs):
+        return obs[6:12]
+
+    def get_gripper_pos_from_obs(self, obs):
+        return np.rad2deg(obs[12:16].mean(keepdims=True)) / 45.0 * 255.0
+
+    def get_eef_wrench_from_obs(self, obs):
+        return obs[16:]
+
+    @property
+    def num_cameras(self):
+        return len(self.cameras)
+
     def modify_world(self, world_idx=None, cumulative_idx=None):
         raise NotImplementedError("[MujocoUR5eEnvBase] modify_world is not implemented.")
+
+    def draw_box_marker(self, pos, mat, size, rgba):
+        self.mujoco_renderer.viewer.add_marker(
+            pos=pos,
+            mat=mat,
+            label="",
+            type=mujoco.mjtGeom.mjGEOM_BOX,
+            size=size,
+            rgba=rgba)

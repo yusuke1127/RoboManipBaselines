@@ -36,9 +36,9 @@ class TeleopBase(object):
         # Setup 3D plot
         if self.args.enable_3d_plot:
             plt.rcParams["keymap.quit"] = ["q", "escape"]
-            self.fig, self.ax = plt.subplots(len(self.env.unwrapped.cameras), 1, subplot_kw=dict(projection="3d"))
+            self.fig, self.ax = plt.subplots(self.env.unwrapped.num_cameras, 1, subplot_kw=dict(projection="3d"))
             self.fig.tight_layout()
-            self.point_cloud_scatter_list = [None] * len(self.env.unwrapped.cameras)
+            self.point_cloud_scatter_list = [None] * self.env.unwrapped.num_cameras
 
         # Command configuration
         self.command_pos_scale = 1e-2
@@ -97,7 +97,7 @@ class TeleopBase(object):
                 for camera_name, rgb_key, depth_key in zip(self.camera_names, self.rgb_keys, self.depth_keys):
                     self.record_manager.appendSingleData(rgb_key, info["rgb_images"][camera_name])
                     self.record_manager.appendSingleData(depth_key, info["depth_images"][camera_name])
-                self.record_manager.appendSingleData(RecordKey.WRENCH, obs[16:])
+                self.record_manager.appendSingleData(RecordKey.WRENCH, self.motion_manager.getEefWrench(obs))
                 self.record_manager.appendSingleData(RecordKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
                 self.record_manager.appendSingleData(RecordKey.COMMAND_EEF, self.motion_manager.getCommandEef())
                 self.record_manager.appendSingleData(RecordKey.ACTION, action)
