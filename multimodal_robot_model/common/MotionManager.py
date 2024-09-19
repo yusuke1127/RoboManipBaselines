@@ -12,8 +12,8 @@ class MotionManager(object):
         self.env = env
 
         # Setup pinocchio model and data
-        root_body = env.unwrapped.model.body(root_body_name)
-        root_se3 = pin.SE3(pin.Quaternion(root_body.quat[[1, 2, 3, 0]]), root_body.pos)
+        root_body_pose = env.unwrapped.get_body_pose(root_body_name)
+        root_se3 = pin.SE3(pin.Quaternion(root_body_pose[[4, 5, 6, 3]]), root_body_pose[0:3])
         self.pin_model = pin.buildModelFromUrdf(self.env.unwrapped.arm_urdf_path)
         self.pin_model.jointPlacements[1] = root_se3.act(self.pin_model.jointPlacements[1]) # Set root link pose
         self.pin_data = self.pin_model.createData()

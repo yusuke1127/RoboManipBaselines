@@ -4,7 +4,7 @@
   <size memory="1G"/>
 
   <asset>
-    <texture name="cloth" type="2d" file="cloth/cloth.png"/>
+    <texture name="cloth" type="2d" file="cloth/cloth1.png"/>
     <material name="cloth" texture="cloth"/>
   </asset>
 

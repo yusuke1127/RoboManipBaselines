@@ -20,7 +20,7 @@ class RolloutMujocoUR5eCable(RolloutBase):
     def setCommand(self):
         # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
-            target_pos = self.env.unwrapped.model.body("cable_end").pos.copy()
+            target_pos = self.env.unwrapped.get_body_pose("cable_end")[0:3]
             if self.record_manager.status == RecordStatus.PRE_REACH:
                 target_pos[2] = 1.02 # [m]
             elif self.record_manager.status == RecordStatus.REACH:

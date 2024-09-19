@@ -145,12 +145,12 @@ class RecordManager(object):
     def setupCameraInfo(self, camera_names, depth_keys):
         """Set camera info."""
         for camera_name, depth_key in zip(camera_names, depth_keys):
-            self.camera_info[depth_key.key() + "_fovy"] = self.env.unwrapped.model.cam(camera_name).fovy[0]
+            self.camera_info[depth_key.key() + "_fovy"] = self.env.unwrapped.get_camera_fovy(camera_name)
 
     @property
     def status_elapsed_duration(self):
         """Get the elapsed duration of the current status."""
-        return self.env.unwrapped.data.time - self.status_start_time
+        return self.env.unwrapped.get_sim_time() - self.status_start_time
 
     @property
     def status(self):
@@ -164,4 +164,4 @@ class RecordManager(object):
         if self.env is None:
             self.status_start_time = 0.0
         else:
-            self.status_start_time = self.env.unwrapped.data.time
+            self.status_start_time = self.env.unwrapped.get_sim_time()

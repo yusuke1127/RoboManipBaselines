@@ -20,7 +20,7 @@ class RolloutMujocoUR5eParticle(RolloutBase):
     def setCommand(self):
         # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
-            target_pos = self.env.unwrapped.data.geom("scoop_handle").xpos
+            target_pos = self.env.unwrapped.get_geom_pose("scoop_handle")[0:3]
             if self.record_manager.status == RecordStatus.PRE_REACH:
                 target_pos += np.array([0.0, 0.0, 0.2]) # [m]
             elif self.record_manager.status == RecordStatus.REACH:

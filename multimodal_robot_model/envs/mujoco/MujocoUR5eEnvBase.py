@@ -165,25 +165,52 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         MujocoEnv.close(self)
 
     def get_arm_qpos_from_obs(self, obs):
+        """Grm arm joint position (6D array) from observation."""
         return obs[0:6]
 
     def get_arm_qvel_from_obs(self, obs):
+        """Grm arm joint velocity (6D array) from observation."""
         return obs[6:12]
 
     def get_gripper_pos_from_obs(self, obs):
+        """Grm gripper joint position (1D array) from observation."""
         return np.rad2deg(obs[12:16].mean(keepdims=True)) / 45.0 * 255.0
 
     def get_eef_wrench_from_obs(self, obs):
+        """Grm end-effector wrench (6D array) from observation."""
         return obs[16:]
+
+    def get_sim_time(self):
+        """Get simulation time. [s]"""
+        return self.data.time
+
+    def get_body_pose(self, body_name):
+        """Get body pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        body = self.model.body(body_name)
+        return np.concatenate((body.pos, body.quat))
+
+    def get_geom_pose(self, geom_name):
+        """Get geom pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        geom = self.data.geom(geom_name)
+        xquat = np.zeros(4)
+        mujoco.mju_mat2Quat(xquat, geom.xmat.flatten())
+        return np.concatenate((geom.xpos, xquat))
 
     @property
     def num_cameras(self):
+        """Number of cameras."""
         return len(self.cameras)
 
+    def get_camera_fovy(self, camera_name):
+        """Get vertical field-of-view of the camera."""
+        return self.model.cam(camera_name).fovy[0]
+
     def modify_world(self, world_idx=None, cumulative_idx=None):
+        """Modify simulation world depending on world index."""
         raise NotImplementedError("[MujocoUR5eEnvBase] modify_world is not implemented.")
 
     def draw_box_marker(self, pos, mat, size, rgba):
+        """Draw box marker."""
         self.mujoco_renderer.viewer.add_marker(
             pos=pos,
             mat=mat,

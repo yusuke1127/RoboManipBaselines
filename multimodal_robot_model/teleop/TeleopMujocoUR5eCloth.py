@@ -21,7 +21,7 @@ class TeleopMujocoUR5eCloth(TeleopBase):
     def setArmCommand(self):
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, 0.25*np.pi),
-                                 self.env.unwrapped.model.body("cloth_root_frame").pos.copy())
+                                 self.env.unwrapped.get_body_pose("cloth_root_frame")[0:3])
             if self.record_manager.status == RecordStatus.PRE_REACH:
                 target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.25]))
             elif self.record_manager.status == RecordStatus.REACH:

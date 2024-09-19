@@ -20,8 +20,8 @@ class RolloutMujocoUR5eRing(RolloutBase):
     def setCommand(self):
         # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
-            target_pos = 0.5 * (self.env.unwrapped.data.geom("fook1").xpos +
-                                self.env.unwrapped.data.geom("fook2").xpos)
+            target_pos = 0.5 * (self.env.unwrapped.get_geom_pose("fook1")[0:3] +
+                                self.env.unwrapped.get_geom_pose("fook2")[0:3])
             if self.record_manager.status == RecordStatus.PRE_REACH:
                 target_pos += np.array([-0.15, 0.05, -0.05]) # [m]
             elif self.record_manager.status == RecordStatus.REACH:
