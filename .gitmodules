@@ -18,3 +18,6 @@
 	path = third_party/roboagent
 	url = https://github.com/mmurooka/roboagent.git
         ignore = untracked
+[submodule "third_party/gello_software"]
+	path = third_party/gello_software
+	url = https://github.com/wuphilipp/gello_software.git
