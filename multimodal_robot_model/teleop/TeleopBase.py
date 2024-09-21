@@ -41,6 +41,7 @@ class TeleopBase(object):
             self.point_cloud_scatter_list = [None] * self.env.unwrapped.num_cameras
 
         # Command configuration
+        self._spacemouse_connected = False
         self.command_pos_scale = 1e-2
         self.command_rpy_scale = 5e-3
 
@@ -164,7 +165,9 @@ class TeleopBase(object):
             elif self.record_manager.status == RecordStatus.GRASP:
                 if key == ord("n"):
                     # Setup spacemouse
-                    pyspacemouse.open()
+                    if not self._spacemouse_connected:
+                        self._spacemouse_connected = True
+                        pyspacemouse.open()
                     teleop_time_idx = 0
                     self.record_manager.goToNextStatus()
                     if self.args.replay_log is None:
@@ -233,7 +236,7 @@ class TeleopBase(object):
             self.motion_manager.gripper_pos = self.env.action_space.high[6]
         elif self.record_manager.status == RecordStatus.TELEOP:
             gripper_scale = 5.0
-            if self.spacemouse_state.buttons[0] > 0 and self.spacemouse_state.buttons[1] <= 0:
+            if self.spacemouse_state.buttons[0] > 0 and self.spacemouse_state.buttons[-1] <= 0:
                 self.motion_manager.gripper_pos += gripper_scale
-            elif self.spacemouse_state.buttons[1] > 0 and self.spacemouse_state.buttons[0] <= 0:
+            elif self.spacemouse_state.buttons[-1] > 0 and self.spacemouse_state.buttons[0] <= 0:
                 self.motion_manager.gripper_pos -= gripper_scale

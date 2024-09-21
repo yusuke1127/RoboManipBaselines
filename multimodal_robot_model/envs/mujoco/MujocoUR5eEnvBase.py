@@ -40,9 +40,8 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             **kwargs,
         )
 
-        obs_shape = 22
         observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(obs_shape,), dtype=np.float64
+            low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
         )
 
         MujocoEnv.__init__(
@@ -56,6 +55,7 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/robots/ur5e/ur5e.urdf")
+        self.arm_root_pose = self.get_body_pose("ur5e_root_frame")
         self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
@@ -78,16 +78,12 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
 
         self._first_render = True
 
-    @property
-    def terminated(self):
-        return False
-
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
 
         observation = self._get_obs()
         reward = 0.0
-        terminated = self.terminated
+        terminated = False
         info = self._get_info()
 
         if self.render_mode == "human":
@@ -118,26 +114,31 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         arm_qpos = np.array([self.data.joint(joint_name).qpos[0] for joint_name in arm_joint_name_list])
         arm_qvel = np.array([self.data.joint(joint_name).qvel[0] for joint_name in arm_joint_name_list])
         gripper_qpos = np.array([self.data.joint(joint_name).qpos[0] for joint_name in gripper_joint_name_list])
+        gripper_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
-        return np.concatenate((arm_qpos, arm_qvel, gripper_qpos, force, torque))
+        return np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque))
 
     def _get_info(self):
         info = {}
-        if len(self.cameras) > 0:
-            info["rgb_images"] = {}
-            info["depth_images"] = {}
-            for camera in self.cameras.values():
-                camera["viewer"].make_context_current()
-                rgb_image = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
-                info["rgb_images"][camera["name"]] = rgb_image
-                depth_image = camera["viewer"].render(render_mode="depth_array", camera_id=camera["id"])
-                # See https://github.com/google-deepmind/mujoco/blob/631b16e7ad192df936195658fe79f2ada85f755c/python/mujoco/renderer.py#L170-L178
-                extent = self.model.stat.extent
-                near = self.model.vis.map.znear * extent
-                far = self.model.vis.map.zfar * extent
-                depth_image = near / (1 - depth_image * (1 - near / far))
-                info["depth_images"][camera["name"]] = depth_image
+
+        if self.num_cameras == 0:
+            return info
+
+        info["rgb_images"] = {}
+        info["depth_images"] = {}
+        for camera in self.cameras.values():
+            camera["viewer"].make_context_current()
+            rgb_image = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+            info["rgb_images"][camera["name"]] = rgb_image
+            depth_image = camera["viewer"].render(render_mode="depth_array", camera_id=camera["id"])
+            # See https://github.com/google-deepmind/mujoco/blob/631b16e7ad192df936195658fe79f2ada85f755c/python/mujoco/renderer.py#L170-L178
+            extent = self.model.stat.extent
+            near = self.model.vis.map.znear * extent
+            far = self.model.vis.map.zfar * extent
+            depth_image = near / (1 - depth_image * (1 - near / far))
+            info["depth_images"][camera["name"]] = depth_image
+
         return info
 
     def _get_reset_info(self):
@@ -174,11 +175,11 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
 
     def get_gripper_pos_from_obs(self, obs):
         """Grm gripper joint position (1D array) from observation."""
-        return np.rad2deg(obs[12:16].mean(keepdims=True)) / 45.0 * 255.0
+        return obs[12:13]
 
     def get_eef_wrench_from_obs(self, obs):
         """Grm end-effector wrench (6D array) from observation."""
-        return obs[16:]
+        return obs[13:19]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""

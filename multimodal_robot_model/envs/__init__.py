@@ -2,6 +2,7 @@ from . import mujoco
 
 from gymnasium.envs.registration import register
 
+# Mujoco
 register(
     id="multimodal_robot_model/MujocoUR5eCableEnv-v0",
     entry_point="multimodal_robot_model.envs.mujoco:MujocoUR5eCableEnv",
@@ -17,4 +18,10 @@ register(
 register(
     id="multimodal_robot_model/MujocoUR5eClothEnv-v0",
     entry_point="multimodal_robot_model.envs.mujoco:MujocoUR5eClothEnv",
+)
+
+# Real
+register(
+    id="multimodal_robot_model/RealUR5eGearEnv-v0",
+    entry_point="multimodal_robot_model.envs.real:RealUR5eGearEnv",
 )

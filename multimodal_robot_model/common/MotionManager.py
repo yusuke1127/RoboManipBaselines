@@ -8,14 +8,15 @@ class MotionManager(object):
 
     The manager computes forward and inverse kinematics using Pinocchio, a robot modeling library.
     """
-    def __init__(self, env, root_body_name="ur5e_root_frame"):
+    def __init__(self, env):
         self.env = env
 
         # Setup pinocchio model and data
-        root_body_pose = env.unwrapped.get_body_pose(root_body_name)
-        root_se3 = pin.SE3(pin.Quaternion(root_body_pose[[4, 5, 6, 3]]), root_body_pose[0:3])
         self.pin_model = pin.buildModelFromUrdf(self.env.unwrapped.arm_urdf_path)
-        self.pin_model.jointPlacements[1] = root_se3.act(self.pin_model.jointPlacements[1]) # Set root link pose
+        if self.env.unwrapped.arm_root_pose is not None:
+            root_se3 = pin.SE3(pin.Quaternion(self.env.unwrapped.arm_root_pose[[4, 5, 6, 3]]),
+                               self.env.unwrapped.arm_root_pose[0:3])
+            self.pin_model.jointPlacements[1] = root_se3.act(self.pin_model.jointPlacements[1])
         self.pin_data = self.pin_model.createData()
         self.pin_data_obs = self.pin_model.createData()
 
@@ -117,4 +118,3 @@ class MotionManager(object):
         self._gripper_pos = np.clip(new_gripper_pos,
                                     self.env.action_space.low[self.gripper_action_idx],
                                     self.env.action_space.high[self.gripper_action_idx])
-
