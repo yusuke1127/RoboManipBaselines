@@ -1,5 +1,5 @@
 from multimodal_robot_model.sarnn import RolloutSarnn
-from multimodal_robot_model.common.tasks import RolloutMujocoUR5eCloth
+from multimodal_robot_model.common.rollout import RolloutMujocoUR5eCloth
 
 class RolloutSarnnMujocoUR5eCloth(RolloutSarnn, RolloutMujocoUR5eCloth):
     pass

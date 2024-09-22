@@ -1,5 +1,5 @@
 from multimodal_robot_model.act import RolloutAct
-from multimodal_robot_model.common.tasks import RolloutRealUR5eGear
+from multimodal_robot_model.common.rollout import RolloutRealUR5eGear
 
 class RolloutActRealUR5eGear(RolloutAct, RolloutRealUR5eGear):
     pass

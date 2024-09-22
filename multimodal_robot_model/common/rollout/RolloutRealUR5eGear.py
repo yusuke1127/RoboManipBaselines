@@ -1,11 +1,11 @@
 import numpy as np
-import gymnasium as gym
 import pinocchio as pin
+import gymnasium as gym
 import multimodal_robot_model
-from TeleopBase import TeleopBase
-from multimodal_robot_model.common import RecordStatus
+from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
+from .RolloutBase import RolloutBase
 
-class TeleopRealUR5eGear(TeleopBase):
+class RolloutRealUR5eGear(RolloutBase):
     def __init__(self, robot_ip):
         self.robot_ip = robot_ip
         super().__init__()
@@ -16,22 +16,17 @@ class TeleopRealUR5eGear(TeleopBase):
             render_mode=None,
             robot_ip=self.robot_ip
         )
-        self.demo_name = "RealUR5eGear"
 
-    def setArmCommand(self):
+    def setCommand(self):
+        # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             # No action is required in pre-reach or reach phases
             pass
-        else:
-            super().setArmCommand()
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.joint_pos = self.pred_action[:6]
 
-    def setGripperCommand(self):
+        # Set gripper command
         if self.record_manager.status == RecordStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[6]
-        else:
-            super().setGripperCommand()
-
-if __name__ == "__main__":
-    robot_ip = "192.168.11.4"
-    teleop = TeleopRealUR5eGear(robot_ip)
-    teleop.run()
+        elif self.record_manager.status == RecordStatus.TELEOP:
+            self.motion_manager.gripper_pos = self.pred_action[6]

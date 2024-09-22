@@ -1,5 +1,5 @@
 from multimodal_robot_model.diffusion_policy import RolloutDiffusionPolicy
-from multimodal_robot_model.common.tasks import RolloutMujocoUR5eParticle
+from multimodal_robot_model.common.rollout import RolloutMujocoUR5eParticle
 
 class RolloutDiffusionPolicyMujocoUR5eParticle(RolloutDiffusionPolicy, RolloutMujocoUR5eParticle):
     pass

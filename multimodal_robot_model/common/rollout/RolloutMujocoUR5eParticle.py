@@ -3,7 +3,7 @@ import pinocchio as pin
 import gymnasium as gym
 import multimodal_robot_model
 from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
-from ..RolloutBase import RolloutBase
+from .RolloutBase import RolloutBase
 
 class RolloutMujocoUR5eParticle(RolloutBase):
     def setupEnv(self):

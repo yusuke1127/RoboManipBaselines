@@ -1,5 +1,5 @@
 from multimodal_robot_model.mt_act import RolloutMtAct
-from multimodal_robot_model.common.tasks import RolloutMujocoUR5eCloth
+from multimodal_robot_model.common.rollout import RolloutMujocoUR5eCloth
 
 class RolloutMtActMujocoUR5eCloth(RolloutMtAct, RolloutMujocoUR5eCloth):
     pass

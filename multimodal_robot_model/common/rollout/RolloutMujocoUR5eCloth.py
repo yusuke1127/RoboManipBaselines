@@ -3,12 +3,12 @@ import pinocchio as pin
 import gymnasium as gym
 import multimodal_robot_model
 from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
-from ..RolloutBase import RolloutBase
+from .RolloutBase import RolloutBase
 
-class RolloutMujocoUR5eRing(RolloutBase):
+class RolloutMujocoUR5eCloth(RolloutBase):
     def setupEnv(self):
         self.env = gym.make(
-            "multimodal_robot_model/MujocoUR5eRingEnv-v0",
+            "multimodal_robot_model/MujocoUR5eClothEnv-v0",
             render_mode="human",
             extra_camera_configs=[
                 {"name": "front", "size": (480, 640)},
@@ -20,19 +20,19 @@ class RolloutMujocoUR5eRing(RolloutBase):
     def setCommand(self):
         # Set joint command
         if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
-            target_pos = 0.5 * (self.env.unwrapped.get_geom_pose("fook1")[0:3] +
-                                self.env.unwrapped.get_geom_pose("fook2")[0:3])
+            target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, 0.25*np.pi),
+                                 self.env.unwrapped.get_body_pose("cloth_root_frame")[0:3])
             if self.record_manager.status == RecordStatus.PRE_REACH:
-                target_pos += np.array([-0.15, 0.05, -0.05]) # [m]
+                target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.25]))
             elif self.record_manager.status == RecordStatus.REACH:
-                target_pos += np.array([-0.1, 0.05, -0.05]) # [m]
-            self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, np.pi/2), target_pos)
+                target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.2]))
+            self.motion_manager.target_se3 = target_se3
             self.motion_manager.inverseKinematics()
         elif self.record_manager.status == RecordStatus.TELEOP:
             self.motion_manager.joint_pos = self.pred_action[:6]
 
         # Set gripper command
         if self.record_manager.status == RecordStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+            self.motion_manager.gripper_pos = self.env.action_space.low[6]
         elif self.record_manager.status == RecordStatus.TELEOP:
             self.motion_manager.gripper_pos = self.pred_action[6]

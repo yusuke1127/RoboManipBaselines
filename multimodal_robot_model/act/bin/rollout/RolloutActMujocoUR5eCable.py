@@ -1,5 +1,5 @@
 from multimodal_robot_model.act import RolloutAct
-from multimodal_robot_model.common.tasks import RolloutMujocoUR5eCable
+from multimodal_robot_model.common.rollout import RolloutMujocoUR5eCable
 
 class RolloutActMujocoUR5eCable(RolloutAct, RolloutMujocoUR5eCable):
     pass
