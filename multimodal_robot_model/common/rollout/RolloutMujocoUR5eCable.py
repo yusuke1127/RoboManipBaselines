@@ -9,12 +9,7 @@ class RolloutMujocoUR5eCable(RolloutBase):
     def setupEnv(self):
         self.env = gym.make(
             "multimodal_robot_model/MujocoUR5eCableEnv-v0",
-            render_mode="human",
-            extra_camera_configs=[
-                {"name": "front", "size": (480, 640)},
-                {"name": "side", "size": (480, 640)},
-                {"name": "hand", "size": (480, 640)},
-            ]
+            render_mode="human"
         )
 
     def setCommand(self):

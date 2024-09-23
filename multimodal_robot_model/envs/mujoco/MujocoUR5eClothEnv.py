@@ -6,14 +6,17 @@ from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
 class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
     def __init__(
         self,
-        extra_camera_configs=None,
         **kwargs,
     ):
         MujocoUR5eEnvBase.__init__(
             self,
             path.join(path.dirname(__file__), "../assets/mujoco/envs/env_ur5e_cloth.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.75*np.pi, -0.5*np.pi, 0.0, 0.0]),
-            extra_camera_configs,
+            extra_camera_configs=[
+                {"name": "front", "size": (480, 640)},
+                {"name": "side", "size": (480, 640)},
+                {"name": "hand", "size": (480, 640)},
+            ],
             **kwargs)
 
         self.original_cloth_pos = self.model.body("cloth_root_frame").pos.copy()

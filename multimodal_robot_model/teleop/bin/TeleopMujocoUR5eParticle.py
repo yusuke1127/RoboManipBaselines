@@ -15,12 +15,7 @@ class TeleopMujocoUR5eParticle(TeleopBase):
     def setupEnv(self):
         self.env = gym.make(
             "multimodal_robot_model/MujocoUR5eParticleEnv-v0",
-            render_mode="human",
-            extra_camera_configs=[
-                {"name": "front", "size": (480, 640)},
-                {"name": "side", "size": (480, 640)},
-                {"name": "hand", "size": (480, 640)},
-            ]
+            render_mode="human"
         )
         self.demo_name = "MujocoUR5eParticle"
 
