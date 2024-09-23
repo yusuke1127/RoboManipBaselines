@@ -34,6 +34,8 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02 # [s]
+        if "scale_dt" in kwargs:
+            self.dt *= kwargs["scale_dt"]
         self.action_space = Box(
             low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0]),
             high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0]),
@@ -44,7 +46,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         )
 
         # Setup robot
-        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/robots/ur5e/ur5e.urdf")
+        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = None
         self.init_qpos = init_qpos
         self.qvel_limit = np.deg2rad(191) # [rad/s]

@@ -7,13 +7,6 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 from gymnasium.spaces import Box
 
-DEFAULT_CAMERA_CONFIG = {
-    "azimuth": -135.0,
-    "elevation": -45.0,
-    "distance": 1.8,
-    "lookat": [-0.2, -0.2, 0.8]
-}
-
 class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
     frame_skip = 8
     metadata = {
@@ -23,6 +16,12 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             "depth_array",
         ],
         "render_fps": int(1 / (0.004 * frame_skip)),
+    }
+    default_camera_config = {
+        "azimuth": -135.0,
+        "elevation": -45.0,
+        "distance": 1.8,
+        "lookat": [-0.2, -0.2, 0.8]
     }
 
     def __init__(
@@ -49,12 +48,12 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             model_path=xml_file,
             frame_skip=self.frame_skip,
             observation_space=observation_space,
-            default_camera_config=DEFAULT_CAMERA_CONFIG,
+            default_camera_config=self.default_camera_config,
             **kwargs,
         )
 
         # Setup robot
-        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/robots/ur5e/ur5e.urdf")
+        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = self.get_body_pose("ur5e_root_frame")
         self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
@@ -117,6 +116,7 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         gripper_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
+
         return np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque))
 
     def _get_info(self):
@@ -145,20 +145,8 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         return self._get_info()
 
     def reset_model(self):
-        reset_noise_scale = 0.0
-
-        qpos = self.init_qpos + self.np_random.uniform(
-            low=-1 * reset_noise_scale, high=reset_noise_scale, size=self.model.nq
-        )
-        qvel = (
-            self.init_qvel
-            + reset_noise_scale * self.np_random.standard_normal(self.model.nv)
-        )
-        self.set_state(qpos, qvel)
-
-        observation = self._get_obs()
-
-        return observation
+        self.set_state(self.init_qpos, self.init_qvel)
+        return self._get_obs()
 
     def close(self):
         for camera in self.cameras.values():

@@ -82,6 +82,8 @@ class RolloutBase(object):
         parser.add_argument("--world_idx", type=int, default=0, help="index of the simulation world (0-5)")
         parser.add_argument("--skip", type=int, help="step interval to infer policy", required=False)
         parser.add_argument("--skip_draw", type=int, help="step interval to draw the plot", required=False)
+        parser.add_argument("--scale_dt", type=float,
+                            help="dt scale of environment (used only in real-world environments)", required=False)
         parser.add_argument("--seed", type=int, default=42, help="random seed", required=False)
         parser.add_argument("--win_xy_policy", type=int, nargs=2,
                             help="xy position of window to plot policy information", required=False)

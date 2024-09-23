@@ -13,8 +13,8 @@ class RolloutRealUR5eGear(RolloutBase):
     def setupEnv(self):
         self.env = gym.make(
             "multimodal_robot_model/RealUR5eGearEnv-v0",
-            render_mode=None,
-            robot_ip=self.robot_ip
+            robot_ip=self.robot_ip,
+            scale_dt=self.args.scale_dt
         )
 
     def setCommand(self):

@@ -11,9 +11,9 @@ class MujocoUR5eCableEnv(MujocoUR5eEnvBase):
     ):
         MujocoUR5eEnvBase.__init__(
             self,
-            path.join(path.dirname(__file__), "../assets/envs/env_ur5e_cable_verticalup.xml"),
+            path.join(path.dirname(__file__), "../assets/mujoco/envs/env_ur5e_cable_verticalup.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi/2, 0.0]), # env_ur5e_cable_verticalup.xml
-            # path.join(path.dirname(__file__), "../assets/envs/env_ur5e_cable_diagonaldown.xml"),
+            # path.join(path.dirname(__file__), "../assets/mujoco/envs/env_ur5e_cable_diagonaldown.xml"),
             # np.array([1.0472, -2.26893, 2.0944, -1.8326, -1.48353, -0.698132, 0.0]), # env_ur5e_cable_diagonaldown.xml
             extra_camera_configs,
             **kwargs)
