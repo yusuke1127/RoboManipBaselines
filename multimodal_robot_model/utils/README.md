@@ -15,3 +15,9 @@ $ python ./convert_rosbag_to_npz.py <rosbag directory>
 ```console
 $ python ./trim_npz.py <npz directory>
 ```
+
+### Trim npz file
+```console
+$ python tile_teleop_videos.py <output filename> <npz directory> --column_num 2 --envs env0 env1 env4 env5
+```
+The options `--column_num` and `--envs` can be omitted.
