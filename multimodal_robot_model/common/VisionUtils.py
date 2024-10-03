@@ -4,8 +4,10 @@ import cv2
 def convertDepthImageToColorImage(image):
     """Convert depth image (float type) to color image (uint8 type)."""
     eps = 1e-6
-    image = (255 * ((image - image.min()) / (image.max() - image.min() + eps))).astype(np.uint8)
-    return cv2.merge((image,) * 3)
+    image_copied = image.copy()
+    image_copied[np.logical_not(np.isfinite(image_copied))] = image_copied[np.isfinite(image_copied)].max()
+    image_copied = (255 * ((image_copied - image_copied.min()) / (image_copied.max() - image_copied.min() + eps))).astype(np.uint8)
+    return cv2.merge((image_copied,) * 3)
 
 def convertDepthImageToPointCloud(depth_image, fovy, rgb_image=None, dist_thre=None):
     """Convert depth image (float type) to point cloud (array of 3D position)."""
