@@ -1,5 +1,3 @@
-from . import mujoco
-
 from gymnasium.envs.registration import register
 
 # Mujoco
