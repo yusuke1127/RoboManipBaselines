@@ -34,7 +34,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02 # [s]
-        if "scale_dt" in kwargs:
+        if kwargs.get("scale_dt") is not None:
             self.dt *= kwargs["scale_dt"]
         self.action_space = Box(
             low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0]),
@@ -240,10 +240,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        if world_idx is None:
-            world_idx = 0
-        # TODO: Automatically set world index according to task variations
-        return world_idx
+        raise NotImplementedError("[RealUR5eEnvBase] modify_world is not implemented.")
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""
