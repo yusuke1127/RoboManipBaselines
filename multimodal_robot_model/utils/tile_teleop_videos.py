@@ -4,7 +4,7 @@ import cv2
 import argparse
 import os
 import matplotlib.pylab as plt
-from multimodal_robot_model.common import DataKey, RecordManager
+from multimodal_robot_model.common import DataKey, DataManager
 from PIL import Image, ImageOps
 
 parser = argparse.ArgumentParser()
@@ -30,11 +30,11 @@ for e in args.envs:
     files = glob.glob(os.path.join(args.in_npz_dir, f"{e}/*.npz"))
     files.sort()
 
-    record_manager = RecordManager(env=None)
+    data_manager = DataManager(env=None)
     print(f"[tile_teleop_videos] Load a npz file: {files[0]}")
-    record_manager.loadData(files[0])
+    data_manager.loadData(files[0])
 
-    front_images.append(record_manager.getData(DataKey.FRONT_RGB_IMAGE)[:,::2,::2,:])
+    front_images.append(data_manager.getData(DataKey.FRONT_RGB_IMAGE)[:,::2,::2,:])
     img_l = front_images[-1].shape[0] if img_l < front_images[-1].shape[0] else img_l
 
 fourcc = cv2.VideoWriter_fourcc("m", "p", "4", "v")

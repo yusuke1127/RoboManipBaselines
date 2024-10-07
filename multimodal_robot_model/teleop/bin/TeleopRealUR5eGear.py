@@ -20,14 +20,14 @@ class TeleopRealUR5eGear(TeleopBase):
         self.demo_name = "RealUR5eGear"
 
     def setArmCommand(self):
-        if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             # No action is required in pre-reach or reach phases
             pass
         else:
             super().setArmCommand()
 
     def setGripperCommand(self):
-        if self.record_manager.status == RecordStatus.GRASP:
+        if self.data_manager.status == RecordStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[6]
         else:
             super().setGripperCommand()

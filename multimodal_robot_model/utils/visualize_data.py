@@ -3,7 +3,7 @@ import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import cv2
-from multimodal_robot_model.common import DataKey, RecordManager, convertDepthImageToPointCloud
+from multimodal_robot_model.common import DataKey, DataManager, convertDepthImageToPointCloud
 
 parser = argparse.ArgumentParser()
 parser.add_argument("teleop_filename", type=str)
@@ -18,25 +18,25 @@ for ax_idx in range(1, 4):
     ax[ax_idx, 2] = fig.add_subplot(4, 4, 4 * (ax_idx + 1) - 1, projection="3d")
 fig.tight_layout(pad=0.1)
 
-record_manager = RecordManager(env=None)
-record_manager.loadData(args.teleop_filename)
+data_manager = DataManager(env=None)
+data_manager.loadData(args.teleop_filename)
 
-time_range = (record_manager.data_seq["time"][0], record_manager.data_seq["time"][-1])
+time_range = (data_manager.data_seq["time"][0], data_manager.data_seq["time"][-1])
 ax[0, 0].set_xlim(*time_range)
 ax[0, 1].set_xlim(*time_range)
 ax[0, 2].set_xlim(*time_range)
-action_data = record_manager.data_seq[DataKey.ACTION.key()]
-joint_pos_data = record_manager.data_seq[DataKey.JOINT_POS.key()]
+action_data = data_manager.data_seq[DataKey.ACTION.key()]
+joint_pos_data = data_manager.data_seq[DataKey.JOINT_POS.key()]
 q_data = np.concatenate([action_data, joint_pos_data])
 ax[0, 0].set_ylim(q_data[:, :-1].min(), q_data[:, :-1].max())
 ax00_twin = ax[0, 0].twinx()
 ax00_twin.set_ylim(q_data[:, -1].min(), q_data[:, -1].max())
-joint_vel_data = record_manager.data_seq[DataKey.JOINT_VEL.key()]
+joint_vel_data = data_manager.data_seq[DataKey.JOINT_VEL.key()]
 ax[0, 1].set_ylim(joint_vel_data.min(), joint_vel_data.max())
-wrench_data = record_manager.data_seq[DataKey.WRENCH.key()]
+wrench_data = data_manager.data_seq[DataKey.WRENCH.key()]
 ax[0, 2].set_ylim(wrench_data.min(), wrench_data.max())
-measured_eef_data = record_manager.data_seq[DataKey.MEASURED_EEF.key()]
-command_eef_data = record_manager.data_seq[DataKey.COMMAND_EEF.key()]
+measured_eef_data = data_manager.data_seq[DataKey.MEASURED_EEF.key()]
+command_eef_data = data_manager.data_seq[DataKey.COMMAND_EEF.key()]
 eef_data = np.concatenate([measured_eef_data, command_eef_data])
 ax[0, 3].set_ylim(eef_data[:, 0:3].min(), eef_data[:, 0:3].max())
 ax03_twin = ax[0, 3].twinx()
@@ -57,17 +57,17 @@ def key_event(event):
         global break_flag
         break_flag = True
 
-for time_idx in range(0, len(record_manager.data_seq["time"]), args.skip):
+for time_idx in range(0, len(data_manager.data_seq["time"]), args.skip):
     if break_flag:
         break
 
-    time_list.append(record_manager.data_seq["time"][time_idx])
-    action_list.append(record_manager.getSingleData(DataKey.ACTION, time_idx))
-    joint_pos_list.append(record_manager.getSingleData(DataKey.JOINT_POS, time_idx))
-    joint_vel_list.append(record_manager.getSingleData(DataKey.JOINT_VEL, time_idx))
-    wrench_list.append(record_manager.getSingleData(DataKey.WRENCH, time_idx))
-    command_eef_list.append(record_manager.getSingleData(DataKey.COMMAND_EEF, time_idx))
-    measured_eef_list.append(record_manager.getSingleData(DataKey.MEASURED_EEF, time_idx))
+    time_list.append(data_manager.data_seq["time"][time_idx])
+    action_list.append(data_manager.getSingleData(DataKey.ACTION, time_idx))
+    joint_pos_list.append(data_manager.getSingleData(DataKey.JOINT_POS, time_idx))
+    joint_vel_list.append(data_manager.getSingleData(DataKey.JOINT_VEL, time_idx))
+    wrench_list.append(data_manager.getSingleData(DataKey.WRENCH, time_idx))
+    command_eef_list.append(data_manager.getSingleData(DataKey.COMMAND_EEF, time_idx))
+    measured_eef_list.append(data_manager.getSingleData(DataKey.MEASURED_EEF, time_idx))
 
     ax[0, 0].cla()
     ax00_twin.cla()
@@ -97,19 +97,19 @@ for time_idx in range(0, len(record_manager.data_seq["time"]), args.skip):
              (DataKey.HAND_RGB_IMAGE, DataKey.HAND_DEPTH_IMAGE)),
             start=1):
         ax[ax_idx, 0].axis("off")
-        rgb_image = record_manager.getSingleData(rgb_key, time_idx)
+        rgb_image = data_manager.getSingleData(rgb_key, time_idx)
         rgb_image_skip = 4
         ax[ax_idx, 0].imshow(rgb_image[::rgb_image_skip, ::rgb_image_skip])
 
         ax[ax_idx, 1].axis("off")
-        depth_image = record_manager.getSingleData(depth_key, time_idx)
+        depth_image = data_manager.getSingleData(depth_key, time_idx)
         depth_iamge_skip = 4
         ax[ax_idx, 1].imshow(depth_image[::depth_iamge_skip, ::depth_iamge_skip])
 
         point_cloud_skip = 10
         small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
         small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-        fovy = record_manager.data_seq[f"{depth_key.key()}_fovy"].tolist()
+        fovy = data_manager.data_seq[f"{depth_key.key()}_fovy"].tolist()
         xyz_array, rgb_array = convertDepthImageToPointCloud(
             small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[ax_idx - 1])
         if scatter_list[ax_idx - 1] is None:

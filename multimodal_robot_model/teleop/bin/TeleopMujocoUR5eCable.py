@@ -14,11 +14,11 @@ class TeleopMujocoUR5eCable(TeleopBase):
         self.demo_name = "MujocoUR5eCable"
 
     def setArmCommand(self):
-        if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = self.env.unwrapped.get_body_pose("cable_end")[0:3]
-            if self.record_manager.status == RecordStatus.PRE_REACH:
+            if self.data_manager.status == RecordStatus.PRE_REACH:
                 target_pos[2] = 1.02 # [m]
-            elif self.record_manager.status == RecordStatus.REACH:
+            elif self.data_manager.status == RecordStatus.REACH:
                 target_pos[2] = 0.995 # [m]
             self.motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
         else:

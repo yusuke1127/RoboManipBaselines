@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import pinocchio as pin
-from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.common import MotionManager, RecordStatus, DataManager
 
 class RolloutBase(object):
     def __init__(self):
@@ -23,14 +23,14 @@ class RolloutBase(object):
         RecordStatus.TELEOP._name_ = "AUTO"
 
         # Setup record manager
-        self.record_manager = RecordManager(self.env)
-        self.record_manager.setupSimWorld(self.args.world_idx)
+        self.data_manager = DataManager(self.env)
+        self.data_manager.setupSimWorld(self.args.world_idx)
 
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
         while True:
-            if self.record_manager.status == RecordStatus.TELEOP:
+            if self.data_manager.status == RecordStatus.TELEOP:
                 self.inferPolicy()
 
             self.setCommand()
@@ -38,36 +38,36 @@ class RolloutBase(object):
             action = self.motion_manager.getAction()
             self.obs, _, _, _, self.info = self.env.step(action)
 
-            if self.record_manager.status == RecordStatus.TELEOP:
+            if self.data_manager.status == RecordStatus.TELEOP:
                 self.drawPlot()
 
             # Manage status
             key = cv2.waitKey(1)
-            if self.record_manager.status == RecordStatus.INITIAL:
+            if self.data_manager.status == RecordStatus.INITIAL:
                 initial_duration = 1.0 # [s]
-                if (not self.args.wait_before_start and self.record_manager.status_elapsed_duration > initial_duration) or \
+                if (not self.args.wait_before_start and self.data_manager.status_elapsed_duration > initial_duration) or \
                    (self.args.wait_before_start and key == ord("n")):
-                    self.record_manager.goToNextStatus()
-            elif self.record_manager.status == RecordStatus.PRE_REACH:
+                    self.data_manager.goToNextStatus()
+            elif self.data_manager.status == RecordStatus.PRE_REACH:
                 pre_reach_duration = 0.7 # [s]
-                if self.record_manager.status_elapsed_duration > pre_reach_duration:
-                    self.record_manager.goToNextStatus()
-            elif self.record_manager.status == RecordStatus.REACH:
+                if self.data_manager.status_elapsed_duration > pre_reach_duration:
+                    self.data_manager.goToNextStatus()
+            elif self.data_manager.status == RecordStatus.REACH:
                 reach_duration = 0.3 # [s]
-                if self.record_manager.status_elapsed_duration > reach_duration:
-                    self.record_manager.goToNextStatus()
-            elif self.record_manager.status == RecordStatus.GRASP:
+                if self.data_manager.status_elapsed_duration > reach_duration:
+                    self.data_manager.goToNextStatus()
+            elif self.data_manager.status == RecordStatus.GRASP:
                 grasp_duration = 0.5 # [s]
-                if self.record_manager.status_elapsed_duration > grasp_duration:
+                if self.data_manager.status_elapsed_duration > grasp_duration:
                     self.auto_time_idx = 0
-                    self.record_manager.goToNextStatus()
+                    self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to finish policy rollout.")
-            elif self.record_manager.status == RecordStatus.TELEOP:
+            elif self.data_manager.status == RecordStatus.TELEOP:
                 self.auto_time_idx += 1
                 if key == ord("n"):
-                    self.record_manager.goToNextStatus()
+                    self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to exit.")
-            elif self.record_manager.status == RecordStatus.END:
+            elif self.data_manager.status == RecordStatus.END:
                 if key == ord("n"):
                     break
             if key == 27: # escape key

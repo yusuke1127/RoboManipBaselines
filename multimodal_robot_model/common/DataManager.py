@@ -35,7 +35,7 @@ class DataKey(Enum):
         """Get the key of the dictionary."""
         return self.name.lower()
 
-class RecordManager(object):
+class DataManager(object):
     """Recording manager for demonstrations by teleoperation."""
 
     def __init__(self, env):

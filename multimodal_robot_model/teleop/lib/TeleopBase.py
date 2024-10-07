@@ -5,7 +5,7 @@ import cv2
 import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pyspacemouse
-from multimodal_robot_model.common import MotionManager, RecordStatus, DataKey, RecordManager, \
+from multimodal_robot_model.common import MotionManager, RecordStatus, DataKey, DataManager, \
     convertDepthImageToColorImage, convertDepthImageToPointCloud
 
 class TeleopBase(object):
@@ -30,8 +30,8 @@ class TeleopBase(object):
         self.camera_names = ("front", "side", "hand")
         self.rgb_keys = (DataKey.FRONT_RGB_IMAGE, DataKey.SIDE_RGB_IMAGE, DataKey.HAND_RGB_IMAGE)
         self.depth_keys = (DataKey.FRONT_DEPTH_IMAGE, DataKey.SIDE_DEPTH_IMAGE, DataKey.HAND_DEPTH_IMAGE)
-        self.record_manager = RecordManager(self.env)
-        self.record_manager.setupCameraInfo(self.camera_names, self.depth_keys)
+        self.data_manager = DataManager(self.env)
+        self.data_manager.setupCameraInfo(self.camera_names, self.depth_keys)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -54,31 +54,31 @@ class TeleopBase(object):
             if reset:
                 self.motion_manager.reset()
                 if self.args.replay_log is None:
-                    self.record_manager.reset()
+                    self.data_manager.reset()
                     if self.args.world_idx_list is None:
                         world_idx = None
                     else:
-                        world_idx = self.args.world_idx_list[self.record_manager.data_idx % len(self.args.world_idx_list)]
+                        world_idx = self.args.world_idx_list[self.data_manager.data_idx % len(self.args.world_idx_list)]
                 else:
-                    self.record_manager.loadData(self.args.replay_log)
-                    world_idx = self.record_manager.data_seq["world_idx"].tolist()
-                self.record_manager.setupSimWorld(world_idx)
+                    self.data_manager.loadData(self.args.replay_log)
+                    world_idx = self.data_manager.data_seq["world_idx"].tolist()
+                self.data_manager.setupSimWorld(world_idx)
                 obs, info = self.env.reset()
                 print("== [{}] data_idx: {}, world_idx: {} ==".format(
-                    self.demo_name, self.record_manager.data_idx, self.record_manager.world_idx))
+                    self.demo_name, self.data_manager.data_idx, self.data_manager.world_idx))
                 print("- Press the 'n' key to start automatic grasping.")
                 reset = False
 
             # Read spacemouse
-            if self.record_manager.status == RecordStatus.TELEOP:
+            if self.data_manager.status == RecordStatus.TELEOP:
                 # Empirically, you can call read repeatedly to get the latest device status
                 for i in range(10):
                     self.spacemouse_state = pyspacemouse.read()
 
             # Get action
             if self.args.replay_log is not None and \
-               self.record_manager.status in (RecordStatus.TELEOP, RecordStatus.END):
-                action = self.record_manager.getSingleData(DataKey.ACTION, teleop_time_idx)
+               self.data_manager.status in (RecordStatus.TELEOP, RecordStatus.END):
+                action = self.data_manager.getSingleData(DataKey.ACTION, teleop_time_idx)
             else:
                 # Set commands
                 self.setArmCommand()
@@ -91,23 +91,23 @@ class TeleopBase(object):
                 action = self.motion_manager.getAction()
 
             # Record data
-            if self.record_manager.status == RecordStatus.TELEOP and self.args.replay_log is None:
-                self.record_manager.appendSingleData(DataKey.TIME, self.record_manager.status_elapsed_duration)
-                self.record_manager.appendSingleData(DataKey.JOINT_POS, self.motion_manager.getJointPos(obs))
-                self.record_manager.appendSingleData(DataKey.JOINT_VEL, self.motion_manager.getJointVel(obs))
+            if self.data_manager.status == RecordStatus.TELEOP and self.args.replay_log is None:
+                self.data_manager.appendSingleData(DataKey.TIME, self.data_manager.status_elapsed_duration)
+                self.data_manager.appendSingleData(DataKey.JOINT_POS, self.motion_manager.getJointPos(obs))
+                self.data_manager.appendSingleData(DataKey.JOINT_VEL, self.motion_manager.getJointVel(obs))
                 for camera_name, rgb_key, depth_key in zip(self.camera_names, self.rgb_keys, self.depth_keys):
-                    self.record_manager.appendSingleData(rgb_key, info["rgb_images"][camera_name])
-                    self.record_manager.appendSingleData(depth_key, info["depth_images"][camera_name])
-                self.record_manager.appendSingleData(DataKey.WRENCH, self.motion_manager.getEefWrench(obs))
-                self.record_manager.appendSingleData(DataKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
-                self.record_manager.appendSingleData(DataKey.COMMAND_EEF, self.motion_manager.getCommandEef())
-                self.record_manager.appendSingleData(DataKey.ACTION, action)
+                    self.data_manager.appendSingleData(rgb_key, info["rgb_images"][camera_name])
+                    self.data_manager.appendSingleData(depth_key, info["depth_images"][camera_name])
+                self.data_manager.appendSingleData(DataKey.WRENCH, self.motion_manager.getEefWrench(obs))
+                self.data_manager.appendSingleData(DataKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
+                self.data_manager.appendSingleData(DataKey.COMMAND_EEF, self.motion_manager.getCommandEef())
+                self.data_manager.appendSingleData(DataKey.ACTION, action)
 
             # Step environment
             obs, _, _, _, info = self.env.step(action)
 
             # Draw images
-            status_image = self.record_manager.getStatusImage()
+            status_image = self.data_manager.getStatusImage()
             rgb_images = []
             depth_images = []
             for camera_name in self.camera_names:
@@ -131,7 +131,7 @@ class TeleopBase(object):
                     point_cloud_skip = 10
                     small_depth_image = info["depth_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
                     small_rgb_image = info["rgb_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
-                    fovy = self.record_manager.camera_info[depth_key.key() + "_fovy"]
+                    fovy = self.data_manager.camera_info[depth_key.key() + "_fovy"]
                     xyz_array, rgb_array = convertDepthImageToPointCloud(
                         small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[camera_idx])
                     if self.point_cloud_scatter_list[camera_idx] is None:
@@ -150,59 +150,59 @@ class TeleopBase(object):
                 plt.pause(0.001)
 
             # Manage status
-            if self.record_manager.status == RecordStatus.INITIAL:
+            if self.data_manager.status == RecordStatus.INITIAL:
                 if key == ord("n"):
-                    self.record_manager.goToNextStatus()
-            elif self.record_manager.status == RecordStatus.PRE_REACH:
+                    self.data_manager.goToNextStatus()
+            elif self.data_manager.status == RecordStatus.PRE_REACH:
                 pre_reach_duration = 0.7 # [s]
-                if self.record_manager.status_elapsed_duration > pre_reach_duration:
-                    self.record_manager.goToNextStatus()
-            elif self.record_manager.status == RecordStatus.REACH:
+                if self.data_manager.status_elapsed_duration > pre_reach_duration:
+                    self.data_manager.goToNextStatus()
+            elif self.data_manager.status == RecordStatus.REACH:
                 reach_duration = 0.3 # [s]
-                if self.record_manager.status_elapsed_duration > reach_duration:
-                    self.record_manager.goToNextStatus()
+                if self.data_manager.status_elapsed_duration > reach_duration:
+                    self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to start teleoperation after the gripper is closed.")
-            elif self.record_manager.status == RecordStatus.GRASP:
+            elif self.data_manager.status == RecordStatus.GRASP:
                 if key == ord("n"):
                     # Setup spacemouse
                     if not self._spacemouse_connected:
                         self._spacemouse_connected = True
                         pyspacemouse.open()
                     teleop_time_idx = 0
-                    self.record_manager.goToNextStatus()
+                    self.data_manager.goToNextStatus()
                     if self.args.replay_log is None:
                         print("- Press the 'n' key to finish teleoperation.")
                     else:
                         print("- Start to replay the log motion.")
-            elif self.record_manager.status == RecordStatus.TELEOP:
+            elif self.data_manager.status == RecordStatus.TELEOP:
                 teleop_time_idx += 1
                 if self.args.replay_log is None:
                     if key == ord("n"):
                         print("- Press the 's' key if the teleoperation succeeded,"
                               " or the 'f' key if it failed. (duration: {:.1f} [s])".format(
-                            self.record_manager.status_elapsed_duration))
-                        self.record_manager.goToNextStatus()
+                            self.data_manager.status_elapsed_duration))
+                        self.data_manager.goToNextStatus()
                 else:
-                    if teleop_time_idx == len(self.record_manager.data_seq["time"]):
+                    if teleop_time_idx == len(self.data_manager.data_seq["time"]):
                         teleop_time_idx -= 1
-                        self.record_manager.goToNextStatus()
+                        self.data_manager.goToNextStatus()
                         print("- The log motion has finished replaying. Press the 'n' key to exit.")
-            elif self.record_manager.status == RecordStatus.END:
+            elif self.data_manager.status == RecordStatus.END:
                 if self.args.replay_log is None:
                     if key == ord("s"):
                         # Save data
                         filename = "teleop_data/{}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
-                            self.demo_name, self.record_manager.world_idx,
-                            self.demo_name, self.record_manager.world_idx, self.record_manager.data_idx)
+                            self.demo_name, self.data_manager.world_idx,
+                            self.demo_name, self.data_manager.world_idx, self.data_manager.data_idx)
                         if self.args.compress_rgb:
                             print("- Compress rgb images")
                             for rgb_key in self.rgb_keys:
-                                self.record_manager.compressData(rgb_key, "jpg")
+                                self.data_manager.compressData(rgb_key, "jpg")
                         if self.args.compress_depth:
                             print("- Compress depth images")
                             for depth_key in self.depth_keys:
-                                self.record_manager.compressData(depth_key, "exr")
-                        self.record_manager.saveData(filename)
+                                self.data_manager.compressData(depth_key, "exr")
+                        self.data_manager.saveData(filename)
                         print("- Teleoperation succeeded: Save the data as {}".format(filename))
                         reset = True
                     elif key == ord("f"):
@@ -224,7 +224,7 @@ class TeleopBase(object):
         raise NotImplementedError()
 
     def setArmCommand(self):
-        if self.record_manager.status == RecordStatus.TELEOP:
+        if self.data_manager.status == RecordStatus.TELEOP:
             delta_pos = self.command_pos_scale * np.array([
                 -1.0 * self.spacemouse_state.y, self.spacemouse_state.x, self.spacemouse_state.z])
             delta_rpy = self.command_rpy_scale * np.array([
@@ -232,9 +232,9 @@ class TeleopBase(object):
             self.motion_manager.setRelativeTargetSE3(delta_pos, delta_rpy)
 
     def setGripperCommand(self):
-        if self.record_manager.status == RecordStatus.GRASP:
+        if self.data_manager.status == RecordStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.high[6]
-        elif self.record_manager.status == RecordStatus.TELEOP:
+        elif self.data_manager.status == RecordStatus.TELEOP:
             gripper_scale = 5.0
             if self.spacemouse_state.buttons[0] > 0 and self.spacemouse_state.buttons[-1] <= 0:
                 self.motion_manager.gripper_pos += gripper_scale

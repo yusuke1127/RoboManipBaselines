@@ -14,18 +14,18 @@ class TeleopIsaacUR5eChain(TeleopBase):
         self.demo_name = "IsaacUR5eChain"
 
     def setArmCommand(self):
-        if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = self.env.unwrapped.get_link_pose("chain_end", "box")[0:3]
-            if self.record_manager.status == RecordStatus.PRE_REACH:
+            if self.data_manager.status == RecordStatus.PRE_REACH:
                 target_pos[2] += 0.22 # [m]
-            elif self.record_manager.status == RecordStatus.REACH:
+            elif self.data_manager.status == RecordStatus.REACH:
                 target_pos[2] += 0.14 # [m]
             self.motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
         else:
             super().setArmCommand()
 
     def setGripperCommand(self):
-        if self.record_manager.status == RecordStatus.GRASP:
+        if self.data_manager.status == RecordStatus.GRASP:
             self.motion_manager.gripper_pos = 150.0
         else:
             super().setGripperCommand()

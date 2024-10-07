@@ -14,19 +14,19 @@ class RolloutMujocoUR5eParticle(RolloutBase):
 
     def setCommand(self):
         # Set joint command
-        if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = self.env.unwrapped.get_geom_pose("scoop_handle")[0:3]
-            if self.record_manager.status == RecordStatus.PRE_REACH:
+            if self.data_manager.status == RecordStatus.PRE_REACH:
                 target_pos += np.array([0.0, 0.0, 0.2]) # [m]
-            elif self.record_manager.status == RecordStatus.REACH:
+            elif self.data_manager.status == RecordStatus.REACH:
                 target_pos += np.array([0.0, 0.0, 0.15]) # [m]
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi, 0.0, np.pi/2), target_pos)
             self.motion_manager.inverseKinematics()
-        elif self.record_manager.status == RecordStatus.TELEOP:
+        elif self.data_manager.status == RecordStatus.TELEOP:
             self.motion_manager.joint_pos = self.pred_action[:6]
 
         # Set gripper command
-        if self.record_manager.status == RecordStatus.GRASP:
+        if self.data_manager.status == RecordStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.high[6]
-        elif self.record_manager.status == RecordStatus.TELEOP:
+        elif self.data_manager.status == RecordStatus.TELEOP:
             self.motion_manager.gripper_pos = self.pred_action[6]

@@ -14,12 +14,12 @@ class TeleopMujocoUR5eRing(TeleopBase):
         self.demo_name = "MujocoUR5eRing"
 
     def setArmCommand(self):
-        if self.record_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
             target_pos = 0.5 * (self.env.unwrapped.get_geom_pose("fook1")[0:3] +
                                 self.env.unwrapped.get_geom_pose("fook2")[0:3])
-            if self.record_manager.status == RecordStatus.PRE_REACH:
+            if self.data_manager.status == RecordStatus.PRE_REACH:
                 target_pos += np.array([-0.15, 0.05, -0.05]) # [m]
-            elif self.record_manager.status == RecordStatus.REACH:
+            elif self.data_manager.status == RecordStatus.REACH:
                 target_pos += np.array([-0.1, 0.05, -0.05]) # [m]
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, np.pi/2), target_pos)
         else:
