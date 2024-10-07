@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import cv2
 from enum import Enum
+from multimodal_robot_model import __version__
 
 # https://github.com/opencv/opencv/issues/21326
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
@@ -75,6 +76,8 @@ class DataManager(object):
     def __init__(self, env):
         self.env = env
 
+        self.general_info = {"version": __version__}
+
         self.data_idx = 0
         self.world_idx = 0
         self.world_info = {}
@@ -144,7 +147,7 @@ class DataManager(object):
                 self.all_data_seq[key] = np.array(self.all_data_seq[key], dtype=object)
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        np.savez(filename, **self.all_data_seq, **self.world_info, **self.camera_info)
+        np.savez(filename, **self.all_data_seq, **self.general_info, **self.world_info, **self.camera_info)
         self.data_idx += 1
 
     def loadData(self, filename):
