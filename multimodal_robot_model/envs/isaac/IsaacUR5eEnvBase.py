@@ -19,13 +19,11 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     def __init__(
         self,
         init_qpos,
-        camera_configs=None,
         **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
             init_qpos,
-            camera_configs,
             **kwargs,
         )
 
@@ -49,9 +47,6 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         self.observation_space = Box(
             low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
         )
-
-        # Setup camera
-        self.camera_configs = camera_configs
 
         # Setup internal variables
         self._quit_flag = False
@@ -160,21 +155,22 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup task-specific actors
         self.setup_task_specific_actors()
 
-        # Setup fixed cameras
-        self.camera_handles = []
+        # Setup task-specific cameras
+        self.camera_handles = {}
+        self.camera_properties = {}
         self.setup_task_specific_cameras()
 
-        # Setup robot cameras
-        self.camera_properties = gymapi.CameraProperties()
-        # TODO: Set from camera_config
-        self.camera_properties.width = 640
-        self.camera_properties.height = 480
-        camera_handle = self.gym.create_camera_sensor(self.env, self.camera_properties)
+        # Setup common cameras
+        camera_properties = gymapi.CameraProperties()
+        camera_properties.width = 640
+        camera_properties.height = 480
+        camera_handle = self.gym.create_camera_sensor(self.env, camera_properties)
         body_handle = self.gym.find_actor_rigid_body_handle(self.env, self.robot_handle, "camera_link")
         camera_pose_local = gymapi.Transform(p=gymapi.Vec3(0, -0.02, 0.005))
         self.gym.attach_camera_to_body(
             camera_handle, self.env, body_handle, camera_pose_local, gymapi.FOLLOW_TRANSFORM)
-        self.camera_handles.append(camera_handle)
+        self.camera_handles["hand"] = camera_handle
+        self.camera_properties["hand"] = camera_properties
 
         # Setup marker
         self.box_geom_target = gymutil.WireframeBoxGeometry(0.08, 0.08, 0.12, color=(0, 1, 0))
@@ -265,19 +261,12 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Get camera images
         info["rgb_images"] = {}
         info["depth_images"] = {}
-        for camera_config in self.camera_configs:
-            # TODO: Make it a generic implementation, not a special treatment of the camera name
-            if camera_config["name"] == "front":
-                camera_handle = self.camera_handles[0]
-            elif camera_config["name"] == "side":
-                camera_handle = self.camera_handles[1]
-            elif camera_config["name"] == "hand":
-                camera_handle = self.camera_handles[2]
+        for camera_name, camera_handle in self.camera_handles.items():
             rgb_image = self.gym.get_camera_image(self.sim, self.env, camera_handle, gymapi.IMAGE_COLOR)
             rgb_image = rgb_image.reshape(rgb_image.shape[0], -1, 4)[:, :, :3]
             depth_image = -1 * self.gym.get_camera_image(self.sim, self.env, camera_handle, gymapi.IMAGE_DEPTH)
-            info["rgb_images"][camera_config["name"]] = rgb_image
-            info["depth_images"][camera_config["name"]] = depth_image
+            info["rgb_images"][camera_name] = rgb_image
+            info["depth_images"][camera_name] = depth_image
 
         return info
 
@@ -322,12 +311,12 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     @property
     def num_cameras(self):
         """Number of cameras."""
-        return len(self.camera_configs)
+        return len(self.camera_handles)
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        # TODO: Get the fovy of the corresponding camera
-        camera_fovy = self.camera_properties.height / self.camera_properties.width * self.camera_properties.horizontal_fov
+        camera_properties = self.camera_properties[camera_name]
+        camera_fovy = camera_properties.height / camera_properties.width * camera_properties.horizontal_fov
         return camera_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):

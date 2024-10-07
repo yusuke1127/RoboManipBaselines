@@ -143,7 +143,7 @@ class TeleopBase(object):
                     else:
                         self.point_cloud_scatter_list[camera_idx].remove()
                     self.ax[camera_idx].axis("off")
-                    self.ax[camera_idx].set_aspect("equal")
+                    self.ax[camera_idx].set_box_aspect(xyz_array.ptp(axis=0))
                     self.point_cloud_scatter_list[camera_idx] = self.ax[camera_idx].scatter(
                         xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array)
                 plt.draw()

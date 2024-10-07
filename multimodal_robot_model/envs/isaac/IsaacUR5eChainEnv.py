@@ -15,11 +15,6 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
         IsaacUR5eEnvBase.__init__(
             self,
             init_qpos=np.array([np.pi, -np.pi/2, -0.7*np.pi, -0.3*np.pi, np.pi/2, np.pi/2, 0.0]),
-            camera_configs=[
-                {"name": "front", "size": (480, 640)},
-                {"name": "side", "size": (480, 640)},
-                {"name": "hand", "size": (480, 640)},
-            ],
             **kwargs)
 
         self.original_fook_pos = self.get_link_pose("fook", "box")[0:3]
@@ -90,20 +85,23 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
         self.gym.set_rigid_body_color(self.env, self.fook_handle, 0, gymapi.MESH_VISUAL, gymapi.Vec3(0.8, 0.1, 0.5))
 
     def setup_task_specific_cameras(self):
-        self.camera_properties = gymapi.CameraProperties()
-        # TODO: Set from camera_config
-        self.camera_properties.width = 640
-        self.camera_properties.height = 480
-        camera_handle = self.gym.create_camera_sensor(self.env, self.camera_properties)
+        camera_properties = gymapi.CameraProperties()
+        camera_properties.width = 640
+        camera_properties.height = 480
+
+        camera_handle = self.gym.create_camera_sensor(self.env, camera_properties)
         camera_pos = gymapi.Vec3(0.9, 0.0, 0.45)
         camera_dir = gymapi.Vec3(-1.0, 0.0, -0.4)
         self.gym.set_camera_location(camera_handle, self.env, camera_pos, camera_dir)
-        self.camera_handles.append(camera_handle)
-        camera_handle = self.gym.create_camera_sensor(self.env, self.camera_properties)
+        self.camera_handles["front"] = camera_handle
+        self.camera_properties["front"] = camera_properties
+
+        camera_handle = self.gym.create_camera_sensor(self.env, camera_properties)
         camera_pos = gymapi.Vec3(0.3, -0.8, 0.5)
         camera_dir = gymapi.Vec3(0.0, 1.0, 0.0)
         self.gym.set_camera_location(camera_handle, self.env, camera_pos, camera_dir)
-        self.camera_handles.append(camera_handle)
+        self.camera_handles["side"] = camera_handle
+        self.camera_properties["side"] = camera_properties
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
