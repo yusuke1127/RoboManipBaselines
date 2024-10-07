@@ -28,14 +28,14 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         self,
         xml_file,
         init_qpos,
-        extra_camera_configs=None,
+        camera_configs=None,
         **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
             xml_file,
             init_qpos,
-            extra_camera_configs,
+            camera_configs,
             **kwargs,
         )
 
@@ -60,14 +60,14 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
 
         # Setup camera
         self.cameras = {}
-        if extra_camera_configs is not None:
-            for extra_camera_config in extra_camera_configs:
-                camera_name = extra_camera_config["name"]
+        if camera_configs is not None:
+            for camera_config in camera_configs:
+                camera_name = camera_config["name"]
                 camera = {}
                 camera["name"] = camera_name
                 camera["id"] = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
-                camera["size"] = extra_camera_config["size"]
-                self.model.vis.global_.offheight, self.model.vis.global_.offwidth = extra_camera_config["size"]
+                camera["size"] = camera_config["size"]
+                self.model.vis.global_.offheight, self.model.vis.global_.offwidth = camera_config["size"]
                 camera["viewer"] = OffScreenViewer(self.model, self.data)
                 self.cameras[camera_name] = camera
 
