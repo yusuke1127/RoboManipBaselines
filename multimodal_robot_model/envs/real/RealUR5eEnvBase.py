@@ -199,7 +199,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
 
             rgb_image, depth_image = camera.read((640, 480))
             info["rgb_images"][camera_name] = rgb_image
-            info["depth_images"][camera_name] = depth_image[:, :, 0]
+            info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0] # [m]
 
         return info
 
