@@ -12,11 +12,6 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
             self,
             path.join(path.dirname(__file__), "../assets/mujoco/envs/env_ur5e_particle.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.25*np.pi, np.pi/2, np.pi, 0.0]),
-            camera_configs=[
-                {"name": "front", "size": (480, 640)},
-                {"name": "side", "size": (480, 640)},
-                {"name": "hand", "size": (480, 640)},
-            ],
             **kwargs)
 
         self.original_source_pos = self.model.body("source_case").pos.copy()

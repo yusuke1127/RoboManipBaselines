@@ -28,14 +28,12 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
         self,
         xml_file,
         init_qpos,
-        camera_configs=None,
         **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
             xml_file,
             init_qpos,
-            camera_configs,
             **kwargs,
         )
 
@@ -60,20 +58,19 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
 
         # Setup camera
         self.cameras = {}
-        if camera_configs is not None:
-            for camera_config in camera_configs:
-                camera_name = camera_config["name"]
-                camera = {}
-                camera["name"] = camera_name
-                camera["id"] = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_name)
-                camera["size"] = camera_config["size"]
-                self.model.vis.global_.offheight, self.model.vis.global_.offwidth = camera_config["size"]
-                camera["viewer"] = OffScreenViewer(self.model, self.data)
-                self.cameras[camera_name] = camera
+        for camera_id in range(self.model.ncam):
+            camera = {}
+            camera_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_id)
+            camera["name"] = camera_name
+            camera["id"] = camera_id
+            self.model.vis.global_.offheight = 480
+            self.model.vis.global_.offwidth = 640
+            camera["viewer"] = OffScreenViewer(self.model, self.data)
+            self.cameras[camera_name] = camera
 
-            # This is required to automatically switch context to free camera in render()
-            # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
-            self.mujoco_renderer._viewers["dummy"] = None
+        # This is required to automatically switch context to free camera in render()
+        # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
+        self.mujoco_renderer._viewers["dummy"] = None
 
         self._first_render = True
 
