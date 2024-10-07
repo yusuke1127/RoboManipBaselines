@@ -28,10 +28,8 @@ class TeleopBase(object):
 
         # Setup data manager
         self.camera_names = ("front", "side", "hand")
-        self.rgb_keys = (DataKey.FRONT_RGB_IMAGE, DataKey.SIDE_RGB_IMAGE, DataKey.HAND_RGB_IMAGE)
-        self.depth_keys = (DataKey.FRONT_DEPTH_IMAGE, DataKey.SIDE_DEPTH_IMAGE, DataKey.HAND_DEPTH_IMAGE)
         self.data_manager = DataManager(self.env)
-        self.data_manager.setupCameraInfo(self.camera_names, self.depth_keys)
+        self.data_manager.setupCameraInfo(self.camera_names)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -61,7 +59,7 @@ class TeleopBase(object):
                         world_idx = self.args.world_idx_list[self.data_manager.data_idx % len(self.args.world_idx_list)]
                 else:
                     self.data_manager.loadData(self.args.replay_log)
-                    world_idx = self.data_manager.data_seq["world_idx"].tolist()
+                    world_idx = self.data_manager.getData("world_idx").tolist()
                 self.data_manager.setupSimWorld(world_idx)
                 obs, info = self.env.reset()
                 print("== [{}] data_idx: {}, world_idx: {} ==".format(
@@ -78,7 +76,7 @@ class TeleopBase(object):
             # Get action
             if self.args.replay_log is not None and \
                self.data_manager.status in (MotionStatus.TELEOP, MotionStatus.END):
-                action = self.data_manager.getSingleData(DataKey.ACTION, teleop_time_idx)
+                action = self.data_manager.getSingleData(DataKey.COMMAND_JOINT_POS, teleop_time_idx)
             else:
                 # Set commands
                 self.setArmCommand()
@@ -93,15 +91,15 @@ class TeleopBase(object):
             # Record data
             if self.data_manager.status == MotionStatus.TELEOP and self.args.replay_log is None:
                 self.data_manager.appendSingleData(DataKey.TIME, self.data_manager.status_elapsed_duration)
-                self.data_manager.appendSingleData(DataKey.JOINT_POS, self.motion_manager.getJointPos(obs))
-                self.data_manager.appendSingleData(DataKey.JOINT_VEL, self.motion_manager.getJointVel(obs))
-                for camera_name, rgb_key, depth_key in zip(self.camera_names, self.rgb_keys, self.depth_keys):
-                    self.data_manager.appendSingleData(rgb_key, info["rgb_images"][camera_name])
-                    self.data_manager.appendSingleData(depth_key, info["depth_images"][camera_name])
-                self.data_manager.appendSingleData(DataKey.WRENCH, self.motion_manager.getEefWrench(obs))
-                self.data_manager.appendSingleData(DataKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
-                self.data_manager.appendSingleData(DataKey.COMMAND_EEF, self.motion_manager.getCommandEef())
-                self.data_manager.appendSingleData(DataKey.ACTION, action)
+                self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_POS, self.motion_manager.getJointPos(obs))
+                self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_VEL, self.motion_manager.getJointVel(obs))
+                for camera_name in self.camera_names:
+                    self.data_manager.appendSingleData(DataKey.getRgbImageKey(camera_name), info["rgb_images"][camera_name])
+                    self.data_manager.appendSingleData(DataKey.getDepthImageKey(camera_name), info["depth_images"][camera_name])
+                self.data_manager.appendSingleData(DataKey.MEASURED_WRENCH, self.motion_manager.getEefWrench(obs))
+                self.data_manager.appendSingleData(DataKey.MEASURED_EEF_POSE, self.motion_manager.getMeasuredEef(obs))
+                self.data_manager.appendSingleData(DataKey.COMMAND_EEF_POSE, self.motion_manager.getCommandEef())
+                self.data_manager.appendSingleData(DataKey.COMMAND_JOINT_POS, action)
 
             # Step environment
             obs, _, _, _, info = self.env.step(action)
@@ -127,11 +125,11 @@ class TeleopBase(object):
             # Draw point clouds
             if self.args.enable_3d_plot:
                 dist_thre_list = (3.0, 3.0, 0.8) # [m]
-                for camera_idx, (camera_name, depth_key) in enumerate(zip(self.camera_names, self.depth_keys)):
+                for camera_idx, camera_name in enumerate(self.camera_names):
                     point_cloud_skip = 10
                     small_depth_image = info["depth_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
                     small_rgb_image = info["rgb_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
-                    fovy = self.data_manager.camera_info[depth_key.key() + "_fovy"]
+                    fovy = self.data_manager.camera_info[DataKey.getDepthImageKey(camera_name) + "_fovy"]
                     xyz_array, rgb_array = convertDepthImageToPointCloud(
                         small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[camera_idx])
                     if self.point_cloud_scatter_list[camera_idx] is None:
@@ -165,7 +163,7 @@ class TeleopBase(object):
             elif self.data_manager.status == MotionStatus.GRASP:
                 if key == ord("n"):
                     # Setup spacemouse
-                    if not self._spacemouse_connected:
+                    if (self.args.replay_log is None) and (not self._spacemouse_connected):
                         self._spacemouse_connected = True
                         pyspacemouse.open()
                     teleop_time_idx = 0
@@ -183,7 +181,7 @@ class TeleopBase(object):
                             self.data_manager.status_elapsed_duration))
                         self.data_manager.goToNextStatus()
                 else:
-                    if teleop_time_idx == len(self.data_manager.data_seq["time"]):
+                    if teleop_time_idx == len(self.data_manager.getData("time")):
                         teleop_time_idx -= 1
                         self.data_manager.goToNextStatus()
                         print("- The log motion has finished replaying. Press the 'n' key to exit.")
@@ -196,12 +194,12 @@ class TeleopBase(object):
                             self.demo_name, self.data_manager.world_idx, self.data_manager.data_idx)
                         if self.args.compress_rgb:
                             print("- Compress rgb images")
-                            for rgb_key in self.rgb_keys:
-                                self.data_manager.compressData(rgb_key, "jpg")
+                            for camera_name in self.camera_names:
+                                self.data_manager.compressData(DataKey.getRgbImageKey(camera_name), "jpg")
                         if self.args.compress_depth:
                             print("- Compress depth images")
-                            for depth_key in self.depth_keys:
-                                self.data_manager.compressData(depth_key, "exr")
+                            for camera_name in self.camera_names:
+                                self.data_manager.compressData(DataKey.getDepthImageKey(camera_name), "exr")
                         self.data_manager.saveData(filename)
                         print("- Teleoperation succeeded: Save the data as {}".format(filename))
                         reset = True
