@@ -2,7 +2,7 @@ import numpy as np
 import pinocchio as pin
 import gymnasium as gym
 import multimodal_robot_model
-from multimodal_robot_model.common import RecordStatus
+from multimodal_robot_model.common import MotionStatus
 from .RolloutBase import RolloutBase
 
 class RolloutRealUR5eGear(RolloutBase):
@@ -21,14 +21,14 @@ class RolloutRealUR5eGear(RolloutBase):
 
     def setCommand(self):
         # Set joint command
-        if self.data_manager.status in (RecordStatus.PRE_REACH, RecordStatus.REACH):
+        if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             # No action is required in pre-reach or reach phases
             pass
-        elif self.data_manager.status == RecordStatus.TELEOP:
+        elif self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.joint_pos = self.pred_action[:6]
 
         # Set gripper command
-        if self.data_manager.status == RecordStatus.GRASP:
+        if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[6]
-        elif self.data_manager.status == RecordStatus.TELEOP:
+        elif self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.gripper_pos = self.pred_action[6]

@@ -6,8 +6,8 @@ from enum import Enum
 # https://github.com/opencv/opencv/issues/21326
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
 
-class RecordStatus(Enum):
-    """Status for recording."""
+class MotionStatus(Enum):
+    """Motion status."""
     INITIAL = 0
     PRE_REACH = 1
     REACH = 2
@@ -16,7 +16,7 @@ class RecordStatus(Enum):
     END = 5
 
 class DataKey(Enum):
-    """Data key for recording."""
+    """Data key."""
     TIME = 0
     JOINT_POS = 1
     JOINT_VEL = 2
@@ -36,7 +36,7 @@ class DataKey(Enum):
         return self.name.lower()
 
 class DataManager(object):
-    """Recording manager for demonstrations by teleoperation."""
+    """Data manager."""
 
     def __init__(self, env):
         self.env = env
@@ -50,8 +50,8 @@ class DataManager(object):
         self.reset()
 
     def reset(self):
-        """Reset recording."""
-        self.status = RecordStatus(0)
+        """Reset."""
+        self.status = MotionStatus(0)
 
         self.data_seq = {}
         for data_key in DataKey:
@@ -115,18 +115,18 @@ class DataManager(object):
 
     def goToNextStatus(self):
         """Go to the next status."""
-        self.status = RecordStatus((self.status.value + 1) % len(RecordStatus))
+        self.status = MotionStatus((self.status.value + 1) % len(MotionStatus))
 
     def getStatusImage(self):
         """Get the image corresponding to the current status."""
         status_image = np.zeros((50, 160, 3), dtype=np.uint8)
-        if self.status == RecordStatus.INITIAL:
+        if self.status == MotionStatus.INITIAL:
             status_image[:, :] = np.array([200, 255, 200])
-        elif self.status in {RecordStatus.PRE_REACH, RecordStatus.REACH, RecordStatus.GRASP}:
+        elif self.status in {MotionStatus.PRE_REACH, MotionStatus.REACH, MotionStatus.GRASP}:
             status_image[:, :] = np.array([255, 255, 200])
-        elif self.status == RecordStatus.TELEOP:
+        elif self.status == MotionStatus.TELEOP:
             status_image[:, :] = np.array([255, 200, 200])
-        elif self.status == RecordStatus.END:
+        elif self.status == MotionStatus.END:
             status_image[:, :] = np.array([200, 200, 255])
         else:
             raise ValueError("Unknown status: {}".format(self.status))

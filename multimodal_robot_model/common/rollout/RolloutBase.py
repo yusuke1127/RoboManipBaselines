@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import pinocchio as pin
-from multimodal_robot_model.common import MotionManager, RecordStatus, DataManager
+from multimodal_robot_model.common import MotionManager, MotionStatus, DataManager
 
 class RolloutBase(object):
     def __init__(self):
@@ -20,9 +20,9 @@ class RolloutBase(object):
 
         # Setup motion manager
         self.motion_manager = MotionManager(self.env)
-        RecordStatus.TELEOP._name_ = "AUTO"
+        MotionStatus.TELEOP._name_ = "AUTO"
 
-        # Setup record manager
+        # Setup data manager
         self.data_manager = DataManager(self.env)
         self.data_manager.setupSimWorld(self.args.world_idx)
 
@@ -30,7 +30,7 @@ class RolloutBase(object):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
         while True:
-            if self.data_manager.status == RecordStatus.TELEOP:
+            if self.data_manager.status == MotionStatus.TELEOP:
                 self.inferPolicy()
 
             self.setCommand()
@@ -38,36 +38,36 @@ class RolloutBase(object):
             action = self.motion_manager.getAction()
             self.obs, _, _, _, self.info = self.env.step(action)
 
-            if self.data_manager.status == RecordStatus.TELEOP:
+            if self.data_manager.status == MotionStatus.TELEOP:
                 self.drawPlot()
 
             # Manage status
             key = cv2.waitKey(1)
-            if self.data_manager.status == RecordStatus.INITIAL:
+            if self.data_manager.status == MotionStatus.INITIAL:
                 initial_duration = 1.0 # [s]
                 if (not self.args.wait_before_start and self.data_manager.status_elapsed_duration > initial_duration) or \
                    (self.args.wait_before_start and key == ord("n")):
                     self.data_manager.goToNextStatus()
-            elif self.data_manager.status == RecordStatus.PRE_REACH:
+            elif self.data_manager.status == MotionStatus.PRE_REACH:
                 pre_reach_duration = 0.7 # [s]
                 if self.data_manager.status_elapsed_duration > pre_reach_duration:
                     self.data_manager.goToNextStatus()
-            elif self.data_manager.status == RecordStatus.REACH:
+            elif self.data_manager.status == MotionStatus.REACH:
                 reach_duration = 0.3 # [s]
                 if self.data_manager.status_elapsed_duration > reach_duration:
                     self.data_manager.goToNextStatus()
-            elif self.data_manager.status == RecordStatus.GRASP:
+            elif self.data_manager.status == MotionStatus.GRASP:
                 grasp_duration = 0.5 # [s]
                 if self.data_manager.status_elapsed_duration > grasp_duration:
                     self.auto_time_idx = 0
                     self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to finish policy rollout.")
-            elif self.data_manager.status == RecordStatus.TELEOP:
+            elif self.data_manager.status == MotionStatus.TELEOP:
                 self.auto_time_idx += 1
                 if key == ord("n"):
                     self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to exit.")
-            elif self.data_manager.status == RecordStatus.END:
+            elif self.data_manager.status == MotionStatus.END:
                 if key == ord("n"):
                     break
             if key == 27: # escape key

@@ -31,7 +31,7 @@ images = None
 ep_ends = np.zeros(len(in_file_names), dtype=np.int64)
 
 
-def get_record_data(in_file_name):
+def get_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
     data_manager = DataManager(env=None)
     data_manager.loadData(in_file_name)
@@ -43,10 +43,10 @@ def get_record_data(in_file_name):
 
 print("[convert_npz_to_zarr] Get npz files:")
 pool = Pool(args.nproc)
-record_data = pool.map(get_record_data, in_file_names)
+data = pool.map(get_data, in_file_names)
 
 print("[convert_npz_to_zarr] Concatenate:")
-for idx, (_actions, _joints, _images) in enumerate(tqdm(record_data)):
+for idx, (_actions, _joints, _images) in enumerate(tqdm(data)):
     if idx == 0:
         actions = _actions
         joints = _joints

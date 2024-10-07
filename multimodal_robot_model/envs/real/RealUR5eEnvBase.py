@@ -89,9 +89,6 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
 
             self.cameras[camera_name] = camera
 
-        # Set motion configuration
-        self.record_status_skip_list = []
-
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
 
