@@ -19,15 +19,15 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
     def __init__(
         self,
         robot_ip,
+        camera_ids,
         init_qpos,
-        camera_configs=None,
         **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
             robot_ip,
+            camera_ids,
             init_qpos,
-            camera_configs,
             **kwargs,
         )
 
@@ -68,22 +68,26 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         self._gripper_activated = False
         print("[RealUR5eEnvBase] Finish connecting the Robotiq gripper.")
 
-        # Setup camera
-        self.camera_configs = camera_configs
-
         # Connect to RealSense
-        self.cameras = []
-        for camera_device_id in get_device_ids():
-            camera = RealSenseCamera(device_id=camera_device_id, flip=False)
+        self.cameras = {}
+        detected_camera_ids = get_device_ids()
+        for camera_name, camera_id in camera_ids.items():
+            if camera_id is None:
+                self.cameras[camera_name] = None
+                continue
 
-            # Store camera properties
+            if camera_id not in detected_camera_ids:
+                raise ValueError(
+                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}")
+
+            camera = RealSenseCamera(device_id=camera_id, flip=False)
             frames = camera._pipeline.wait_for_frames()
             color_intrinsics = frames.get_color_frame().profile.as_video_stream_profile().intrinsics
             camera.color_fovy = np.rad2deg(2 * np.arctan(color_intrinsics.height / (2 * color_intrinsics.fy)))
             depth_intrinsics = frames.get_depth_frame().profile.as_video_stream_profile().intrinsics
             camera.depth_fovy = np.rad2deg(2 * np.arctan(depth_intrinsics.height / (2 * depth_intrinsics.fy)))
 
-            self.cameras.append(camera)
+            self.cameras[camera_name] = camera
 
         # Set motion configuration
         self.record_status_skip_list = []
@@ -187,16 +191,15 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         # Get camera images
         info["rgb_images"] = {}
         info["depth_images"] = {}
-        for camera_config in self.camera_configs:
-            # TODO: Make it a generic implementation, not a special treatment of the camera name
-            if camera_config["name"] == "front":
-                rgb_image, depth_image = self.cameras[0].read(camera_config["size"][::-1])
-                depth_image = depth_image[:, :, 0]
-            else:
-                rgb_image = np.zeros(camera_config["size"] + (3,), dtype=np.uint8)
-                depth_image = np.zeros(camera_config["size"], dtype=np.float32)
-            info["rgb_images"][camera_config["name"]] = rgb_image
-            info["depth_images"][camera_config["name"]] = depth_image
+        for camera_name, camera in self.cameras.items():
+            if camera is None:
+                info["rgb_images"][camera_name] = np.zeros((480, 640, 3), dtype=np.uint8)
+                info["depth_images"][camera_name] = np.zeros((480, 640), dtype=np.float32)
+                continue
+
+            rgb_image, depth_image = camera.read((640, 480))
+            info["rgb_images"][camera_name] = rgb_image
+            info["depth_images"][camera_name] = depth_image[:, :, 0]
 
         return info
 
@@ -231,12 +234,14 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
     @property
     def num_cameras(self):
         """Number of cameras."""
-        return len(self.camera_configs)
+        return len(self.cameras)
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        # TODO: Get the fovy of the corresponding camera
-        return self.cameras[0].depth_fovy
+        camera = self.cameras[camera_name]
+        if camera is None:
+            return 45.0 # dummy
+        return camera.depth_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""

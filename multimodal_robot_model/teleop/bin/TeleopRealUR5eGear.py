@@ -6,14 +6,16 @@ from multimodal_robot_model.teleop import TeleopBase
 from multimodal_robot_model.common import RecordStatus
 
 class TeleopRealUR5eGear(TeleopBase):
-    def __init__(self, robot_ip):
+    def __init__(self, robot_ip, camera_ids):
         self.robot_ip = robot_ip
+        self.camera_ids = camera_ids
         super().__init__()
 
     def setupEnv(self):
         self.env = gym.make(
             "multimodal_robot_model/RealUR5eGearEnv-v0",
-            robot_ip=self.robot_ip
+            robot_ip=self.robot_ip,
+            camera_ids=self.camera_ids
         )
         self.demo_name = "RealUR5eGear"
 
@@ -32,5 +34,8 @@ class TeleopRealUR5eGear(TeleopBase):
 
 if __name__ == "__main__":
     robot_ip = "192.168.11.4"
-    teleop = TeleopRealUR5eGear(robot_ip)
+    camera_ids = {"front": "832112072660",
+                  "side": None,
+                  "hand": None}
+    teleop = TeleopRealUR5eGear(robot_ip, camera_ids)
     teleop.run()

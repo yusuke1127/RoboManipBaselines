@@ -6,5 +6,8 @@ class RolloutDiffusionPolicyRealUR5eGear(RolloutDiffusionPolicy, RolloutRealUR5e
 
 if __name__ == "__main__":
     robot_ip = "192.168.11.4"
-    rollout = RolloutDiffusionPolicyRealUR5eGear(robot_ip)
+    camera_ids = {"front": "832112072660",
+                  "side": None,
+                  "hand": None}
+    rollout = RolloutDiffusionPolicyRealUR5eGear(robot_ip, camera_ids)
     rollout.run()

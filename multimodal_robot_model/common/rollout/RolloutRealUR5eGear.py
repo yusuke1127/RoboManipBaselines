@@ -6,14 +6,16 @@ from multimodal_robot_model.common import MotionManager, RecordStatus, RecordMan
 from .RolloutBase import RolloutBase
 
 class RolloutRealUR5eGear(RolloutBase):
-    def __init__(self, robot_ip):
+    def __init__(self, robot_ip, camera_ids):
         self.robot_ip = robot_ip
+        self.camera_ids = camera_ids
         super().__init__()
 
     def setupEnv(self):
         self.env = gym.make(
             "multimodal_robot_model/RealUR5eGearEnv-v0",
             robot_ip=self.robot_ip,
+            camera_ids=self.camera_ids,
             scale_dt=self.args.scale_dt
         )
 
