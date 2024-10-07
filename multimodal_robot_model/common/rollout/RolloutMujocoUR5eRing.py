@@ -2,7 +2,7 @@ import numpy as np
 import pinocchio as pin
 import gymnasium as gym
 import multimodal_robot_model
-from multimodal_robot_model.common import MotionManager, RecordStatus, RecordManager
+from multimodal_robot_model.common import RecordStatus
 from .RolloutBase import RolloutBase
 
 class RolloutMujocoUR5eRing(RolloutBase):
