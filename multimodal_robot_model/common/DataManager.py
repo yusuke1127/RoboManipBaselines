@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import cv2
-from enum import Enum
+from enum import Enum, auto
 
 # https://github.com/opencv/opencv/issues/21326
 os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"
@@ -17,19 +17,19 @@ class MotionStatus(Enum):
 
 class DataKey(Enum):
     """Data key."""
-    TIME = 0
-    JOINT_POS = 1
-    JOINT_VEL = 2
-    FRONT_RGB_IMAGE = 3
-    SIDE_RGB_IMAGE = 4
-    HAND_RGB_IMAGE = 5
-    FRONT_DEPTH_IMAGE = 6
-    SIDE_DEPTH_IMAGE = 7
-    HAND_DEPTH_IMAGE = 8
-    WRENCH = 9
-    MEASURED_EEF = 10
-    COMMAND_EEF = 11
-    ACTION = 12
+    TIME = auto()
+    JOINT_POS = auto()
+    JOINT_VEL = auto()
+    FRONT_RGB_IMAGE = auto()
+    SIDE_RGB_IMAGE = auto()
+    HAND_RGB_IMAGE = auto()
+    FRONT_DEPTH_IMAGE = auto()
+    SIDE_DEPTH_IMAGE = auto()
+    HAND_DEPTH_IMAGE = auto()
+    WRENCH = auto()
+    MEASURED_EEF = auto()
+    COMMAND_EEF = auto()
+    ACTION = auto()
 
     def key(self):
         """Get the key of the dictionary."""
