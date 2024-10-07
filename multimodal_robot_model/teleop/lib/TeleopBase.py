@@ -27,16 +27,16 @@ class TeleopBase(object):
         self.motion_manager = MotionManager(self.env)
 
         # Setup data manager
-        self.camera_names = ("front", "side", "hand")
         self.data_manager = DataManager(self.env)
-        self.data_manager.setupCameraInfo(self.camera_names)
+        self.data_manager.setupCameraInfo()
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
             plt.rcParams["keymap.quit"] = ["q", "escape"]
-            self.fig, self.ax = plt.subplots(self.env.unwrapped.num_cameras, 1, subplot_kw=dict(projection="3d"))
+            self.fig, self.ax = plt.subplots(
+                len(self.env.unwrapped.camera_names), 1, subplot_kw=dict(projection="3d"))
             self.fig.tight_layout()
-            self.point_cloud_scatter_list = [None] * self.env.unwrapped.num_cameras
+            self.point_cloud_scatter_list = [None] * len(self.env.unwrapped.camera_names)
 
         # Command configuration
         self._spacemouse_connected = False
@@ -93,7 +93,7 @@ class TeleopBase(object):
                 self.data_manager.appendSingleData(DataKey.TIME, self.data_manager.status_elapsed_duration)
                 self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_POS, self.motion_manager.getJointPos(obs))
                 self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_VEL, self.motion_manager.getJointVel(obs))
-                for camera_name in self.camera_names:
+                for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.appendSingleData(DataKey.getRgbImageKey(camera_name), info["rgb_images"][camera_name])
                     self.data_manager.appendSingleData(DataKey.getDepthImageKey(camera_name), info["depth_images"][camera_name])
                 self.data_manager.appendSingleData(DataKey.MEASURED_WRENCH, self.motion_manager.getEefWrench(obs))
@@ -108,7 +108,7 @@ class TeleopBase(object):
             status_image = self.data_manager.getStatusImage()
             rgb_images = []
             depth_images = []
-            for camera_name in self.camera_names:
+            for camera_name in self.env.unwrapped.camera_names:
                 rgb_image = info["rgb_images"][camera_name]
                 image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
                 resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
@@ -125,7 +125,7 @@ class TeleopBase(object):
             # Draw point clouds
             if self.args.enable_3d_plot:
                 dist_thre_list = (3.0, 3.0, 0.8) # [m]
-                for camera_idx, camera_name in enumerate(self.camera_names):
+                for camera_idx, camera_name in enumerate(self.env.unwrapped.camera_names):
                     point_cloud_skip = 10
                     small_depth_image = info["depth_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
                     small_rgb_image = info["rgb_images"][camera_name][::point_cloud_skip, ::point_cloud_skip]
@@ -194,11 +194,11 @@ class TeleopBase(object):
                             self.demo_name, self.data_manager.world_idx, self.data_manager.data_idx)
                         if self.args.compress_rgb:
                             print("- Compress rgb images")
-                            for camera_name in self.camera_names:
+                            for camera_name in self.env.unwrapped.camera_names:
                                 self.data_manager.compressData(DataKey.getRgbImageKey(camera_name), "jpg")
                         if self.args.compress_depth:
                             print("- Compress depth images")
-                            for camera_name in self.camera_names:
+                            for camera_name in self.env.unwrapped.camera_names:
                                 self.data_manager.compressData(DataKey.getDepthImageKey(camera_name), "exr")
                         self.data_manager.saveData(filename)
                         print("- Teleoperation succeeded: Save the data as {}".format(filename))

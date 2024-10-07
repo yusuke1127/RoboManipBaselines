@@ -251,7 +251,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     def _get_info(self):
         info = {}
 
-        if self.num_cameras == 0:
+        if len(self.camera_names) == 0:
             return info
 
         # Update camera image
@@ -309,9 +309,9 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
                          link_pose.r.w, link_pose.r.x, link_pose.r.y, link_pose.r.z])
 
     @property
-    def num_cameras(self):
-        """Number of cameras."""
-        return len(self.camera_handles)
+    def camera_names(self):
+        """Camera names being measured."""
+        return self.camera_handles.keys()
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""

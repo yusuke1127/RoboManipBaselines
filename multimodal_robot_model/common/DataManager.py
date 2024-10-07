@@ -186,9 +186,9 @@ class DataManager(object):
         self.world_idx = self.env.unwrapped.modify_world(**kwargs)
         self.world_info = {"world_idx": self.world_idx}
 
-    def setupCameraInfo(self, camera_names):
+    def setupCameraInfo(self):
         """Set camera info."""
-        for camera_name in camera_names:
+        for camera_name in self.env.unwrapped.camera_names:
             depth_key = DataKey.getDepthImageKey(camera_name)
             self.camera_info[depth_key + "_fovy"] = self.env.unwrapped.get_camera_fovy(camera_name)
 

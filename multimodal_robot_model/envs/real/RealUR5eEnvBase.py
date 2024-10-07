@@ -182,7 +182,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
     def _get_info(self):
         info = {}
 
-        if self.num_cameras == 0:
+        if len(self.camera_names) == 0:
             return info
 
         # Get camera images
@@ -229,9 +229,9 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         raise NotImplementedError("[RealUR5eEnvBase] get_geom_pose is not implemented.")
 
     @property
-    def num_cameras(self):
-        """Number of cameras."""
-        return len(self.cameras)
+    def camera_names(self):
+        """Camera names being measured."""
+        return self.cameras.keys()
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
