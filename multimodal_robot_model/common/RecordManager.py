@@ -15,7 +15,7 @@ class RecordStatus(Enum):
     TELEOP = 4
     END = 5
 
-class RecordKey(Enum):
+class DataKey(Enum):
     """Data key for recording."""
     TIME = 0
     JOINT_POS = 1
@@ -54,16 +54,16 @@ class RecordManager(object):
         self.status = RecordStatus(0)
 
         self.data_seq = {}
-        for record_key in RecordKey:
-            self.data_seq[record_key.key()] = []
+        for data_key in DataKey:
+            self.data_seq[data_key.key()] = []
 
-    def appendSingleData(self, record_key, data):
+    def appendSingleData(self, data_key, data):
         """Append a single data to the data sequence."""
-        self.data_seq[record_key.key()].append(data)
+        self.data_seq[data_key.key()].append(data)
 
-    def getSingleData(self, record_key, time_idx):
+    def getSingleData(self, data_key, time_idx):
         """Get single data from the data sequence."""
-        key = record_key.key()
+        key = data_key.key()
         data = self.data_seq[key][time_idx]
         if "rgb" in key:
             if data.ndim == 1:
@@ -73,9 +73,9 @@ class RecordManager(object):
                 data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
         return data
 
-    def getData(self, record_key):
+    def getData(self, data_key):
         """Get data."""
-        key = record_key.key()
+        key = data_key.key()
         data_seq = self.data_seq[key]
         if "rgb" in key:
             if data_seq[0].ndim == 1:
@@ -85,9 +85,9 @@ class RecordManager(object):
                 data_seq = np.array([cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED) for data in data_seq])
         return data_seq
 
-    def compressData(self, record_key, compress_flag):
+    def compressData(self, data_key, compress_flag):
         """Compress data."""
-        key = record_key.key()
+        key = data_key.key()
         for time_idx, data in enumerate(self.data_seq[key]):
             if compress_flag == "jpg":
                 self.data_seq[key][time_idx] = cv2.imencode(".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95))[1]

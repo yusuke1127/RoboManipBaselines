@@ -7,7 +7,7 @@ from multiprocessing import Pool
 from pathlib import Path
 import random
 from eipl.utils import resize_img, calc_minmax, list_to_numpy
-from multimodal_robot_model.common import RecordKey, RecordManager
+from multimodal_robot_model.common import DataKey, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")
@@ -40,8 +40,8 @@ def load_skip_resize_data(file_info):
     record_manager = RecordManager(env=None)
     record_manager.loadData(filename)
     try:
-        _front_images = record_manager.getData(RecordKey.FRONT_RGB_IMAGE)[::skip]
-        _side_images = record_manager.getData(RecordKey.SIDE_RGB_IMAGE)[::skip]
+        _front_images = record_manager.getData(DataKey.FRONT_RGB_IMAGE)[::skip]
+        _side_images = record_manager.getData(DataKey.SIDE_RGB_IMAGE)[::skip]
         if args.cropped_img_size is not None:
             [fro_lef, fro_top, sid_lef, sid_top] = [
                 (
@@ -61,9 +61,9 @@ def load_skip_resize_data(file_info):
         if resized_img_size is not None:
             _front_images = resize_img(_front_images, (resized_img_size, resized_img_size))
             _side_images = resize_img(_side_images, (resized_img_size, resized_img_size))
-        _wrenches = record_manager.getData(RecordKey.WRENCH)[::skip]
-        _joints = record_manager.getData(RecordKey.JOINT_POS)[::skip]
-        _actions = record_manager.getData(RecordKey.ACTION)[::skip]
+        _wrenches = record_manager.getData(DataKey.WRENCH)[::skip]
+        _joints = record_manager.getData(DataKey.JOINT_POS)[::skip]
+        _actions = record_manager.getData(DataKey.ACTION)[::skip]
     except KeyError as e:
         print(f"{e.__class__.__name__}: filename={filename}")
         raise

@@ -5,7 +5,7 @@ import cv2
 import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import pyspacemouse
-from multimodal_robot_model.common import MotionManager, RecordStatus, RecordKey, RecordManager, \
+from multimodal_robot_model.common import MotionManager, RecordStatus, DataKey, RecordManager, \
     convertDepthImageToColorImage, convertDepthImageToPointCloud
 
 class TeleopBase(object):
@@ -28,8 +28,8 @@ class TeleopBase(object):
 
         # Setup record manager
         self.camera_names = ("front", "side", "hand")
-        self.rgb_keys = (RecordKey.FRONT_RGB_IMAGE, RecordKey.SIDE_RGB_IMAGE, RecordKey.HAND_RGB_IMAGE)
-        self.depth_keys = (RecordKey.FRONT_DEPTH_IMAGE, RecordKey.SIDE_DEPTH_IMAGE, RecordKey.HAND_DEPTH_IMAGE)
+        self.rgb_keys = (DataKey.FRONT_RGB_IMAGE, DataKey.SIDE_RGB_IMAGE, DataKey.HAND_RGB_IMAGE)
+        self.depth_keys = (DataKey.FRONT_DEPTH_IMAGE, DataKey.SIDE_DEPTH_IMAGE, DataKey.HAND_DEPTH_IMAGE)
         self.record_manager = RecordManager(self.env)
         self.record_manager.setupCameraInfo(self.camera_names, self.depth_keys)
 
@@ -78,7 +78,7 @@ class TeleopBase(object):
             # Get action
             if self.args.replay_log is not None and \
                self.record_manager.status in (RecordStatus.TELEOP, RecordStatus.END):
-                action = self.record_manager.getSingleData(RecordKey.ACTION, teleop_time_idx)
+                action = self.record_manager.getSingleData(DataKey.ACTION, teleop_time_idx)
             else:
                 # Set commands
                 self.setArmCommand()
@@ -92,16 +92,16 @@ class TeleopBase(object):
 
             # Record data
             if self.record_manager.status == RecordStatus.TELEOP and self.args.replay_log is None:
-                self.record_manager.appendSingleData(RecordKey.TIME, self.record_manager.status_elapsed_duration)
-                self.record_manager.appendSingleData(RecordKey.JOINT_POS, self.motion_manager.getJointPos(obs))
-                self.record_manager.appendSingleData(RecordKey.JOINT_VEL, self.motion_manager.getJointVel(obs))
+                self.record_manager.appendSingleData(DataKey.TIME, self.record_manager.status_elapsed_duration)
+                self.record_manager.appendSingleData(DataKey.JOINT_POS, self.motion_manager.getJointPos(obs))
+                self.record_manager.appendSingleData(DataKey.JOINT_VEL, self.motion_manager.getJointVel(obs))
                 for camera_name, rgb_key, depth_key in zip(self.camera_names, self.rgb_keys, self.depth_keys):
                     self.record_manager.appendSingleData(rgb_key, info["rgb_images"][camera_name])
                     self.record_manager.appendSingleData(depth_key, info["depth_images"][camera_name])
-                self.record_manager.appendSingleData(RecordKey.WRENCH, self.motion_manager.getEefWrench(obs))
-                self.record_manager.appendSingleData(RecordKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
-                self.record_manager.appendSingleData(RecordKey.COMMAND_EEF, self.motion_manager.getCommandEef())
-                self.record_manager.appendSingleData(RecordKey.ACTION, action)
+                self.record_manager.appendSingleData(DataKey.WRENCH, self.motion_manager.getEefWrench(obs))
+                self.record_manager.appendSingleData(DataKey.MEASURED_EEF, self.motion_manager.getMeasuredEef(obs))
+                self.record_manager.appendSingleData(DataKey.COMMAND_EEF, self.motion_manager.getCommandEef())
+                self.record_manager.appendSingleData(DataKey.ACTION, action)
 
             # Step environment
             obs, _, _, _, info = self.env.step(action)

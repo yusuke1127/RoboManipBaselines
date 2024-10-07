@@ -6,7 +6,7 @@ import argparse
 import os
 import cv2
 from multiprocessing import Pool
-from multimodal_robot_model.common import RecordKey, RecordManager
+from multimodal_robot_model.common import DataKey, RecordManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)
@@ -35,9 +35,9 @@ def get_record_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
     record_manager = RecordManager(env=None)
     record_manager.loadData(in_file_name)
-    _actions = record_manager.getData(RecordKey.ACTION)[::args.skip]
-    _joints = record_manager.getData(RecordKey.JOINT_POS)[::args.skip]
-    _images = record_manager.getData(RecordKey.FRONT_RGB_IMAGE)[::args.skip]
+    _actions = record_manager.getData(DataKey.ACTION)[::args.skip]
+    _joints = record_manager.getData(DataKey.JOINT_POS)[::args.skip]
+    _images = record_manager.getData(DataKey.FRONT_RGB_IMAGE)[::args.skip]
     return (_actions, _joints, _images)
 
 
