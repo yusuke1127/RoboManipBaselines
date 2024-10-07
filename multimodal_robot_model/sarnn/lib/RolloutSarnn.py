@@ -61,7 +61,7 @@ class RolloutSarnn(RolloutBase):
 
     def inferPolicy(self):
         if self.auto_time_idx % self.args.skip != 0:
-            return
+            return False
 
         # Preprocess
         self.obs_front_image = self.info["rgb_images"]["front"]
@@ -89,6 +89,8 @@ class RolloutSarnn(RolloutBase):
         self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
         self.enc_front_pts = tensor2numpy(enc_front_pts_output[0]).reshape(self.params["k_dim"], 2) * self.im_size
         self.dec_front_pts = tensor2numpy(dec_front_pts_output[0]).reshape(self.params["k_dim"], 2) * self.im_size
+
+        return True
 
     def drawPlot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:

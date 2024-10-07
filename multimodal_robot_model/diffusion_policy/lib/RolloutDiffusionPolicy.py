@@ -53,7 +53,7 @@ class RolloutDiffusionPolicy(RolloutBase):
 
     def inferPolicy(self):
         if self.auto_time_idx % self.args.skip != 0:
-            return
+            return False
 
         # Set observation history
         self.front_image = cv2.resize(self.info["rgb_images"]["front"], self.image_size)
@@ -74,6 +74,8 @@ class RolloutDiffusionPolicy(RolloutBase):
             self.obs_joint_history.append(obs_joint)
 
         if len(self.future_action_seq) == 0:
+            inference_called = True
+
             # Preprocess
             front_image_history_input = np.moveaxis(np.array(self.front_image_history).astype(np.float32) / 255, -1, 1)
             obs_joint_history_input = np.array(self.obs_joint_history).astype(np.float32)
@@ -87,10 +89,14 @@ class RolloutDiffusionPolicy(RolloutBase):
             action_dict_output = self.policy.predict_action(obs_dict_input)
             action_dict_output = dict_apply(action_dict_output, lambda x: x.detach().to("cpu").numpy())
             self.future_action_seq = list(action_dict_output["action"][0])
+        else:
+            inference_called = False
 
         # Store predicted action
         self.pred_action = self.future_action_seq.pop(0)
         self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
+
+        return inference_called
 
     def drawPlot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:

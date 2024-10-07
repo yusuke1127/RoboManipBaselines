@@ -97,7 +97,7 @@ class RolloutMtAct(RolloutBase):
 
     def inferPolicy(self):
         if self.auto_time_idx % self.args.skip != 0:
-            return
+            return False
 
         # Preprocess
         self.front_image = self.info["rgb_images"]["front"]
@@ -123,6 +123,8 @@ class RolloutMtAct(RolloutBase):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
         self.pred_action = action * self.stats["action_std"] + self.stats["action_mean"]
         self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
+
+        return True
 
     def drawPlot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:

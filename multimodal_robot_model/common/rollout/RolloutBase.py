@@ -1,10 +1,12 @@
 import sys
 import argparse
+import time
 import numpy as np
 import matplotlib
 import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
+import torch
 import pinocchio as pin
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataManager
 
@@ -29,9 +31,14 @@ class RolloutBase(object):
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
+        inference_duration_list = []
         while True:
             if self.data_manager.status == MotionStatus.TELEOP:
-                self.inferPolicy()
+                inference_start_time = time.time()
+                inference_called = self.inferPolicy()
+                inference_duration = time.time() - inference_start_time
+                if inference_called:
+                    inference_duration_list.append(inference_duration)
 
             self.setCommand()
 
@@ -66,6 +73,15 @@ class RolloutBase(object):
                 self.auto_time_idx += 1
                 if key == ord("n"):
                     self.data_manager.goToNextStatus()
+                    print("- Statistics on policy inference")
+                    policy_model_size = self.calcModelSize()
+                    print(f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}")
+                    gpu_memory_usage = torch.cuda.max_memory_reserved()
+                    print(f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}")
+                    inference_duration_list = np.array(inference_duration_list)
+                    print("  - Inference duration [s] | "
+                          f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
+                          f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}")
                     print("- Press the 'n' key to exit.")
             elif self.data_manager.status == MotionStatus.END:
                 if key == ord("n"):
@@ -116,11 +132,22 @@ class RolloutBase(object):
             cv2.moveWindow("Policy image", *self.args.win_xy_policy)
         cv2.waitKey(1)
 
+    def calcModelSize(self):
+        # https://discuss.pytorch.org/t/finding-model-size/130275/2
+        model = self.policy
+        param_size = 0
+        for param in model.parameters():
+            param_size += param.nelement() * param.element_size()
+        buffer_size = 0
+        for buffer in model.buffers():
+            buffer_size += buffer.nelement() * buffer.element_size()
+        return param_size + buffer_size
+
     def inferPolicy(self):
-        raise NotImplementedError()
+        raise NotImplementedError("[RolloutBase] inferPolicy is not implemented.")
 
     def setCommand(self):
-        raise NotImplementedError()
+        raise NotImplementedError("[RolloutBase] setCommand is not implemented.")
 
     def drawPlot(self):
-        raise NotImplementedError()
+        raise NotImplementedError("[RolloutBase] drawPlot is not implemented.")
