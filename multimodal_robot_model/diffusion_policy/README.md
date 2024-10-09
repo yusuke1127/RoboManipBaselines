@@ -2,7 +2,7 @@
 
 ## Install
 
-Install dependent packages.
+Install dependent packages by the following commands.
 ```console
 $ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
 $ sudo aptitude install libavdevice-dev libavfilter-dev # Required for Ubuntu 22.04 / Python 3.8.16
@@ -11,7 +11,7 @@ $ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
 ```
 
-Install [r3m](https://github.com/facebookresearch/r3m).
+Install [r3m](https://github.com/facebookresearch/r3m) by the following commands.
 ```console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
@@ -19,18 +19,14 @@ $ cd third_party/r3m
 $ pip install -e .
 ```
 
-Install [diffusion policy](https://github.com/real-stanford/diffusion_policy).
+Install [diffusion policy](https://github.com/real-stanford/diffusion_policy) by the following commands.
 ```console
 $ # Go to the top directory of this repository
 $ cd third_party/diffusion_policy
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
-```console
-$ # Go to the top directory of this repository
-$ pip install -e .
-```
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) according to [here](../../README.md#Install).
 
 ### Trouble-shooting
 

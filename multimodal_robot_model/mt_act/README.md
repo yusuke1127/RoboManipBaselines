@@ -2,9 +2,9 @@
 
 ## Install
 
-Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md#Install).
 
-Install [roboagent](https://github.com/robopen/roboagent.git).
+Install [roboagent](https://github.com/robopen/roboagent.git) by the following commands.
 ``` console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive

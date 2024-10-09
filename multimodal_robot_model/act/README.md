@@ -2,9 +2,9 @@
 
 ## Install
 
-Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md#Install).
 
-Install [ACT](https://github.com/tonyzhaozh/act).
+Install [ACT](https://github.com/tonyzhaozh/act) by the following commands.
 ``` console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
