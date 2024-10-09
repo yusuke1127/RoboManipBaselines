@@ -158,8 +158,8 @@ class TeleopBase(object):
             elif self.data_manager.status == MotionStatus.REACH:
                 reach_duration = 0.3 # [s]
                 if self.data_manager.status_elapsed_duration > reach_duration:
-                    self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to start teleoperation after the gripper is closed.")
+                    self.data_manager.goToNextStatus()
             elif self.data_manager.status == MotionStatus.GRASP:
                 if key == ord("n"):
                     # Setup spacemouse
@@ -167,11 +167,11 @@ class TeleopBase(object):
                         self._spacemouse_connected = True
                         pyspacemouse.open()
                     teleop_time_idx = 0
-                    self.data_manager.goToNextStatus()
                     if self.args.replay_log is None:
                         print("- Press the 'n' key to finish teleoperation.")
                     else:
                         print("- Start to replay the log motion.")
+                    self.data_manager.goToNextStatus()
             elif self.data_manager.status == MotionStatus.TELEOP:
                 teleop_time_idx += 1
                 if self.args.replay_log is None:
@@ -183,8 +183,8 @@ class TeleopBase(object):
                 else:
                     if teleop_time_idx == len(self.data_manager.getData("time")):
                         teleop_time_idx -= 1
-                        self.data_manager.goToNextStatus()
                         print("- The log motion has finished replaying. Press the 'n' key to exit.")
+                        self.data_manager.goToNextStatus()
             elif self.data_manager.status == MotionStatus.END:
                 if self.args.replay_log is None:
                     if key == ord("s"):

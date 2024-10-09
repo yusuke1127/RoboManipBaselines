@@ -68,12 +68,11 @@ class RolloutBase(object):
                 grasp_duration = 0.5 # [s]
                 if self.data_manager.status_elapsed_duration > grasp_duration:
                     self.auto_time_idx = 0
-                    self.data_manager.goToNextStatus()
                     print("- Press the 'n' key to finish policy rollout.")
+                    self.data_manager.goToNextStatus()
             elif self.data_manager.status == MotionStatus.TELEOP:
                 self.auto_time_idx += 1
                 if key == ord("n"):
-                    self.data_manager.goToNextStatus()
                     print("- Statistics on policy inference")
                     policy_model_size = self.calcModelSize()
                     print(f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}")
@@ -84,6 +83,7 @@ class RolloutBase(object):
                           f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
                           f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}")
                     print("- Press the 'n' key to exit.")
+                    self.data_manager.goToNextStatus()
             elif self.data_manager.status == MotionStatus.END:
                 if key == ord("n"):
                     break
