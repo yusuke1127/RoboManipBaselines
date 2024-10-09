@@ -26,5 +26,8 @@ Multi-Task Action Chunking Transformer
 ## Data collection by teleoperation
 See [teleop](./multimodal_robot_model/teleop).
 
+## Environments for robot manipulation
+See [envs](./multimodal_robot_model/envs).
+
 ## Utilities
 See [utils](./multimodal_robot_model/utils).
