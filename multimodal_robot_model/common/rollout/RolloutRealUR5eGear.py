@@ -19,16 +19,15 @@ class RolloutRealUR5eGear(RolloutBase):
             scale_dt=self.args.scale_dt
         )
 
-    def setCommand(self):
-        # Set joint command
+    def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             # No action is required in pre-reach or reach phases
             pass
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[:6]
+        else:
+            super().setArmCommand()
 
-        # Set gripper command
+    def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[6]
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[6]
+        else:
+            super().setGripperCommand()

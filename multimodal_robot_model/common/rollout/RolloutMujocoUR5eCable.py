@@ -12,8 +12,7 @@ class RolloutMujocoUR5eCable(RolloutBase):
             render_mode="human"
         )
 
-    def setCommand(self):
-        # Set joint command
+    def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_pos = self.env.unwrapped.get_body_pose("cable_end")[0:3]
             if self.data_manager.status == MotionStatus.PRE_REACH:
@@ -22,11 +21,5 @@ class RolloutMujocoUR5eCable(RolloutBase):
                 target_pos[2] = 0.995 # [m]
             self.motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
             self.motion_manager.inverseKinematics()
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[:6]
-
-        # Set gripper command
-        if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[6]
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[6]
+        else:
+            super().setArmCommand()

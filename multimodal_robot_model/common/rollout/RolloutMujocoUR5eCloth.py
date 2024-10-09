@@ -12,8 +12,7 @@ class RolloutMujocoUR5eCloth(RolloutBase):
             render_mode="human"
         )
 
-    def setCommand(self):
-        # Set joint command
+    def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, 0.25*np.pi),
                                  self.env.unwrapped.get_body_pose("cloth_root_frame")[0:3])
@@ -23,11 +22,11 @@ class RolloutMujocoUR5eCloth(RolloutBase):
                 target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.2]))
             self.motion_manager.target_se3 = target_se3
             self.motion_manager.inverseKinematics()
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[:6]
+        else:
+            super().setArmCommand()
 
-        # Set gripper command
+    def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[6]
-        elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[6]
+        else:
+            super().setGripperCommand()

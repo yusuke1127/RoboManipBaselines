@@ -40,7 +40,8 @@ class RolloutBase(object):
                 if inference_called:
                     inference_duration_list.append(inference_duration)
 
-            self.setCommand()
+            self.setArmCommand()
+            self.setGripperCommand()
 
             action = self.motion_manager.getAction()
             self.obs, _, _, _, self.info = self.env.step(action)
@@ -143,11 +144,18 @@ class RolloutBase(object):
             buffer_size += buffer.nelement() * buffer.element_size()
         return param_size + buffer_size
 
+    def setArmCommand(self):
+        if self.data_manager.status == MotionStatus.TELEOP:
+            self.motion_manager.joint_pos = self.pred_action[:6]
+
+    def setGripperCommand(self):
+        if self.data_manager.status == MotionStatus.GRASP:
+            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+        elif self.data_manager.status == MotionStatus.TELEOP:
+            self.motion_manager.gripper_pos = self.pred_action[6]
+
     def inferPolicy(self):
         raise NotImplementedError("[RolloutBase] inferPolicy is not implemented.")
-
-    def setCommand(self):
-        raise NotImplementedError("[RolloutBase] setCommand is not implemented.")
 
     def drawPlot(self):
         raise NotImplementedError("[RolloutBase] drawPlot is not implemented.")
