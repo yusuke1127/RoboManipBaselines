@@ -1,0 +1,13 @@
+from multimodal_robot_model.act import RolloutAct
+from multimodal_robot_model.common.rollout import RolloutRealUR5eGear
+
+class RolloutActRealUR5eGear(RolloutAct, RolloutRealUR5eGear):
+    pass
+
+if __name__ == "__main__":
+    robot_ip = "192.168.11.4"
+    camera_ids = {"front": "832112072660",
+                  "side": None,
+                  "hand": None}
+    rollout = RolloutActRealUR5eGear(robot_ip, camera_ids)
+    rollout.run()

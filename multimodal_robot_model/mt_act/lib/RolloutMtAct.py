@@ -10,7 +10,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/ro
 from policy import ACTPolicy
 from eipl.utils import tensor2numpy
 from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS
-from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 from multimodal_robot_model.common import RolloutBase
 
 class RolloutMtAct(RolloutBase):
@@ -37,9 +36,9 @@ class RolloutMtAct(RolloutBase):
         super().setupArgs(parser, argv)
 
         if self.args.skip is None:
-            self.args.skip = 1
+            self.args.skip = 3
         if self.args.skip_draw is None:
-            self.args.skip_draw = 4
+            self.args.skip_draw = self.args.skip
 
     def setupPolicy(self):
         # Set task embedding
@@ -98,7 +97,7 @@ class RolloutMtAct(RolloutBase):
 
     def inferPolicy(self):
         if self.auto_time_idx % self.args.skip != 0:
-            return
+            return False
 
         # Preprocess
         self.front_image = self.info["rgb_images"]["front"]
@@ -124,6 +123,8 @@ class RolloutMtAct(RolloutBase):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
         self.pred_action = action * self.stats["action_std"] + self.stats["action_mean"]
         self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
+
+        return True
 
     def drawPlot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:

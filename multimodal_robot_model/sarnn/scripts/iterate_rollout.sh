@@ -4,7 +4,7 @@
 
 CKPT_DIR=$1
 CKPT_NAME=${2:-SARNN.pth}
-TASK_NAME=${3:-UR5eCable}
+TASK_NAME=${3:-MujocoUR5eCable}
 CROPPED_IMG_SIZE=${4:-280}
 SKIP=${5:-6}
 
@@ -20,7 +20,7 @@ FIRST_OPTION="--wait_before_start"
 WORLD_IDX_LIST=(0 1 2 3 4 5)
 for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
     echo "[sarnn/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
-    python ${SCRIPT_DIR}/../bin/RolloutSarnn${TASK_NAME}.py \
+    python ${SCRIPT_DIR}/../bin/rollout/RolloutSarnn${TASK_NAME}.py \
            --checkpoint ${CKPT_DIR}/${CKPT_NAME} \
            --cropped_img_size ${CROPPED_IMG_SIZE} \
            --skip ${SKIP} \

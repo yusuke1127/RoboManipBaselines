@@ -2,9 +2,9 @@
 
 ## Install
 
-Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md#Install).
 
-Install [ACT](https://github.com/tonyzhaozh/act).
+Install [ACT](https://github.com/tonyzhaozh/act) by the following commands.
 ``` console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
@@ -71,14 +71,14 @@ $ python ./bin/train.py \
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/RolloutActUR5eCable.py \
---ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt \
+$ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
+--ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_last.ckpt \
 --chunk_size 100 --seed 42 --skip 3 --world_idx 0
 ```
-The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
+The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt UR5eCable 3
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt MujocoUR5eCable 3
 ```

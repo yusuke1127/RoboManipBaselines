@@ -2,7 +2,7 @@
 
 ## Install
 
-Install dependent packages.
+Install dependent packages by the following commands.
 ```console
 $ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
 $ sudo aptitude install libavdevice-dev libavfilter-dev # Required for Ubuntu 22.04 / Python 3.8.16
@@ -11,7 +11,7 @@ $ # If urllib3 version is greater than 2, execute this command
 $ pip install 'urllib3<2'
 ```
 
-Install [r3m](https://github.com/facebookresearch/r3m).
+Install [r3m](https://github.com/facebookresearch/r3m) by the following commands.
 ```console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
@@ -19,18 +19,14 @@ $ cd third_party/r3m
 $ pip install -e .
 ```
 
-Install [diffusion policy](https://github.com/real-stanford/diffusion_policy).
+Install [diffusion policy](https://github.com/real-stanford/diffusion_policy) by the following commands.
 ```console
 $ # Go to the top directory of this repository
 $ cd third_party/diffusion_policy
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) (if you only want model training, `pinocchio` is not required).
-```console
-$ # Go to the top directory of this repository
-$ pip install -e .
-```
+Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) according to [here](../../README.md#Install).
 
 ### Trouble-shooting
 
@@ -93,14 +89,14 @@ To disable logging by wandb, add the option `enable_wandb=False`.
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/RolloutDiffusionPolicyUR5eCable.py \
+$ python ./bin/rollout/RolloutDiffusionPolicyMujocoUR5eCable.py \
 --checkpoint ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
 --skip 3 --world_idx 1
 ```
-The Python script is named `RolloutDiffusionPolicy<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
+The Python script is named `RolloutDiffusionPolicy<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt UR5eCable 3
+$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt MujocoUR5eCable 3
 ```

@@ -4,8 +4,8 @@
 
 CKPT_DIR=$1
 CKPT_NAME=${2:-policy_last.ckpt}
-ENV_TASK_NAME=${3:-UR5eCable}
-SKIP=${4:-1}
+ENV_TASK_NAME=${3:-MujocoUR5eCable}
+SKIP=${4:-3}
 
 echo "[mt_act/iterate_rollout.sh] CKPT_DIR: ${CKPT_DIR}"
 echo "[mt_act/iterate_rollout.sh] CKPT_NAME: ${CKPT_NAME}"
@@ -21,7 +21,7 @@ for POLICY_TASK_NAME in "${POLICY_TASK_NAME_LIST[@]}"; do
     for WORLD_IDX in "${WORLD_IDX_LIST[@]}"; do
         echo "[mt_act/iterate_rollout.sh] POLICY_TASK_NAME: ${POLICY_TASK_NAME}"
         echo "[mt_act/iterate_rollout.sh] WORLD_IDX: ${WORLD_IDX}"
-        python ${SCRIPT_DIR}/../bin/RolloutAct${ENV_TASK_NAME}.py \
+        python ${SCRIPT_DIR}/../bin/rollout/RolloutAct${ENV_TASK_NAME}.py \
                --ckpt_dir ${CKPT_DIR} --ckpt_name ${CKPT_NAME} --task_name ${POLICY_TASK_NAME} \
                --chunk_size 100 --seed 42 \
                --skip ${SKIP} \

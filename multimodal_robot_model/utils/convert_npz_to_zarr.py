@@ -6,7 +6,7 @@ import argparse
 import os
 import cv2
 from multiprocessing import Pool
-from multimodal_robot_model.demos.DemoUtils import RecordKey, RecordManager
+from multimodal_robot_model.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)
@@ -31,22 +31,22 @@ images = None
 ep_ends = np.zeros(len(in_file_names), dtype=np.int64)
 
 
-def get_record_data(in_file_name):
+def get_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
-    record_manager = RecordManager(env=None)
-    record_manager.loadData(in_file_name)
-    _actions = record_manager.getData(RecordKey.ACTION)[::args.skip]
-    _joints = record_manager.getData(RecordKey.JOINT_POS)[::args.skip]
-    _images = record_manager.getData(RecordKey.FRONT_RGB_IMAGE)[::args.skip]
+    data_manager = DataManager(env=None)
+    data_manager.loadData(in_file_name)
+    _actions = data_manager.getData(DataKey.COMMAND_JOINT_POS)[::args.skip]
+    _joints = data_manager.getData(DataKey.MEASURED_JOINT_POS)[::args.skip]
+    _images = data_manager.getData(DataKey.getRgbImageKey("front"))[::args.skip]
     return (_actions, _joints, _images)
 
 
 print("[convert_npz_to_zarr] Get npz files:")
 pool = Pool(args.nproc)
-record_data = pool.map(get_record_data, in_file_names)
+data = pool.map(get_data, in_file_names)
 
 print("[convert_npz_to_zarr] Concatenate:")
-for idx, (_actions, _joints, _images) in enumerate(tqdm(record_data)):
+for idx, (_actions, _joints, _images) in enumerate(tqdm(data)):
     if idx == 0:
         actions = _actions
         joints = _joints

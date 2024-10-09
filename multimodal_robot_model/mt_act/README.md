@@ -2,9 +2,9 @@
 
 ## Install
 
-Install [SARNN](../sarnn) according to [here](../sarnn/README.md).
+Install [SARNN](../sarnn) according to [here](../sarnn/README.md#Install).
 
-Install [roboagent](https://github.com/robopen/roboagent.git).
+Install [roboagent](https://github.com/robopen/roboagent.git) by the following commands.
 ``` console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
@@ -97,7 +97,7 @@ Make numpy files in each of `train` (for training) and `test` directories (for v
 $ python ../utils/make_multi_dataset.py \
 --in_dir ./data/teleop_data_sample \
 --out_dir ./data/learning_data_sample \
---skip 1 \
+--skip 3 \
 --train_keywords env1 env5 \
 --test_keywords env3 \
 --nproc `nproc`
@@ -129,14 +129,14 @@ $ python ./bin/train.py \
 Run a trained policy in the simulator.
 
 ```console
-$ python ./bin/RolloutMtActUR5eCable.py \
+$ python ./bin/rollout/RolloutMtActMujocoUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_best.ckpt --task_name task0_between-two \
---chunk_size 100 --seed 42 --skip 1 --world_idx 0
+--chunk_size 100 --seed 42 --skip 3 --world_idx 0
 ```
-The Python script is named `RolloutMtAct<task_name>.py`. The followings are supported as task_name: `UR5eCable`, `UR5eRing`, `UR5eParticle`, `UR5eCloth`.
+The Python script is named `RolloutMtAct<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
 
 Repeatedly run a trained policy in different environments in the simulator.
 
 ```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt
+$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt MujocoUR5eCable 3
 ```

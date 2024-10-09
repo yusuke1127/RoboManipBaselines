@@ -9,7 +9,6 @@ import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy
 from eipl.utils import tensor2numpy
-from multimodal_robot_model.demos.DemoUtils import MotionManager, RecordStatus, RecordManager
 from multimodal_robot_model.common import RolloutBase
 
 class RolloutAct(RolloutBase):
@@ -18,7 +17,7 @@ class RolloutAct(RolloutBase):
             parser = argparse.ArgumentParser()
 
         parser.add_argument("--ckpt_dir", action="store", type=str, help="checkpoint directory", required=True)
-        parser.add_argument("--ckpt_name", default="policy_best.ckpt", type=str, help="ACT policy checkpoint file name (*.ckpt)")
+        parser.add_argument("--ckpt_name", default="policy_last.ckpt", type=str, help="ACT policy checkpoint file name (*.ckpt)")
         parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
         parser.add_argument("--chunk_size", default=100, type=int, help="action chunking size")
         parser.add_argument("--hidden_dim", default=512, type=int, help="hidden dimension of ACT policy")
@@ -93,7 +92,7 @@ class RolloutAct(RolloutBase):
 
     def inferPolicy(self):
         if self.auto_time_idx % self.args.skip != 0:
-            return
+            return False
 
         # Preprocess
         self.front_image = self.info["rgb_images"]["front"]
@@ -119,6 +118,8 @@ class RolloutAct(RolloutBase):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
         self.pred_action = action * self.stats["action_std"] + self.stats["action_mean"]
         self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
+
+        return True
 
     def drawPlot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:
