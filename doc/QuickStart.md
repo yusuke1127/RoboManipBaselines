@@ -4,6 +4,9 @@ This quick start allows you to collect data in the simulation and train and roll
 ## Install
 Install according to [here](../multimodal_robot_model/act/README.md#Install) by the following commands.
 ```console
+# Clone this repository
+$ git clone git@github.com:isri-aist/MultimodalRobotModel.git --recursive
+
 # Install EIPL
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
@@ -11,7 +14,7 @@ $ cd third_party/eipl
 $ pip install -r requirements.txt
 $ pip install -e .
 
-# Install this package.
+# Install this package
 $ # Go to the top directory of this repository
 $ pip install -e .
 
@@ -30,6 +33,7 @@ In Ubuntu 20.04, install it from robotpkg apt repository; in Ubuntu 22.04, insta
 
 ## Data collection by teleoperation
 Operate the robot in the simulation and save the data by the following commands.
+In our experience, models can be trained stably with roughly 30 data sets.
 The teleoperation data is saved in the `multimodal_robot_model/teleop/teleop_data/MujocoUR5eCable` directory in npz format.
 ```console
 $ cd multimodal_robot_model/teleop
