@@ -1,7 +1,7 @@
 # [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel)
 Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
-## [Quick start](./doc/QuickStart.md)
+## Quick start
 [This quick start](./doc/QuickStart.md) allows you to collect data in the simulation and train and rollout the ACT.
 
 ## Install
