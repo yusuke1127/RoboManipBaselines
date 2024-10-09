@@ -65,6 +65,7 @@ $ python ./bin/train.py \
 --num_epochs 1000 --lr 1e-5 \
 --seed 0
 ```
+Note that an error will occur if the chunk_size is larger than the time series length of the training data.
 
 ## Policy rollout
 
