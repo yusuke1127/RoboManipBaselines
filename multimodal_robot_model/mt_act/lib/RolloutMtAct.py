@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/ro
 from policy import ACTPolicy
 from eipl.utils import tensor2numpy
 from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS
-from multimodal_robot_model.common import RolloutBase
+from multimodal_robot_model.common.rollout import RolloutBase
 
 class RolloutMtAct(RolloutBase):
     def setupArgs(self, parser=None):

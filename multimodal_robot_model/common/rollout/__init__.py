@@ -1,3 +1,5 @@
+from .RolloutBase import RolloutBase
+
 # Mujoco
 from .RolloutMujocoUR5eCable import RolloutMujocoUR5eCable
 from .RolloutMujocoUR5eRing import RolloutMujocoUR5eRing

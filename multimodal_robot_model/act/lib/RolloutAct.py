@@ -9,7 +9,7 @@ import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy
 from eipl.utils import tensor2numpy
-from multimodal_robot_model.common import RolloutBase
+from multimodal_robot_model.common.rollout import RolloutBase
 
 class RolloutAct(RolloutBase):
     def setupArgs(self, parser=None):

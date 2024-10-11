@@ -8,7 +8,7 @@ import matplotlib.pylab as plt
 import cv2
 import torch
 from diffusion_policy.common.pytorch_util import dict_apply
-from multimodal_robot_model.common import RolloutBase
+from multimodal_robot_model.common.rollout import RolloutBase
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 class RolloutDiffusionPolicy(RolloutBase):
