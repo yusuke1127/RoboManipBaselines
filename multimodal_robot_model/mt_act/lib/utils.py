@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from multimodal_robot_model.mt_act import CAMERA_NAMES, TEXT_EMBEDDINGS, TASKS
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def load_array(dir_path, glob_pattern):
     globbed_list = list(dir_path.glob(glob_pattern))
     assert len(globbed_list) == 1, f"{(dir_path, glob_pattern, globbed_list, len(globbed_list))=}"

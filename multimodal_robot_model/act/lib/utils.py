@@ -9,7 +9,7 @@ import IPython
 e = IPython.embed
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def load_array(dir_path, glob_pattern):
     globbed_list = list(dir_path.glob(glob_pattern))
     assert len(globbed_list) == 1

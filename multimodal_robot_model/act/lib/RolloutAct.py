@@ -70,7 +70,7 @@ class RolloutAct(RolloutBase):
             self.policy.load_state_dict(torch.load(ckpt_path))
         except RuntimeError as e:
             if "size mismatch" in str(e.self.args):
-                sys.stderr.write(f"\n{sys.stderr.name} {self.args.chunk_size=}\n\n")
+                sys.stderr.write(f"\n{sys.stderr.name} chunk_size: {self.args.chunk_size}\n\n")
             raise
         self.policy.cuda()
         self.policy.eval()
