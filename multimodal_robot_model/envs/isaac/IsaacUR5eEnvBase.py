@@ -38,7 +38,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup environment parameters
         self.skip_sim = 2
         self.dt = self.skip_sim * self.gym.get_sim_params(self.sim).dt
-        robot_dof_props = self.gym.get_actor_dof_properties(self.env, self.robot_handle)
+        robot_dof_props = self.gym.get_actor_dof_properties(self.env_list[0], self.robot_handle_list[0])
         self.action_space = Box(
             low=np.concatenate((robot_dof_props["lower"][0:6], np.array([0.0], dtype=np.float32))),
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
@@ -95,110 +95,130 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup task-specific assets
         self.setup_task_specific_assets()
 
+        # Setup variables
+        self.env_list = []
+        self.robot_handle_list = []
+        self.force_sensor_list = []
+        self.camera_handles_list = []
+        self.camera_properties_list = []
+        self.setup_task_specific_variables()
+
         # Setup env
-        spacing = 1.0
+        spacing = 0.5
         env_lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         env_upper = gymapi.Vec3(spacing, spacing, spacing)
-        self.env = self.gym.create_env(self.sim, env_lower, env_upper, 1)
+        num_envs = 1
 
-        # Setup viewer
-        if self.render_mode == "human":
-            self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
-            camera_origin_pos = gymapi.Vec3(1.0, 0.5, 1.0)
-            camera_lookat_pos = gymapi.Vec3(0.3, 0.0, 0.3)
-            self.gym.viewer_camera_look_at(self.viewer, self.env, camera_origin_pos, camera_lookat_pos)
-            self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_ESCAPE, "quit")
-            self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_Q, "quit")
-            self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_SPACE, "pause_resume")
+        for env_idx in range(num_envs):
+            env = self.gym.create_env(self.sim, env_lower, env_upper, int(num_envs**0.5))
+            self.env_list.append(env)
 
-        # Setup robot actor
-        robot_pose = gymapi.Transform(p=gymapi.Vec3(0, 0, 0))
-        self.robot_handle = self.gym.create_actor(self.env, self.robot_asset, robot_pose, "ur5e", 1, 0)
-        self.force_sensor = self.gym.get_actor_force_sensor(self.env, self.robot_handle, force_sensor_idx)
+            # Setup viewer
+            if (env_idx == 0) and (self.render_mode == "human"):
+                self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
+                camera_origin_pos = gymapi.Vec3(1.0, 0.5, 1.0)
+                camera_lookat_pos = gymapi.Vec3(0.3, 0.0, 0.3)
+                self.gym.viewer_camera_look_at(self.viewer, env, camera_origin_pos, camera_lookat_pos)
+                self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_ESCAPE, "quit")
+                self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_Q, "quit")
+                self.gym.subscribe_viewer_keyboard_event(self.viewer, gymapi.KEY_SPACE, "pause_resume")
 
-        # Setup gripper mimic joints
-        gripper_mimic_multiplier_map = {
-            "robotiq_85_left_knuckle_joint": 1.0,
-            "robotiq_85_right_knuckle_joint": -1.0,
-            "robotiq_85_left_inner_knuckle_joint": 1.0,
-            "robotiq_85_right_inner_knuckle_joint": -1.0,
-            "robotiq_85_left_finger_tip_joint": -1.0,
-            "robotiq_85_right_finger_tip_joint": 1.0,
-        }
-        self.gripper_mimic_multiplier_list = np.zeros(len(gripper_mimic_multiplier_map), dtype=np.float32)
-        for joint_name, mimic_multiplier in gripper_mimic_multiplier_map.items():
-            dof_idx = self.gym.find_actor_dof_index(self.env, self.robot_handle, joint_name, gymapi.DOMAIN_ACTOR)
-            self.gripper_mimic_multiplier_list[dof_idx - 6] = mimic_multiplier
+            # Setup robot actor
+            robot_pose = gymapi.Transform(p=gymapi.Vec3(0, 0, 0))
+            robot_handle = self.gym.create_actor(env, self.robot_asset, robot_pose, "ur5e", env_idx, 0)
+            self.robot_handle_list.append(robot_handle)
+            force_sensor = self.gym.get_actor_force_sensor(env, robot_handle, force_sensor_idx)
+            self.force_sensor_list.append(force_sensor)
 
-        # Setup joint control mode
-        robot_dof_props = self.gym.get_asset_dof_properties(self.robot_asset)
-        robot_dof_props["driveMode"][:] = gymapi.DOF_MODE_POS
-        robot_dof_props["armature"] = np.array([0.1] * 6 + [0.001] * 6, dtype=np.float32)
-        robot_dof_props["stiffness"] = np.array([2000, 2000, 2000, 500, 500, 500] + [400] * 6, dtype=np.int32)
-        robot_dof_props["damping"] = np.array([400, 400, 400, 100, 100, 100] + [80] * 6, dtype=np.int32)
-        self.gym.set_actor_dof_properties(self.env, self.robot_handle, robot_dof_props)
+            # Setup gripper mimic joints
+            if env_idx == 0:
+                gripper_mimic_multiplier_map = {
+                    "robotiq_85_left_knuckle_joint": 1.0,
+                    "robotiq_85_right_knuckle_joint": -1.0,
+                    "robotiq_85_left_inner_knuckle_joint": 1.0,
+                    "robotiq_85_right_inner_knuckle_joint": -1.0,
+                    "robotiq_85_left_finger_tip_joint": -1.0,
+                    "robotiq_85_right_finger_tip_joint": 1.0,
+                }
+                self.gripper_mimic_multiplier_list = np.zeros(len(gripper_mimic_multiplier_map), dtype=np.float32)
+                for joint_name, mimic_multiplier in gripper_mimic_multiplier_map.items():
+                    dof_idx = self.gym.find_actor_dof_index(env, robot_handle, joint_name, gymapi.DOMAIN_ACTOR)
+                    self.gripper_mimic_multiplier_list[dof_idx - 6] = mimic_multiplier
 
-        # Setup gripper command scale
-        gripper_dof_idx = self.gym.find_actor_dof_index(
-            self.env, self.robot_handle, "robotiq_85_left_knuckle_joint", gymapi.DOMAIN_ACTOR)
-        original_gripper_range = robot_dof_props["upper"][gripper_dof_idx] - robot_dof_props["lower"][gripper_dof_idx]
-        new_gripper_range = 255.0
-        self.gripper_command_scale = original_gripper_range / new_gripper_range
+            # Setup joint control mode
+            robot_dof_props = self.gym.get_asset_dof_properties(self.robot_asset)
+            robot_dof_props["driveMode"][:] = gymapi.DOF_MODE_POS
+            robot_dof_props["armature"] = np.array([0.1] * 6 + [0.001] * 6, dtype=np.float32)
+            robot_dof_props["stiffness"] = np.array([2000, 2000, 2000, 500, 500, 500] + [400] * 6, dtype=np.int32)
+            robot_dof_props["damping"] = np.array([400, 400, 400, 100, 100, 100] + [80] * 6, dtype=np.int32)
+            self.gym.set_actor_dof_properties(env, robot_handle, robot_dof_props)
 
-        # Setup joint control command
-        robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
-        self.init_robot_dof_state = np.zeros(robot_num_dofs, gymapi.DofState.dtype)
-        self.init_robot_dof_state["pos"] = self.get_robot_dof_pos_from_qpos(self.init_qpos)
-        self.gym.set_actor_dof_states(self.env, self.robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
-        self.gym.set_actor_dof_position_targets(self.env, self.robot_handle, self.init_robot_dof_state["pos"])
+            # Setup gripper command scale
+            if env_idx == 0:
+                gripper_dof_idx = self.gym.find_actor_dof_index(
+                    env, robot_handle, "robotiq_85_left_knuckle_joint", gymapi.DOMAIN_ACTOR)
+                original_gripper_range = robot_dof_props["upper"][gripper_dof_idx] - robot_dof_props["lower"][gripper_dof_idx]
+                new_gripper_range = 255.0
+                self.gripper_command_scale = original_gripper_range / new_gripper_range
 
-        # Setup task-specific actors
-        self.setup_task_specific_actors()
+            # Setup joint control command
+            if env_idx == 0:
+                robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
+                self.init_robot_dof_state = np.zeros(robot_num_dofs, gymapi.DofState.dtype)
+                self.init_robot_dof_state["pos"] = self.get_robot_dof_pos_from_qpos(self.init_qpos)
+            self.gym.set_actor_dof_states(env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
+            self.gym.set_actor_dof_position_targets(env, robot_handle, self.init_robot_dof_state["pos"])
 
-        # Setup task-specific cameras
-        self.camera_handles = {}
-        self.camera_properties = {}
-        self.setup_task_specific_cameras()
+            # Setup task-specific actors
+            self.setup_task_specific_actors(env_idx)
 
-        # Setup common cameras
-        camera_properties = gymapi.CameraProperties()
-        camera_properties.width = 640
-        camera_properties.height = 480
-        camera_handle = self.gym.create_camera_sensor(self.env, camera_properties)
-        body_handle = self.gym.find_actor_rigid_body_handle(self.env, self.robot_handle, "camera_link")
-        camera_pose_local = gymapi.Transform(p=gymapi.Vec3(0, -0.02, 0.005))
-        self.gym.attach_camera_to_body(
-            camera_handle, self.env, body_handle, camera_pose_local, gymapi.FOLLOW_TRANSFORM)
-        self.camera_handles["hand"] = camera_handle
-        self.camera_properties["hand"] = camera_properties
+            # Setup task-specific cameras
+            camera_handles = {}
+            camera_properties = {}
+            self.camera_handles_list.append(camera_handles)
+            self.camera_properties_list.append(camera_properties)
+            self.setup_task_specific_cameras(env_idx)
 
-        # Setup marker
-        self.box_geom_target = gymutil.WireframeBoxGeometry(0.08, 0.08, 0.12, color=(0, 1, 0))
-        self.box_geom_current = gymutil.WireframeBoxGeometry(0.08, 0.08, 0.12, color=(1, 0, 0))
+            # Setup common cameras
+            single_camera_properties = gymapi.CameraProperties()
+            single_camera_properties.width = 640
+            single_camera_properties.height = 480
+            camera_handle = self.gym.create_camera_sensor(env, single_camera_properties)
+            body_handle = self.gym.find_actor_rigid_body_handle(env, robot_handle, "camera_link")
+            camera_pose_local = gymapi.Transform(p=gymapi.Vec3(0, -0.02, 0.005))
+            self.gym.attach_camera_to_body(
+                camera_handle, env, body_handle, camera_pose_local, gymapi.FOLLOW_TRANSFORM)
+            camera_handles["hand"] = camera_handle
+            camera_properties["hand"] = single_camera_properties
 
         # Store state
         self.init_state = np.copy(self.gym.get_sim_rigid_body_states(self.sim, gymapi.STATE_ALL))
 
+    def setup_task_specific_variables(self):
+        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_variables is not implemented.")
+
     def setup_task_specific_assets(self):
         raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_assets is not implemented.")
 
-    def setup_task_specific_actors(self):
+    def setup_task_specific_actors(self, env_idx):
         raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_actors is not implemented.")
 
-    def setup_task_specific_cameras(self):
+    def setup_task_specific_cameras(self, env_idx):
         raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_cameras is not implemented.")
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
 
         self.gym.set_sim_rigid_body_states(self.sim, self.init_state, gymapi.STATE_ALL)
-        self.gym.set_actor_dof_states(self.env, self.robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
-        self.gym.set_actor_dof_position_targets(self.env, self.robot_handle, self.init_robot_dof_state["pos"])
+        for env, robot_handle in zip(self.env_list, self.robot_handle_list):
+          self.gym.set_actor_dof_states(env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
+          self.gym.set_actor_dof_position_targets(env, robot_handle, self.init_robot_dof_state["pos"])
 
-        observation = self._get_obs()
-        info = self._get_info()
+        observation_list = self._get_obs_list()
+        info_list = self._get_info_list()
 
-        return observation, info
+        # TODO: Treat all env results
+        return observation_list[0], info_list[0]
 
     def step(self, action):
         # Check key input
@@ -214,7 +234,8 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
         # Set joint command
         robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
-        self.gym.set_actor_dof_position_targets(self.env, self.robot_handle, robot_dof_pos)
+        for env, robot_handle in zip(self.env_list, self.robot_handle_list):
+            self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
 
         # Update simulation
         if not self._pause_flag:
@@ -226,49 +247,53 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         if self.render_mode == "human":
             self.render()
 
-        observation = self._get_obs()
+        observation_list = self._get_obs_list()
         reward = 0.0
         terminated = False
-        info = self._get_info()
+        info_list = self._get_info_list()
 
         # self.gym.sync_frame_time(self.sim)
 
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
-        return observation, reward, terminated, False, info
+        # TODO: Treat all env results
+        return observation_list[0], reward, terminated, False, info_list[0]
 
-    def _get_obs(self):
-        robot_dof_state = self.gym.get_actor_dof_states(self.env, self.robot_handle, gymapi.STATE_ALL)
+    def _get_obs_list(self):
+        obs_list = []
 
-        arm_qpos = robot_dof_state["pos"][0:6]
-        arm_qvel = robot_dof_state["vel"][0:6]
-        gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(robot_dof_state["pos"][6:12])
-        wrench = self.force_sensor.get_forces()
-        force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
-        torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
+        for env, robot_handle, force_sensor in zip(self.env_list, self.robot_handle_list, self.force_sensor_list):
+            robot_dof_state = self.gym.get_actor_dof_states(env, robot_handle, gymapi.STATE_ALL)
 
-        return np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque), dtype=np.float64)
+            arm_qpos = robot_dof_state["pos"][0:6]
+            arm_qvel = robot_dof_state["vel"][0:6]
+            gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(robot_dof_state["pos"][6:12])
+            wrench = force_sensor.get_forces()
+            force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
+            torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
-    def _get_info(self):
-        info = {}
+            obs = np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque), dtype=np.float64)
+            obs_list.append(obs)
 
-        if len(self.camera_names) == 0:
-            return info
+        return obs_list
 
+    def _get_info_list(self):
         # Update camera image
         self.gym.clear_lines(self.viewer)
         self.gym.render_all_camera_sensors(self.sim)
 
         # Get camera images
-        info["rgb_images"] = {}
-        info["depth_images"] = {}
-        for camera_name, camera_handle in self.camera_handles.items():
-            rgb_image = self.gym.get_camera_image(self.sim, self.env, camera_handle, gymapi.IMAGE_COLOR)
-            rgb_image = rgb_image.reshape(rgb_image.shape[0], -1, 4)[:, :, :3]
-            depth_image = -1 * self.gym.get_camera_image(self.sim, self.env, camera_handle, gymapi.IMAGE_DEPTH)
-            info["rgb_images"][camera_name] = rgb_image
-            info["depth_images"][camera_name] = depth_image
+        info_list = []
+        for env, camera_handles in zip(self.env_list, self.camera_handles_list):
+            info = {"rgb_images": {}, "depth_images": {}}
+            for camera_name, camera_handle in camera_handles.items():
+                rgb_image = self.gym.get_camera_image(self.sim, env, camera_handle, gymapi.IMAGE_COLOR)
+                rgb_image = rgb_image.reshape(rgb_image.shape[0], -1, 4)[:, :, :3]
+                depth_image = -1 * self.gym.get_camera_image(self.sim, env, camera_handle, gymapi.IMAGE_DEPTH)
+                info["rgb_images"][camera_name] = rgb_image
+                info["depth_images"][camera_name] = depth_image
+            info_list.append(info)
 
-        return info
+        return info_list
 
     def close(self):
         self.gym.destroy_viewer(self.viewer)
@@ -300,23 +325,23 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
     def get_link_pose(self, actor_name, link_name=None, link_idx=0):
         """Get link pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        actor_idx = self.gym.find_actor_index(self.env, actor_name, gymapi.DOMAIN_ENV)
+        actor_idx = self.gym.find_actor_index(self.env_list[0], actor_name, gymapi.DOMAIN_ENV)
         if link_name is not None:
-            link_idx = self.gym.find_actor_rigid_body_index(self.env, actor_idx, link_name, gymapi.DOMAIN_ACTOR)
+            link_idx = self.gym.find_actor_rigid_body_index(self.env_list[0], actor_idx, link_name, gymapi.DOMAIN_ACTOR)
         link_pose = gymapi.Transform.from_buffer(
-            self.gym.get_actor_rigid_body_states(self.env, actor_idx, gymapi.STATE_POS)["pose"][link_idx])
+            self.gym.get_actor_rigid_body_states(self.env_list[0], actor_idx, gymapi.STATE_POS)["pose"][link_idx])
         return np.array([link_pose.p.x, link_pose.p.y, link_pose.p.z,
                          link_pose.r.w, link_pose.r.x, link_pose.r.y, link_pose.r.z])
 
     @property
     def camera_names(self):
         """Camera names being measured."""
-        return self.camera_handles.keys()
+        return self.camera_handles_list[0].keys()
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        camera_properties = self.camera_properties[camera_name]
-        camera_fovy = camera_properties.height / camera_properties.width * camera_properties.horizontal_fov
+        single_camera_properties = self.camera_properties_list[0][camera_name]
+        camera_fovy = single_camera_properties.height / single_camera_properties.width * single_camera_properties.horizontal_fov
         return camera_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
