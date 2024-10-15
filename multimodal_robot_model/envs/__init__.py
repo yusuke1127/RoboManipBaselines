@@ -23,6 +23,10 @@ register(
     id="multimodal_robot_model/IsaacUR5eChainEnv-v0",
     entry_point="multimodal_robot_model.envs.isaac:IsaacUR5eChainEnv",
 )
+register(
+    id="multimodal_robot_model/IsaacUR5eCabinetEnv-v0",
+    entry_point="multimodal_robot_model.envs.isaac:IsaacUR5eCabinetEnv",
+)
 
 # Real
 register(

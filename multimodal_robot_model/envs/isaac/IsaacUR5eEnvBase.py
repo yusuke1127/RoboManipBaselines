@@ -145,7 +145,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
                     dof_idx = self.gym.find_actor_dof_index(env, robot_handle, joint_name, gymapi.DOMAIN_ACTOR)
                     self.gripper_mimic_multiplier_list[dof_idx - 6] = mimic_multiplier
 
-            # Setup joint control mode
+            # Setup robot joint control mode
             robot_dof_props = self.gym.get_asset_dof_properties(self.robot_asset)
             robot_dof_props["driveMode"][:] = gymapi.DOF_MODE_POS
             robot_dof_props["armature"] = np.array([0.1] * 6 + [0.001] * 6, dtype=np.float32)
@@ -161,7 +161,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
                 new_gripper_range = 255.0
                 self.gripper_command_scale = original_gripper_range / new_gripper_range
 
-            # Setup joint control command
+            # Setup robot joint control command
             if env_idx == 0:
                 robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
                 self.init_robot_dof_state = np.zeros(robot_num_dofs, gymapi.DofState.dtype)
@@ -193,6 +193,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
         # Store state
         self.init_state = np.copy(self.gym.get_sim_rigid_body_states(self.sim, gymapi.STATE_ALL))
+        self.original_init_state = np.copy(self.init_state)
 
     def setup_task_specific_variables(self):
         raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_variables is not implemented.")
@@ -210,15 +211,19 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         super().reset(seed=seed)
 
         self.gym.set_sim_rigid_body_states(self.sim, self.init_state, gymapi.STATE_ALL)
-        for env, robot_handle in zip(self.env_list, self.robot_handle_list):
-          self.gym.set_actor_dof_states(env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
-          self.gym.set_actor_dof_position_targets(env, robot_handle, self.init_robot_dof_state["pos"])
+        for env_idx, (env, robot_handle) in enumerate(zip(self.env_list, self.robot_handle_list)):
+            self.gym.set_actor_dof_states(env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL)
+            self.gym.set_actor_dof_position_targets(env, robot_handle, self.init_robot_dof_state["pos"])
+            self.reset_task_specific_actors(env_idx)
 
         observation_list = self._get_obs_list()
         info_list = self._get_info_list()
 
         # TODO: Treat all env results
         return observation_list[0], info_list[0]
+
+    def reset_task_specific_actors(self, env_idx):
+        pass
 
     def step(self, action):
         # Check key input
@@ -232,7 +237,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             self.close()
             return
 
-        # Set joint command
+        # Set robot joint command
         robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
         for env, robot_handle in zip(self.env_list, self.robot_handle_list):
             self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
