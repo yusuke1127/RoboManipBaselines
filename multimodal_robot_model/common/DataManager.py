@@ -152,8 +152,8 @@ class DataManager(object):
 
     def loadData(self, filename):
         """Load data."""
+        self.all_data_seq = {}
         npz_data = np.load(filename, allow_pickle=True)
-        self.all_data_seq = dict()
         for orig_key in npz_data.keys():
             new_key = DataKey.replaceDeprecatedKey(orig_key) # For backward compatibility
             self.all_data_seq[new_key] = np.copy(npz_data[orig_key])
