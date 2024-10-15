@@ -19,17 +19,21 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     def __init__(
         self,
         init_qpos,
+        num_envs=1,
         **kwargs,
     ):
         utils.EzPickle.__init__(
             self,
             init_qpos,
+            num_envs,
             **kwargs,
         )
 
         self.init_qpos = init_qpos
         self.render_mode = kwargs.get("render_mode")
-        self.setupSim()
+
+        # Setup Isaac Gym
+        self.setupSim(num_envs)
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
@@ -38,7 +42,8 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup environment parameters
         self.skip_sim = 2
         self.dt = self.skip_sim * self.gym.get_sim_params(self.sim).dt
-        robot_dof_props = self.gym.get_actor_dof_properties(self.env_list[0], self.robot_handle_list[0])
+        robot_dof_props = self.gym.get_actor_dof_properties(
+            self.env_list[self.rep_env_idx], self.robot_handle_list[self.rep_env_idx])
         self.action_space = Box(
             low=np.concatenate((robot_dof_props["lower"][0:6], np.array([0.0], dtype=np.float32))),
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
@@ -52,7 +57,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         self.quit_flag = False
         self.pause_flag = False
 
-    def setupSim(self):
+    def setupSim(self, num_envs):
+        # For visualization reasons, the last of the Isaac Gym parallel environments is considered representative
+        self.rep_env_idx = -1
+
         # Setup sim
         self.gym = gymapi.acquire_gym()
         sim_params = gymapi.SimParams()
@@ -107,7 +115,6 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         spacing = 0.5
         env_lower = gymapi.Vec3(-spacing, -spacing, 0.0)
         env_upper = gymapi.Vec3(spacing, spacing, spacing)
-        num_envs = 1
 
         for env_idx in range(num_envs):
             env = self.gym.create_env(self.sim, env_lower, env_upper, int(num_envs**0.5))
@@ -216,11 +223,11 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             self.gym.set_actor_dof_position_targets(env, robot_handle, self.init_robot_dof_state["pos"])
             self.reset_task_specific_actors(env_idx)
 
-        observation_list = self._get_obs_list()
-        info_list = self._get_info_list()
+        self.obs_list = self._get_obs_list()
+        self.info_list = self._get_info_list()
 
-        # TODO: Treat all env results
-        return observation_list[0], info_list[0]
+        # Return only the results of the representative environment to comply with the Gym API
+        return self.obs_list[self.rep_env_idx], self.info_list[self.rep_env_idx]
 
     def reset_task_specific_actors(self, env_idx):
         pass
@@ -252,16 +259,16 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         if self.render_mode == "human":
             self.render()
 
-        observation_list = self._get_obs_list()
+        self.obs_list = self._get_obs_list()
         reward = 0.0
         terminated = False
-        info_list = self._get_info_list()
+        self.info_list = self._get_info_list()
 
         # self.gym.sync_frame_time(self.sim)
 
+        # Return only the results of the representative environment to comply with the Gym API
         # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
-        # TODO: Treat all env results
-        return observation_list[0], reward, terminated, False, info_list[0]
+        return self.obs_list[self.rep_env_idx], reward, terminated, False, self.info_list[self.rep_env_idx]
 
     def _get_obs_list(self):
         obs_list = []
@@ -308,6 +315,11 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         self.gym.step_graphics(self.sim)
         self.gym.draw_viewer(self.viewer, self.sim, False)
 
+    @property
+    def num_envs(self):
+        """Get the number of the Isaac Gym parallel environments."""
+        return len(self.env_list)
+
     def get_arm_qpos_from_obs(self, obs):
         """Grm arm joint position (6D array) from observation."""
         return obs[0:6]
@@ -330,22 +342,23 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
     def get_link_pose(self, actor_name, link_name=None, link_idx=0):
         """Get link pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        actor_idx = self.gym.find_actor_index(self.env_list[0], actor_name, gymapi.DOMAIN_ENV)
+        env = self.env_list[self.rep_env_idx]
+        actor_idx = self.gym.find_actor_index(env, actor_name, gymapi.DOMAIN_ENV)
         if link_name is not None:
-            link_idx = self.gym.find_actor_rigid_body_index(self.env_list[0], actor_idx, link_name, gymapi.DOMAIN_ACTOR)
+            link_idx = self.gym.find_actor_rigid_body_index(env, actor_idx, link_name, gymapi.DOMAIN_ACTOR)
         link_pose = gymapi.Transform.from_buffer(
-            self.gym.get_actor_rigid_body_states(self.env_list[0], actor_idx, gymapi.STATE_POS)["pose"][link_idx])
+            self.gym.get_actor_rigid_body_states(env, actor_idx, gymapi.STATE_POS)["pose"][link_idx])
         return np.array([link_pose.p.x, link_pose.p.y, link_pose.p.z,
                          link_pose.r.w, link_pose.r.x, link_pose.r.y, link_pose.r.z])
 
     @property
     def camera_names(self):
         """Camera names being measured."""
-        return self.camera_handles_list[0].keys()
+        return self.camera_handles_list[self.rep_env_idx].keys()
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        single_camera_properties = self.camera_properties_list[0][camera_name]
+        single_camera_properties = self.camera_properties_list[self.rep_env_idx][camera_name]
         camera_fovy = single_camera_properties.height / single_camera_properties.width * single_camera_properties.horizontal_fov
         return camera_fovy
 

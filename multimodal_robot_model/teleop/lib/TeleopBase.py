@@ -62,10 +62,11 @@ class TeleopBase(object):
                         world_idx = self.args.world_idx_list[self.data_manager.data_idx % len(self.args.world_idx_list)]
                 else:
                     self.data_manager.loadData(self.args.replay_log)
+                    print("- Load teleoperation data: {}".format(self.args.replay_log))
                     world_idx = self.data_manager.getData("world_idx").tolist()
                 self.data_manager.setupSimWorld(world_idx)
                 obs, info = self.env.reset()
-                print("== [{}] data_idx: {}, world_idx: {} ==".format(
+                print("[{}] data_idx: {}, world_idx: {}".format(
                     self.demo_name, self.data_manager.data_idx, self.data_manager.world_idx))
                 print("- Press the 'n' key to start automatic grasping.")
                 self.reset_flag = False
