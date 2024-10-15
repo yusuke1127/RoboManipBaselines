@@ -19,12 +19,12 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
 
         self.original_fook_pos = self.get_link_pose("fook", "box")[0:3]
         self.fook_pos_offsets = np.array([
-            [0.0, -0.10, 0.0],
-            [0.0, -0.06, 0.0],
-            [0.0, -0.02, 0.0],
-            [0.0, 0.02, 0.0],
-            [0.0, 0.06, 0.0],
-            [0.0, 0.10, 0.0],
+            [0.0, -0.15, 0.0],
+            [0.0, -0.09, 0.0],
+            [0.0, -0.03, 0.0],
+            [0.0, 0.03, 0.0],
+            [0.0, 0.09, 0.0],
+            [0.0, 0.15, 0.0],
         ]) # [m]
 
     def setup_task_specific_variables(self):
