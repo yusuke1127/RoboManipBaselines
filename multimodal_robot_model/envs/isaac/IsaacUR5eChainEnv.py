@@ -27,6 +27,16 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
             [0.0, 0.15, 0.0],
         ]) # [m]
 
+    def get_sim_params(self):
+        sim_params = super().get_sim_params()
+        sim_params.substeps = 4
+        sim_params.physx.num_position_iterations = 8
+        sim_params.physx.rest_offset = 0.0
+        sim_params.physx.contact_offset = 0.0005
+        sim_params.physx.friction_offset_threshold = 0.001
+        sim_params.physx.friction_correlation_distance = 0.0005
+        return sim_params
+
     def setup_task_specific_variables(self):
         self.chain_handles_list = []
         self.fook_handle_list = []

@@ -27,6 +27,12 @@ class IsaacUR5eCabinetEnv(IsaacUR5eEnvBase):
             [0.0, 0.15, 0.0],
         ]) # [m]
 
+    def get_sim_params(self):
+        sim_params = super().get_sim_params()
+        sim_params.physx.rest_offset = 0.0001
+        sim_params.physx.contact_offset = 0.002
+        return sim_params
+
     def setup_task_specific_variables(self):
         self.cabinet_handle_list = []
 
@@ -54,8 +60,8 @@ class IsaacUR5eCabinetEnv(IsaacUR5eEnvBase):
         # Setup cabinet joint control mode
         cabinet_dof_props = self.gym.get_asset_dof_properties(self.cabinet_asset)
         cabinet_dof_props["driveMode"].fill(gymapi.DOF_MODE_POS)
-        cabinet_dof_props["stiffness"].fill(10.0)
-        cabinet_dof_props["damping"].fill(1.0)
+        cabinet_dof_props["stiffness"].fill(0.025)
+        cabinet_dof_props["damping"].fill(0.1)
         self.gym.set_actor_dof_properties(env, cabinet_handle, cabinet_dof_props)
 
         # Setup cabinet joint control command

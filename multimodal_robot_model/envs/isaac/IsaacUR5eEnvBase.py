@@ -63,22 +63,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
         # Setup sim
         self.gym = gymapi.acquire_gym()
-        sim_params = gymapi.SimParams()
-        sim_params.up_axis = gymapi.UP_AXIS_Z
-        sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.80665) # [m/s^2]
-        sim_params.dt = 1.0 / 60.0 # [s]
-        sim_params.substeps = 4
-        sim_params.use_gpu_pipeline = False
-        sim_params.physx.solver_type = 1
-        sim_params.physx.num_position_iterations = 8
-        sim_params.physx.num_velocity_iterations = 1
-        sim_params.physx.rest_offset = 0.0
-        sim_params.physx.contact_offset = 0.0005
-        sim_params.physx.friction_offset_threshold = 0.001
-        sim_params.physx.friction_correlation_distance = 0.0005
-        sim_params.physx.num_threads = 0
-        sim_params.physx.use_gpu = True # False
-        self.sim = self.gym.create_sim(0, 0, gymapi.SIM_PHYSX, sim_params)
+        self.sim = self.gym.create_sim(0, 0, gymapi.SIM_PHYSX, self.get_sim_params())
 
         # Setup robot asset
         robot_asset_root = path.join(path.dirname(__file__), "../assets/isaac/robots/ur5e")
@@ -201,6 +186,24 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Store state
         self.init_state = np.copy(self.gym.get_sim_rigid_body_states(self.sim, gymapi.STATE_ALL))
         self.original_init_state = np.copy(self.init_state)
+
+    def get_sim_params(self):
+        sim_params = gymapi.SimParams()
+        sim_params.up_axis = gymapi.UP_AXIS_Z
+        sim_params.gravity = gymapi.Vec3(0.0, 0.0, -9.80665) # [m/s^2]
+        sim_params.dt = 1.0 / 60.0 # [s]
+        sim_params.substeps = 2
+        sim_params.use_gpu_pipeline = False
+        sim_params.physx.solver_type = 1
+        sim_params.physx.num_position_iterations = 4
+        sim_params.physx.num_velocity_iterations = 1
+        sim_params.physx.rest_offset = 0.001
+        sim_params.physx.contact_offset = 0.02
+        sim_params.physx.friction_offset_threshold = 0.04
+        sim_params.physx.friction_correlation_distance = 0.025
+        sim_params.physx.num_threads = 0
+        sim_params.physx.use_gpu = True # False
+        return sim_params
 
     def setup_task_specific_variables(self):
         raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_variables is not implemented.")
