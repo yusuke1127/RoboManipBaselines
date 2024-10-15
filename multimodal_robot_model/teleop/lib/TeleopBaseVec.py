@@ -68,18 +68,11 @@ class TeleopBaseVec(TeleopBase):
                     DataKey.MEASURED_JOINT_POS,
                     [self.motion_manager.getJointPos(obs) for obs in obs_list])
                 self.data_manager.appendSingleData(
+                    DataKey.COMMAND_JOINT_POS,
+                    [action] * self.env.unwrapped.num_envs)
+                self.data_manager.appendSingleData(
                     DataKey.MEASURED_JOINT_VEL,
                     [self.motion_manager.getJointVel(obs) for obs in obs_list])
-                for camera_name in self.env.unwrapped.camera_names:
-                    self.data_manager.appendSingleData(
-                        DataKey.getRgbImageKey(camera_name),
-                        [info["rgb_images"][camera_name] for info in info_list])
-                    self.data_manager.appendSingleData(
-                        DataKey.getDepthImageKey(camera_name),
-                        [info["depth_images"][camera_name] for info in info_list])
-                self.data_manager.appendSingleData(
-                    DataKey.MEASURED_WRENCH,
-                    [self.motion_manager.getEefWrench(obs) for obs in obs_list])
                 self.data_manager.appendSingleData(
                     DataKey.MEASURED_EEF_POSE,
                     [self.motion_manager.getMeasuredEef(obs) for obs in obs_list])
@@ -87,8 +80,15 @@ class TeleopBaseVec(TeleopBase):
                     DataKey.COMMAND_EEF_POSE,
                     [self.motion_manager.getCommandEef()] * self.env.unwrapped.num_envs)
                 self.data_manager.appendSingleData(
-                    DataKey.COMMAND_JOINT_POS,
-                    [action] * self.env.unwrapped.num_envs)
+                    DataKey.MEASURED_WRENCH,
+                    [self.motion_manager.getEefWrench(obs) for obs in obs_list])
+                for camera_name in self.env.unwrapped.camera_names:
+                    self.data_manager.appendSingleData(
+                        DataKey.getRgbImageKey(camera_name),
+                        [info["rgb_images"][camera_name] for info in info_list])
+                    self.data_manager.appendSingleData(
+                        DataKey.getDepthImageKey(camera_name),
+                        [info["depth_images"][camera_name] for info in info_list])
 
             # Step environment
             self.env.step(action)
