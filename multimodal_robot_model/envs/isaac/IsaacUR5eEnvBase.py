@@ -59,7 +59,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
     def setupSim(self, num_envs):
         # For visualization reasons, the last of the Isaac Gym parallel environments is considered representative
-        self.rep_env_idx = -1
+        self.rep_env_idx = num_envs - 1
 
         # Setup sim
         self.gym = gymapi.acquire_gym()
@@ -121,7 +121,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             self.env_list.append(env)
 
             # Setup viewer
-            if (env_idx == 0) and (self.render_mode == "human"):
+            if (env_idx == self.rep_env_idx) and (self.render_mode == "human"):
                 self.viewer = self.gym.create_viewer(self.sim, gymapi.CameraProperties())
                 camera_origin_pos = gymapi.Vec3(1.0, 0.5, 1.0)
                 camera_lookat_pos = gymapi.Vec3(0.3, 0.0, 0.3)
