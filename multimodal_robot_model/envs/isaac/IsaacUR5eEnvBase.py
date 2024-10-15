@@ -49,8 +49,8 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         )
 
         # Setup internal variables
-        self._quit_flag = False
-        self._pause_flag = False
+        self.quit_flag = False
+        self.pause_flag = False
 
     def setupSim(self):
         # Setup sim
@@ -230,10 +230,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         if self.render_mode == "human":
             for evt in self.gym.query_viewer_action_events(self.viewer):
                 if evt.action == "quit" and evt.value > 0:
-                    self._quit_flag = True
+                    self.quit_flag = True
                 elif evt.action == "pause_resume" and evt.value > 0:
-                    self._pause_flag = not self._pause_flag
-        if self._quit_flag:
+                    self.pause_flag = not self.pause_flag
+        if self.quit_flag:
             self.close()
             return
 
@@ -243,7 +243,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
 
         # Update simulation
-        if not self._pause_flag:
+        if not self.pause_flag:
             for _ in range(self.skip_sim):
                 self.gym.simulate(self.sim)
         self.gym.fetch_results(self.sim, True)
