@@ -19,5 +19,6 @@ setup(
         "opencv-python",
         "pycryptodomex",
         "gnupg",
+        "numba",
     ],
 )
