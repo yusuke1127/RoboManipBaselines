@@ -5,6 +5,7 @@ import numpy as np
 import os
 from datetime import datetime, timedelta
 from enum import Enum, auto
+from numba import njit
 from tqdm import tqdm
 
 GREEN = (0, 128, 0)
@@ -128,7 +129,7 @@ class TaskEventHandler:
         else:
             raise AssertionError(f"{self.state=}")
 
-
+@njit
 def is_white(frame, px_bright_thresh=10, img_px_ratio_thresh=0.9):
     px_bright = np.sum(
         255 * 3 - px_bright_thresh <= frame.sum(axis=2)
