@@ -48,6 +48,8 @@ class TeleopBase(object):
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
+        iteration_duration_list = []
+
         while True:
             iteration_start_time = time.time()
 
@@ -121,8 +123,18 @@ class TeleopBase(object):
                 break
 
             iteration_duration = time.time() - iteration_start_time
+            if self.data_manager.status == MotionStatus.TELEOP:
+                iteration_duration_list.append(iteration_duration)
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
+
+        print("- Statistics on teleoperation")
+        if len(iteration_duration_list) > 0:
+            iteration_duration_list = np.array(iteration_duration_list)
+            print(f"  - Real-time factor | {self.env.unwrapped.dt / iteration_duration_list.mean():.2f}")
+            print("  - Iteration duration [s] | "
+                  f"mean: {iteration_duration_list.mean():.3f}, std: {iteration_duration_list.std():.3f} "
+                  f"min: {iteration_duration_list.min():.3f}, max: {iteration_duration_list.max():.3f}")
 
         # self.env.close()
 
