@@ -7,6 +7,11 @@ Install [ur_rtde](https://sdurobotics.gitlab.io/ur_rtde/installation/installatio
 $ pip install ur_rtde
 ```
 
+Install [Python wrapper of Intel RealSense SDK](https://github.com/IntelRealSense/librealsense/blob/master/wrappers/python/readme.md) by the following commands.
+```console
+$ pip install pyrealsense2
+```
+
 Install [gello_software](https://github.com/wuphilipp/gello_software) by the following commands.
 ```console
 $ # Go to the top directory of this repository
