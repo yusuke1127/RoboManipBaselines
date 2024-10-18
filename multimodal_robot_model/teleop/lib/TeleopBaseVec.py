@@ -60,10 +60,8 @@ class TeleopBaseVec(TeleopBase):
                 self.motion_manager.inverseKinematics()
 
                 action = self.motion_manager.getAction()
-                if self.data_manager.status == MotionStatus.TELEOP:
-                    action_list = self.env.unwrapped.get_fluctuated_action_list(action)
-                else:
-                    action_list = [action] * self.env.unwrapped.num_envs
+                update_fluctuation = (self.data_manager.status == MotionStatus.TELEOP)
+                action_list = self.env.unwrapped.get_fluctuated_action_list(action, update_fluctuation)
 
             # Record data
             if self.data_manager.status == MotionStatus.TELEOP and self.args.replay_log is None:

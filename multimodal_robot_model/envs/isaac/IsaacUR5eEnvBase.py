@@ -397,10 +397,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     def get_gripper_pos_from_gripper_dof_pos(self, gripper_dof_pos):
         return (gripper_dof_pos / (self.gripper_command_scale * self.gripper_mimic_multiplier_list)).mean(keepdims=True)
 
-    def get_fluctuated_action_list(self, action):
+    def get_fluctuated_action_list(self, action, update_fluctuation=True):
         action_list = []
         for env_idx in range(self.num_envs):
-            if env_idx != self.rep_env_idx:
+            if update_fluctuation and (env_idx != self.rep_env_idx):
                 # Set action fluctuation by random walk
                 self.action_fluctuation_list[env_idx] += np.random.normal(scale=self.action_fluctuation_scale)
             action_list.append(action + self.action_fluctuation_list[env_idx])
