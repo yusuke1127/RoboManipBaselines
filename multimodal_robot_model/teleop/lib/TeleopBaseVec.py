@@ -58,6 +58,10 @@ class TeleopBaseVec(TeleopBase):
                 self.motion_manager.inverseKinematics()
 
                 action = self.motion_manager.getAction()
+                if self.data_manager.status == MotionStatus.TELEOP:
+                    action_list = self.env.unwrapped.get_fluctuated_action_list(action)
+                else:
+                    action_list = [action] * self.env.unwrapped.num_envs
 
             # Record data
             if self.data_manager.status == MotionStatus.TELEOP and self.args.replay_log is None:
@@ -69,13 +73,14 @@ class TeleopBaseVec(TeleopBase):
                     [self.motion_manager.getJointPos(obs) for obs in obs_list])
                 self.data_manager.appendSingleData(
                     DataKey.COMMAND_JOINT_POS,
-                    [action] * self.env.unwrapped.num_envs)
+                    action_list)
                 self.data_manager.appendSingleData(
                     DataKey.MEASURED_JOINT_VEL,
                     [self.motion_manager.getJointVel(obs) for obs in obs_list])
                 self.data_manager.appendSingleData(
                     DataKey.MEASURED_EEF_POSE,
                     [self.motion_manager.getMeasuredEef(obs) for obs in obs_list])
+                # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
                 self.data_manager.appendSingleData(
                     DataKey.COMMAND_EEF_POSE,
                     [self.motion_manager.getCommandEef()] * self.env.unwrapped.num_envs)
@@ -91,6 +96,7 @@ class TeleopBaseVec(TeleopBase):
                         [info["depth_images"][camera_name] for info in info_list])
 
             # Step environment
+            self.env.unwrapped.action_list = action_list
             self.env.step(action)
             obs_list, info_list = self.env.unwrapped.obs_list, self.env.unwrapped.info_list
 

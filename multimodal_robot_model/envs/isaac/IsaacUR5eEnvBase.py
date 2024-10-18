@@ -52,6 +52,11 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         self.observation_space = Box(
             low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
         )
+        self.action_list = None
+        self.obs_list = None
+        self.info_list = None
+        self.action_fluctuation_scale = np.array([np.deg2rad(0.2)] * 6 + [0.0], dtype=np.float32)
+        self.action_fluctuation_list = [np.zeros(self.action_space.shape, dtype=np.float32) for env_idx in range(self.num_envs)]
 
         # Setup internal variables
         self.quit_flag = False
@@ -248,9 +253,14 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             return
 
         # Set robot joint command
-        robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
-        for env, robot_handle in zip(self.env_list, self.robot_handle_list):
+        for env_idx, (env, robot_handle) in enumerate(zip(self.env_list, self.robot_handle_list)):
+            if self.action_list is None:
+                if env_idx == 0:
+                    robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
+            else:
+                robot_dof_pos = self.get_robot_dof_pos_from_qpos(self.action_list[env_idx])
             self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
+        self.action_list = None
 
         # Update simulation
         if not self.pause_flag:
@@ -386,3 +396,12 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
 
     def get_gripper_pos_from_gripper_dof_pos(self, gripper_dof_pos):
         return (gripper_dof_pos / (self.gripper_command_scale * self.gripper_mimic_multiplier_list)).mean(keepdims=True)
+
+    def get_fluctuated_action_list(self, action):
+        action_list = []
+        for env_idx in range(self.num_envs):
+            if env_idx != self.rep_env_idx:
+                # Set action fluctuation by random walk
+                self.action_fluctuation_list[env_idx] += np.random.normal(scale=self.action_fluctuation_scale)
+            action_list.append(action + self.action_fluctuation_list[env_idx])
+        return action_list
