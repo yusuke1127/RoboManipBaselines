@@ -118,7 +118,7 @@
     </inertial>
   </link>
   <joint name="door" type="revolute">
-    <origin xyz="0.0 0.1 0.305"/>
+    <origin xyz="0.0 0.101 0.306"/>
     <axis xyz="1 0 0"/>
     <limit lower="-6.28" upper="0.0" effort="1.0" velocity="1.0"/>
     <parent link="base_link"/>

@@ -27,6 +27,16 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
             [0.0, 0.15, 0.0],
         ]) # [m]
 
+    def get_sim_params(self):
+        sim_params = super().get_sim_params()
+        sim_params.substeps = 4
+        sim_params.physx.num_position_iterations = 8
+        sim_params.physx.rest_offset = 0.0
+        sim_params.physx.contact_offset = 0.0005
+        sim_params.physx.friction_offset_threshold = 0.001
+        sim_params.physx.friction_correlation_distance = 0.0005
+        return sim_params
+
     def setup_task_specific_variables(self):
         self.chain_handles_list = []
         self.fook_handle_list = []
@@ -102,16 +112,16 @@ class IsaacUR5eChainEnv(IsaacUR5eEnvBase):
         single_camera_properties.height = 480
 
         camera_handle = self.gym.create_camera_sensor(env, single_camera_properties)
-        camera_pos = gymapi.Vec3(0.9, 0.0, 0.45)
-        camera_dir = gymapi.Vec3(-1.0, 0.0, -0.4)
-        self.gym.set_camera_location(camera_handle, env, camera_pos, camera_dir)
+        camera_origin_pos = gymapi.Vec3(0.9, 0.0, 0.45)
+        camera_lookat_pos = gymapi.Vec3(-1.0, 0.0, -0.4)
+        self.gym.set_camera_location(camera_handle, env, camera_origin_pos, camera_lookat_pos)
         camera_handles["front"] = camera_handle
         camera_properties["front"] = single_camera_properties
 
         camera_handle = self.gym.create_camera_sensor(env, single_camera_properties)
-        camera_pos = gymapi.Vec3(0.3, -0.8, 0.5)
-        camera_dir = gymapi.Vec3(0.0, 1.0, 0.0)
-        self.gym.set_camera_location(camera_handle, env, camera_pos, camera_dir)
+        camera_origin_pos = gymapi.Vec3(0.3, -0.8, 0.3)
+        camera_lookat_pos = gymapi.Vec3(0.3, 0.8, 0.3)
+        self.gym.set_camera_location(camera_handle, env, camera_origin_pos, camera_lookat_pos)
         camera_handles["side"] = camera_handle
         camera_properties["side"] = single_camera_properties
 
