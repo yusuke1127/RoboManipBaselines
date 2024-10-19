@@ -20,6 +20,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--in_dir", type=str, default="./data/")
 parser.add_argument("--out_dir", type=str, default="./data/")
 parser.add_argument("--train_ratio", type=float, required=False)
+parser.add_argument("--test_ratio", type=float, required=False)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("--test_keywords", nargs="*", required=False)
 parser.add_argument("--skip", type=int, default=1)
@@ -136,12 +137,18 @@ if __name__ == "__main__":
 
     # Set dataset index
     train_idx_list, test_idx_list = list(), list()
+    if (args.train_ratio is None) and (args.test_ratio is not None):
+        raise ValueError("The \"test_ratio\" option is available only when the \"train_ratio\" option is given.")
     if args.train_ratio is not None:
         random_idx_list = list(range(len(in_file_names)))
         random.shuffle(random_idx_list)
-        train_len = int(np.clip(args.train_ratio, 0.0, 1.0) * len(in_file_names))
+        train_len = max(int(np.clip(args.train_ratio, 0.0, 1.0) * len(in_file_names)), 1)
         train_idx_list = random_idx_list[:train_len]
-        test_idx_list = random_idx_list[train_len:]
+        if args.test_ratio is None:
+            test_idx_list = random_idx_list[train_len:]
+        else:
+            test_len = max(int(np.clip(args.test_ratio, 0.0, 1.0) * len(in_file_names)), 1)
+            test_idx_list = random_idx_list[-test_len:]
     elif args.train_keywords is not None:
         for idx, in_file_name in enumerate(in_file_names):
             if any([(w in in_file_name) for w in args.train_keywords]):
