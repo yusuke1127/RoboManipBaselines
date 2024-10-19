@@ -7,8 +7,8 @@
       <geometry>
         <box size="0.15 0.2 0.01"/>
       </geometry>
-      <material name="brown_light">
-        <color rgba="0.65 0.50 0.18 1.0"/>
+      <material name="light_green">
+        <color rgba="0.1 0.8 0.1 1.0"/>
       </material>
     </visual>
     <collision>
@@ -27,8 +27,8 @@
       <geometry>
         <box size="0.15 0.2 0.01"/>
       </geometry>
-      <material name="brown_dark">
-        <color rgba="0.45 0.30 0.18 1.0"/>
+      <material name="light_brown">
+        <color rgba="0.65 0.50 0.18 1.0"/>
       </material>
     </visual>
     <collision>
@@ -44,15 +44,15 @@
   <link name="wall1">
     <visual>
       <geometry>
-        <box size="0.15 0.01 0.25"/>
+        <box size="0.13 0.01 0.25"/>
       </geometry>
-      <material name="brown_dark">
-        <color rgba="0.45 0.30 0.18 1.0"/>
+      <material name="pink">
+        <color rgba="0.8 0.1 0.5 1.0"/>
       </material>
     </visual>
     <collision>
       <geometry>
-        <box size="0.15 0.01 0.25"/>
+        <box size="0.13 0.01 0.25"/>
       </geometry>
     </collision>
     <inertial>
@@ -65,8 +65,8 @@
       <geometry>
         <box size="0.15 0.01 0.3"/>
       </geometry>
-      <material name="brown_dark">
-        <color rgba="0.45 0.30 0.18 1.0"/>
+      <material name="light_brown">
+        <color rgba="0.65 0.50 0.18 1.0"/>
       </material>
     </visual>
     <collision>
@@ -84,8 +84,8 @@
       <geometry>
         <box size="0.01 0.2 0.3"/>
       </geometry>
-      <material name="brown_dark">
-        <color rgba="0.45 0.30 0.18 1.0"/>
+      <material name="light_brown">
+        <color rgba="0.65 0.50 0.18 1.0"/>
       </material>
     </visual>
     <collision>
@@ -103,8 +103,8 @@
       <geometry>
         <box size="0.01 0.2 0.3"/>
       </geometry>
-      <material name="brown_dark">
-        <color rgba="0.45 0.30 0.18 1.0"/>
+      <material name="light_brown">
+        <color rgba="0.65 0.50 0.18 1.0"/>
       </material>
     </visual>
     <collision>
