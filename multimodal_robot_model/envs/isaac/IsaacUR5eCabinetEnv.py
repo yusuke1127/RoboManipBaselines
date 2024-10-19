@@ -81,8 +81,8 @@ class IsaacUR5eCabinetEnv(IsaacUR5eEnvBase):
         single_camera_properties.height = 480
 
         camera_handle = self.gym.create_camera_sensor(env, single_camera_properties)
-        camera_origin_pos = gymapi.Vec3(1.1, 0.0, 0.5)
-        camera_lookat_pos = gymapi.Vec3(0.0, 0.0, 0.0)
+        camera_origin_pos = gymapi.Vec3(-0.1, 0.5, 0.4)
+        camera_lookat_pos = gymapi.Vec3(0.3, 0.0, 0.3)
         self.gym.set_camera_location(camera_handle, env, camera_origin_pos, camera_lookat_pos)
         camera_handles["front"] = camera_handle
         camera_properties["front"] = single_camera_properties

@@ -19,7 +19,7 @@ class TeleopIsaacUR5eCabinet(TeleopBase):
             if self.data_manager.status == MotionStatus.PRE_REACH:
                 target_pos += np.array([0.33, 0.0, 0.3]) # [m]
             elif self.data_manager.status == MotionStatus.REACH:
-                target_pos += np.array([0.38, 0.0, 0.3]) # [m]
+                target_pos += np.array([0.33, 0.0, 0.3]) # [m]
             self.motion_manager.target_se3.translation = target_pos
         else:
             super().setArmCommand()
