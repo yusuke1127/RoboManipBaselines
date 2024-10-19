@@ -55,7 +55,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         self.action_list = None
         self.obs_list = None
         self.info_list = None
-        self.action_fluctuation_scale = np.array([np.deg2rad(0.2)] * 6 + [0.0], dtype=np.float32)
+        self.action_fluctuation_scale = np.array([np.deg2rad(0.1)] * 6 + [0.0], dtype=np.float32)
         self.action_fluctuation_list = [np.zeros(self.action_space.shape, dtype=np.float32) for env_idx in range(self.num_envs)]
 
         # Setup internal variables

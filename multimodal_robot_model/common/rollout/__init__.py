@@ -8,6 +8,7 @@ from .RolloutMujocoUR5eCloth import RolloutMujocoUR5eCloth
 
 # Isaac
 from .RolloutIsaacUR5eChain import RolloutIsaacUR5eChain
+from .RolloutIsaacUR5eCabinet import RolloutIsaacUR5eCabinet
 
 # Real
 from .RolloutRealUR5eGear import RolloutRealUR5eGear
