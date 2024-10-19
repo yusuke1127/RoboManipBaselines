@@ -133,19 +133,30 @@ class TeleopBaseVec(TeleopBase):
 
     def saveData(self):
         filename_list = []
-        for env_idx in range(self.env.unwrapped.num_envs):
-            filename = "teleop_data/{}/env{:0>1}/{}_env{:0>1}_{:0>3}_{:0>3}.npz".format(
+        aug_idx = 0
+        for env_idx, success in enumerate(self.env.unwrapped.success_list):
+            if not success:
+                filename_list.append(None)
+                continue
+            if env_idx == self.env.unwrapped.rep_env_idx:
+                extra_label = "nominal"
+            else:
+                extra_label = f"augmented{aug_idx:0>3}"
+                aug_idx += 1
+            filename = "teleop_data/{}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.npz".format(
                 self.demo_name, self.data_manager.world_idx,
-                self.demo_name, self.data_manager.world_idx, self.data_manager.data_idx,
-                env_idx)
+                self.demo_name, self.data_manager.world_idx,
+                self.data_manager.data_idx, extra_label)
             filename_list.append(filename)
         if self.args.compress_rgb:
             print("- Compress rgb images")
             for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compressData(DataKey.getRgbImageKey(camera_name), "jpg")
+                self.data_manager.compressData(
+                    DataKey.getRgbImageKey(camera_name), "jpg", filter_list=list(map(bool, filename_list)))
         if self.args.compress_depth:
             print("- Compress depth images")
             for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compressData(DataKey.getDepthImageKey(camera_name), "exr")
+                self.data_manager.compressData(
+                    DataKey.getDepthImageKey(camera_name), "exr", filter_list=list(map(bool, filename_list)))
         self.data_manager.saveData(filename_list)
         print("- Teleoperation succeeded: Save the data as {}, etc.".format(filename_list[0]))

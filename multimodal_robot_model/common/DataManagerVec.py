@@ -50,10 +50,12 @@ class DataManagerVec(DataManager):
             data_seq_list.append(data_seq)
         return data_seq_list
 
-    def compressData(self, key, compress_flag):
+    def compressData(self, key, compress_flag, filter_list=None):
         """Compress data."""
         key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
-        for all_data_seq in self.all_data_seq_list:
+        for data_idx, all_data_seq in enumerate(self.all_data_seq_list):
+            if (filter_list is not None) and (not filter_list[data_idx]):
+                continue
             for time_idx, data in enumerate(all_data_seq[key]):
                 if compress_flag == "jpg":
                     all_data_seq[key][time_idx] = cv2.imencode(".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95))[1]
@@ -77,6 +79,8 @@ class DataManagerVec(DataManager):
                     all_data_seq[key] = np.array(all_data_seq[key], dtype=object)
 
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
+            if filename is None:
+                continue
             os.makedirs(os.path.dirname(filename), exist_ok=True)
             np.savez(filename, **all_data_seq, **self.general_info, **self.world_info, **self.camera_info)
 
