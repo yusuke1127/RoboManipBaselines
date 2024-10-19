@@ -53,6 +53,11 @@ $ python ./bin/train.py \
 --num_epochs 1000 --lr 1e-5 \
 --seed 0
 ```
+Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
+In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `train.py` to a small value.
+```console
+RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at non-singleton dimension 0
+```
 
 ## Policy rollout
 Rollout the ACT in the simulation by the following commands.
