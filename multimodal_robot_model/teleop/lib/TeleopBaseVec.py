@@ -34,7 +34,8 @@ class TeleopBaseVec(TeleopBase):
                     world_idx = self.data_manager.getData("world_idx").tolist()
                 self.data_manager.setupSimWorld(world_idx)
                 self.env.reset()
-                obs_list, info_list = self.env.unwrapped.obs_list, self.env.unwrapped.info_list
+                obs_list = self.env.unwrapped.obs_list
+                info_list = self.env.unwrapped.info_list
                 print("[{}] data_idx: {}, world_idx: {}".format(
                     self.demo_name, self.data_manager.data_idx, self.data_manager.world_idx))
                 print("- Press the 'n' key to start automatic grasping.")
@@ -98,7 +99,9 @@ class TeleopBaseVec(TeleopBase):
             # Step environment
             self.env.unwrapped.action_list = action_list
             self.env.step(action)
-            obs_list, info_list = self.env.unwrapped.obs_list, self.env.unwrapped.info_list
+            obs_list = self.env.unwrapped.obs_list
+            info_list = self.env.unwrapped.info_list
+            success_list = self.env.unwrapped.success_list
 
             # Draw images
             self.drawImage(info_list[self.env.unwrapped.rep_env_idx])

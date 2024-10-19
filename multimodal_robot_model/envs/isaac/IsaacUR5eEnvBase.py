@@ -276,6 +276,7 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         reward = 0.0
         terminated = False
         self.info_list = self._get_info_list()
+        self.success_list = self._get_success_list()
 
         # self.gym.sync_frame_time(self.sim)
 
@@ -319,6 +320,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             info_list.append(info)
 
         return info_list
+
+    def _get_success_list(self):
+        # Intended to be overridden in derived classes
+        return [False] * self.num_envs
 
     def close(self):
         self.gym.destroy_viewer(self.viewer)

@@ -100,6 +100,14 @@ class IsaacUR5eCabinetEnv(IsaacUR5eEnvBase):
         self.gym.set_actor_dof_states(env, cabinet_handle, self.init_cabinet_dof_state, gymapi.STATE_ALL)
         self.gym.set_actor_dof_position_targets(env, cabinet_handle, self.init_cabinet_dof_state["pos"])
 
+    def _get_success_list(self):
+        success_list = []
+        for env, cabinet_handle in zip(self.env_list, self.cabinet_handle_list):
+            door_angle = self.gym.get_actor_dof_states(env, cabinet_handle, gymapi.STATE_POS)["pos"][0]
+            success = (door_angle < np.deg2rad(-75))
+            success_list.append(success)
+        return success_list
+
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.cabinet_pos_offsets)
