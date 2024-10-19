@@ -159,6 +159,10 @@ class TeleopBaseVec(TeleopBase):
                 self.data_manager.compressData(
                     DataKey.getDepthImageKey(camera_name), "exr", filter_list=list(map(bool, filename_list)))
         self.data_manager.saveData(filename_list)
-        print("- Teleoperation succeeded: Save the {} data such as {}, etc.".format(
-            sum(filename is not None for filename in filename_list),
-            next(filename for filename in filename_list if filename is not None)))
+        num_success = sum(filename is not None for filename in filename_list)
+        if num_success > 0:
+            print("- Teleoperation succeeded: Save the {} data such as {}, etc.".format(
+                sum(filename is not None for filename in filename_list),
+                next(filename for filename in filename_list if filename is not None)))
+        else:
+            print("- Teleoperation succeeded: Save no data because there is no successful data.")
