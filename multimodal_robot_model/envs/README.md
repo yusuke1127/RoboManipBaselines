@@ -26,6 +26,9 @@ Since only interface classes accessing Robotiq gripper and RealSense camera are 
 Follow the installation procedure [here](../../README.md#Install).
 
 ### [Isaac environments](./isaac)
+Isaac Gym supports only Python 3.6, 3.7 and 3.8.
+In Ubuntu 22.04, use Python 3.8 with [pyenv](https://github.com/pyenv/pyenv).
+
 Download and unpack the Isaac Gym package from [here](https://developer.nvidia.com/isaac-gym).
 
 Install Isaac Gym according to `IsaacGym_Preview_4_Package/isaacgym/doc/install.html` by the following commands.
