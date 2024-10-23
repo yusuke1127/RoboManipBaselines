@@ -13,7 +13,7 @@ setup(
     install_requires=[
         "matplotlib>=3.3.4",
         "gymnasium==0.29.1",
-        "mujoco==2.3.7",
+        "mujoco==3.1.6",
         "imageio >=2.14.1",
         "pyspacemouse",
         "opencv-python",

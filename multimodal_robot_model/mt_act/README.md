@@ -28,13 +28,9 @@ $ cd third_party/roboagent/detr
 $ pip install -e .
 ```
 
-Check the version of `mujoco` with `pip show mujoco` and if it is not `2.3.7`, do the following commands.
+Check the version of `mujoco` with `pip show mujoco` and if it is not `3.1.6`, do the following commands.
 ```console
-$ pip install mujoco==2.3.7
-```
-During the above installation, you may see the following error message. You may ignore this error message and proceed to the next step.
-```console
-ERROR: dm-control 1.0.20 has requirement mujoco>=3.1.6, but you'll have mujoco 2.3.7 which is incompatible.
+$ pip install mujoco==3.1.6
 ```
 
 ## Dataset preparation
