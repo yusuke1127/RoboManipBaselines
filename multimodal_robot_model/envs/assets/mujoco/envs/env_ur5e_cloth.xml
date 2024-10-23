@@ -31,31 +31,28 @@
       <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
-    <body name="cloth_root_frame" pos="0.1 -0.02 1.1" euler="0.0 0.0 -0.785398">
-      <body name="B0_0" pos="0.0 -0.18 0.0" euler="0.0 0.0 1.5708">
-        <composite type="cloth" count="10 7 1" spacing="0.04" flatinertia="0.01">
-          <joint kind="main" damping="0.001"/>
-          <skin material="cloth" texcoord="true" inflate="0.005" subgrid="2"/>
-          <geom type="capsule" size="0.015 0.01"/>
-        </composite>
-      </body>
+    <body name="cloth" pos="0.11 0.003 1.05" euler="-1.570796 -0.785398 0.0">
+      <composite type="grid" count="9 7 1" spacing="0.04">
+        <joint kind="main" damping="0.01"/>
+        <skin material="cloth" texcoord="true" inflate="0.005" subgrid="2"/>
+        <geom type="sphere" size="0.02"/>
+      </composite>
+    </body>
 
-      <body name="board" pos="0.06 0.0 0.0">
-        <geom name="board" type="box" size="0.06 0.2 0.005" rgba="0.8 0.8 0.2 0.4"/>
-      </body>
+    <body name="board" pos="0.15 -0.065 1.2" euler="0.0 0.0 -0.785398">
+      <geom type="box" size="0.06 0.18 0.008" rgba="0.8 0.8 0.2 0.4"/>
     </body>
   </worldbody>
 
   <equality>
-    <weld body1="B0_0"/>
-    <weld body1="B1_0"/>
-    <weld body1="B2_0"/>
-    <weld body1="B3_0"/>
-    <weld body1="B4_0"/>
-    <weld body1="B5_0"/>
-    <weld body1="B6_0"/>
-    <weld body1="B7_0"/>
-    <weld body1="B8_0"/>
-    <weld body1="B9_0"/>
+    <weld body1="B0_0" body2="board"/>
+    <weld body1="B1_0" body2="board"/>
+    <weld body1="B2_0" body2="board"/>
+    <weld body1="B3_0" body2="board"/>
+    <weld body1="B4_0" body2="board"/>
+    <weld body1="B5_0" body2="board"/>
+    <weld body1="B6_0" body2="board"/>
+    <weld body1="B7_0" body2="board"/>
+    <weld body1="B8_0" body2="board"/>
   </equality>
 </mujoco>
