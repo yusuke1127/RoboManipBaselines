@@ -63,9 +63,9 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             camera_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_id)
             camera["name"] = camera_name
             camera["id"] = camera_id
-            self.model.vis.global_.offheight = 480
             self.model.vis.global_.offwidth = 640
-            camera["viewer"] = OffScreenViewer(self.model, self.data)
+            self.model.vis.global_.offheight = 480
+            camera["viewer"] = OffScreenViewer(self.model, self.data, width=640, height=480)
             self.cameras[camera_name] = camera
 
         # This is required to automatically switch context to free camera in render()
