@@ -10,7 +10,7 @@ class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
     ):
         MujocoUR5eEnvBase.__init__(
             self,
-            path.join(path.dirname(__file__), "../assets/mujoco/envs/ur5e/env_ur5e_cloth.xml"),
+            path.join(path.dirname(__file__), "../../assets/mujoco/envs/ur5e/env_ur5e_cloth.xml"),
             np.array([1.2*np.pi, -np.pi/2, -0.85*np.pi, -0.65*np.pi, -0.5*np.pi, 0.0, 0.0]),
             **kwargs)
 
