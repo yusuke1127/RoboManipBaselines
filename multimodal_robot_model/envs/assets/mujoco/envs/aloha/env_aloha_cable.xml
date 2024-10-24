@@ -1,19 +1,5 @@
 <mujoco model="aloha_cable">
-  <compiler meshdir="../../robots/meshes" texturedir="../../robots/textures"/>
-
-  <visual>
-    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <rgba haze="0.15 0.25 0.35 1"/>
-    <global azimuth="90" elevation="-20"/>
-    <quality shadowsize="8192"/>
-  </visual>
-
-  <asset>
-    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
-    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
-             markrgb="0.8 0.8 0.8" width="300" height="300"/>
-    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
-  </asset>
+  <include file="./env_aloha_common.xml"/>
 
   <include file="../../robots/aloha/aloha_arms_config.xml"/>
 
@@ -24,8 +10,26 @@
     <geom name="floor" size="2 2 0.05" type="plane" material="groundplane" pos="0 0 -.75"/>
     <site name="worldref" pos="0 0 -0.75"/>
 
-    <include file="../../robots/aloha/aloha_arms_body.xml"/>
+    <body euler="0 0 -1.5708">
+      <include file="../../robots/aloha/aloha_arms_body.xml"/>
+    </body>
 
-    <include file="../../objects/aloha/aloha_table_body.xml"/>
+    <body euler="0 0 -1.5708">
+      <include file="../../objects/aloha/aloha_table_body.xml"/>
+    </body>
+
+    <body name="cable" pos="-0.175 0.25 0.015" quat="0.707105 0 0 -0.707108">
+      <freejoint/>
+      <include file="../../objects/cable.xml"/>
+    </body>
+
+    <body name="cable_end" pos="-0.175 -0.25 0.015" euler="0 0 -1.5708">
+      <freejoint/>
+      <geom type="box" size="0.02 0.015 0.015" pos="0.0 0.0 0.0" rgba="0.1 0.8 0.1 1.0"/>
+    </body>
   </worldbody>
+
+  <equality>
+    <weld name="right_boundary" body1="B24" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
+  </equality>
 </mujoco>
