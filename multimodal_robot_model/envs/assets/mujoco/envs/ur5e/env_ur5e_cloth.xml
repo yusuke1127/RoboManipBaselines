@@ -1,5 +1,5 @@
 <mujoco model="ur5e_cloth">
-  <include file="./env_common.xml"/>
+  <include file="./env_ur5e_common.xml"/>
 
   <size memory="1G"/>
 
@@ -8,7 +8,7 @@
     <material name="cloth" texture="cloth"/>
   </asset>
 
-  <include file="../robots/ur5e/ur5e_integrated_config.xml"/>
+  <include file="../../robots/ur5e/ur5e_integrated_config.xml"/>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
@@ -28,7 +28,7 @@
     </body>
 
     <body name="ur5e_root_frame" pos="-0.605 0.0 0.8">
-      <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
+      <include file="../../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
     <body name="cloth" pos="0.11 0.003 1.05" euler="-1.570796 -0.785398 0.0">

@@ -10,7 +10,7 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
     ):
         MujocoUR5eEnvBase.__init__(
             self,
-            path.join(path.dirname(__file__), "../assets/mujoco/envs/env_ur5e_ring.xml"),
+            path.join(path.dirname(__file__), "../assets/mujoco/envs/ur5e/env_ur5e_ring.xml"),
             np.array([np.pi, -np.pi/2, -0.75*np.pi, -0.75*np.pi, -0.5*np.pi, 0.0, 0.0]),
             **kwargs)
 

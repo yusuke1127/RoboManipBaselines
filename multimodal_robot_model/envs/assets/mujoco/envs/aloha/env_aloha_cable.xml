@@ -1,5 +1,5 @@
 <mujoco model="aloha_cable">
-  <compiler meshdir="../robots/meshes" texturedir="../robots/textures"/>
+  <compiler meshdir="../../robots/meshes" texturedir="../../robots/textures"/>
 
   <visual>
     <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
@@ -15,17 +15,17 @@
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
   </asset>
 
-  <include file="../robots/aloha/aloha_arms_config.xml"/>
+  <include file="../../robots/aloha/aloha_arms_config.xml"/>
 
-  <include file="../objects/aloha/aloha_table_config.xml"/>
+  <include file="../../objects/aloha/aloha_table_config.xml"/>
 
   <worldbody>
     <light pos="0 0.1 2.5"/>
     <geom name="floor" size="2 2 0.05" type="plane" material="groundplane" pos="0 0 -.75"/>
     <site name="worldref" pos="0 0 -0.75"/>
 
-    <include file="../robots/aloha/aloha_arms_body.xml"/>
+    <include file="../../robots/aloha/aloha_arms_body.xml"/>
 
-    <include file="../objects/aloha/aloha_table_body.xml"/>
+    <include file="../../objects/aloha/aloha_table_body.xml"/>
   </worldbody>
 </mujoco>

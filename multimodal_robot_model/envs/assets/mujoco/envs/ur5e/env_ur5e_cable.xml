@@ -1,7 +1,7 @@
 <mujoco model="ur5e_cable">
-  <include file="./env_common.xml"/>
+  <include file="./env_ur5e_common.xml"/>
 
-  <include file="../robots/ur5e/ur5e_integrated_config.xml"/>
+  <include file="../../robots/ur5e/ur5e_integrated_config.xml"/>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
@@ -21,11 +21,11 @@
     </body>
 
     <body name="ur5e_root_frame" pos="-0.605 0.0 0.8">
-      <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
+      <include file="../../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
     <body name="cable" pos="-0.175 0.2 0.8325" quat="0.707105 0 0 -0.707108">
-      <include file="../objects/cable.xml"/>
+      <include file="../../objects/cable.xml"/>
     </body>
 
     <body name="cable_end" pos="-0.175 -0.3 0.8325" euler="0 0 -1.5708">

@@ -1,5 +1,5 @@
 <mujoco model="aloha_arms_config">
-  <compiler angle="radian" meshdir="../robots/meshes" autolimits="true"/>
+  <compiler angle="radian" meshdir="../../robots/meshes" autolimits="true"/>
 
   <option cone="elliptic" impratio="10"/>
 
