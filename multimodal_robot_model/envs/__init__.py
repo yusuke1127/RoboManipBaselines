@@ -1,6 +1,7 @@
 from gymnasium.envs.registration import register
 
 # Mujoco
+## UR5e
 register(
     id="multimodal_robot_model/MujocoUR5eCableEnv-v0",
     entry_point="multimodal_robot_model.envs.mujoco:MujocoUR5eCableEnv",
@@ -16,6 +17,12 @@ register(
 register(
     id="multimodal_robot_model/MujocoUR5eClothEnv-v0",
     entry_point="multimodal_robot_model.envs.mujoco:MujocoUR5eClothEnv",
+)
+
+## Aloha
+register(
+    id="multimodal_robot_model/MujocoAlohaCableEnv-v0",
+    entry_point="multimodal_robot_model.envs.mujoco:MujocoAlohaCableEnv",
 )
 
 # Isaac
