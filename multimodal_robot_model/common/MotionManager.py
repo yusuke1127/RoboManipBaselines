@@ -92,15 +92,15 @@ class MotionManager(object):
         return self.env.unwrapped.get_eef_wrench_from_obs(obs)
 
     def getMeasuredEef(self, obs):
-        """Get measured end-effector pose (tx, ty, tz, rx, ry, rz, rw) from observation."""
+        """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation."""
         arm_qpos = self.env.unwrapped.get_arm_qpos_from_obs(obs)
         pin.forwardKinematics(self.pin_model, self.pin_data_obs, arm_qpos)
         measured_se3 = self.pin_data_obs.oMi[self.eef_joint_id]
-        return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()])
+        return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 
     def getCommandEef(self):
-        """Get command end-effector pose (tx, ty, tz, rx, ry, rz, rw)."""
-        return np.concatenate([self.target_se3.translation, pin.Quaternion(self.target_se3.rotation).coeffs()])
+        """Get command end-effector pose (tx, ty, tz, qw, qx, qy, qz)."""
+        return np.concatenate([self.target_se3.translation, pin.Quaternion(self.target_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 
     @property
     def current_se3(self):
