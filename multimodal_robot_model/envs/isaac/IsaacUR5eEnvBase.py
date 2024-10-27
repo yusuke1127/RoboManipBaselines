@@ -7,7 +7,7 @@ from isaacgym import gymutil
 from isaacgym import gymtorch
 
 import gymnasium as gym
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Dict
 
 class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     metadata = {
@@ -42,9 +42,11 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
             dtype=np.float32
         )
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
-        )
+        self.observation_space = Dict({
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+        })
         self.action_list = None
         self.obs_list = None
         self.info_list = None
@@ -294,7 +296,11 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
             torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
-            obs = np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque), dtype=np.float64)
+            obs = {
+                "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
+                "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+                "wrench": np.concatenate((force, torque), dtype=np.float64),
+            }
             obs_list.append(obs)
 
         return obs_list
@@ -337,19 +343,19 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
 
     def get_arm_qpos_from_obs(self, obs):
         """Grm arm joint position (6D array) from observation."""
-        return obs[0:6]
+        return obs["joint_pos"][:6]
 
     def get_arm_qvel_from_obs(self, obs):
         """Grm arm joint velocity (6D array) from observation."""
-        return obs[6:12]
+        return obs["joint_vel"][:6]
 
     def get_gripper_pos_from_obs(self, obs):
         """Grm gripper joint position (1D array) from observation."""
-        return obs[12:13]
+        return obs["joint_pos"][[6]]
 
     def get_eef_wrench_from_obs(self, obs):
         """Grm end-effector wrench (6D array) from observation."""
-        return obs[13:19]
+        return obs["wrench"]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""

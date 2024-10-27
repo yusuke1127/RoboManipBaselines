@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 import gymnasium as gym
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Dict
 
 import rtde_control
 import rtde_receive
@@ -32,9 +32,11 @@ class RealUR5eEnvBase(gym.Env):
             high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
             dtype=np.float32
         )
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
-        )
+        self.observation_space = Dict({
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+        })
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
@@ -168,7 +170,11 @@ class RealUR5eEnvBase(gym.Env):
         force = np.zeros(3)
         torque = np.zeros(3)
 
-        return np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque))
+        return {
+            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
+            "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+            "wrench": np.concatenate((force, torque), dtype=np.float64),
+        }
 
     def _get_info(self):
         info = {}
@@ -193,19 +199,19 @@ class RealUR5eEnvBase(gym.Env):
 
     def get_arm_qpos_from_obs(self, obs):
         """Grm arm joint position (6D array) from observation."""
-        return obs[0:6]
+        return obs["joint_pos"][:6]
 
     def get_arm_qvel_from_obs(self, obs):
         """Grm arm joint velocity (6D array) from observation."""
-        return obs[6:12]
+        return obs["joint_vel"][:6]
 
     def get_gripper_pos_from_obs(self, obs):
         """Grm gripper joint position (1D array) from observation."""
-        return obs[12:13]
+        return obs["joint_pos"][[6]]
 
     def get_eef_wrench_from_obs(self, obs):
         """Grm end-effector wrench (6D array) from observation."""
-        return obs[13:19]
+        return obs["wrench"]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""

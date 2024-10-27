@@ -49,9 +49,9 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         torque = self.data.sensor("torque_sensor").data.flat.copy()
 
         return {
-            "joint_pos": np.concatenate((arm_qpos, gripper_pos)),
-            "joint_vel": np.concatenate((arm_qvel, np.zeros(1))),
-            "wrench": np.concatenate((force, torque)),
+            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
+            "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+            "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
 
     def get_arm_qpos_from_obs(self, obs):
