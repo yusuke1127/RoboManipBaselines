@@ -1,5 +1,5 @@
 <mujoco model="aloha_common">
-  <compiler meshdir="../../robots/meshes" texturedir="../../robots/textures"/>
+  <compiler meshdir="../../assets/meshes" texturedir="../../assets/textures"/>
   <option timestep="0.004" integrator="implicitfast"/>
   <size memory="2M"/>
 

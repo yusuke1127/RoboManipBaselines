@@ -1,5 +1,5 @@
 <mujoco model="ur5e_common">
-  <compiler angle="radian" meshdir="../../robots/meshes" texturedir="../../robots/textures" autolimits="true"/>
+  <compiler angle="radian" meshdir="../../assets/meshes" texturedir="../../assets/textures" autolimits="true"/>
   <option timestep="0.004" integrator="implicitfast"/>
   <size memory="2M"/>
 
