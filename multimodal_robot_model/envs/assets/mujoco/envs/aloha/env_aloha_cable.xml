@@ -24,7 +24,7 @@
       <include file="../../objects/cable.xml"/>
     </body>
 
-    <body name="cable_end" pos="-0.175 -0.25 0.015" euler="0 0 -1.5708">
+    <body name="cable_end" pos="-0.175 -0.23 0.015" euler="0 0 -1.5708">
       <freejoint/>
       <geom type="box" size="0.02 0.015 0.015" pos="0.0 0.0 0.0" rgba="0.1 0.8 0.1 1.0"/>
     </body>
@@ -33,4 +33,10 @@
   <equality>
     <weld name="right_boundary" body1="B24" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
   </equality>
+
+  <contact>
+    <exclude body1="B0" body2="B1"/>
+    <exclude body1="B23" body2="cable_end"/>
+    <exclude body1="B24" body2="cable_end"/>
+  </contact>
 </mujoco>
