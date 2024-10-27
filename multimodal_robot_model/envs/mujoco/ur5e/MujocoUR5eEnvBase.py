@@ -54,18 +54,20 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
 
-    def get_arm_qpos_from_obs(self, obs):
-        """Grm arm joint position (6D array) from observation."""
-        return obs["joint_pos"][:6]
+    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+        """Get joint position from observation."""
+        if exclude_gripper:
+            return obs["joint_pos"][:6]
+        else:
+            return obs["joint_pos"]
 
-    def get_arm_qvel_from_obs(self, obs):
-        """Grm arm joint velocity (6D array) from observation."""
-        return obs["joint_vel"][:6]
-
-    def get_gripper_pos_from_obs(self, obs):
-        """Grm gripper joint position (1D array) from observation."""
-        return obs["joint_pos"][[6]]
+    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+        """Get joint velocity from observation."""
+        if exclude_gripper:
+            return obs["joint_vel"][:6]
+        else:
+            return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Grm end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (6D array) from observation."""
         return obs["wrench"]

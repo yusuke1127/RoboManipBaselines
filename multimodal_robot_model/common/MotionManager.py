@@ -76,16 +76,11 @@ class MotionManager(object):
 
     def getJointPos(self, obs):
         """Get joint position from observation."""
-        arm_qpos = self.env.unwrapped.get_arm_qpos_from_obs(obs)
-        gripper_pos = self.env.unwrapped.get_gripper_pos_from_obs(obs)
-        return np.concatenate((arm_qpos, gripper_pos))
+        return self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=False)
 
     def getJointVel(self, obs):
         """Get joint velocity from observation."""
-        arm_qvel = self.env.unwrapped.get_arm_qvel_from_obs(obs)
-        # Set zero as a dummy because the joint velocity of gripper cannot be obtained
-        gripper_vel = np.zeros(1)
-        return np.concatenate((arm_qvel, gripper_vel))
+        return self.env.unwrapped.get_joint_vel_from_obs(obs, exclude_gripper=False)
 
     def getEefWrench(self, obs):
         """Get end-effector wrench from observation."""
@@ -93,8 +88,8 @@ class MotionManager(object):
 
     def getMeasuredEef(self, obs):
         """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation."""
-        arm_qpos = self.env.unwrapped.get_arm_qpos_from_obs(obs)
-        pin.forwardKinematics(self.pin_model, self.pin_data_obs, arm_qpos)
+        measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=True)
+        pin.forwardKinematics(self.pin_model, self.pin_data_obs, measured_joint_pos)
         measured_se3 = self.pin_data_obs.oMi[self.eef_joint_id]
         return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 

@@ -116,23 +116,18 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         MujocoEnv.close(self)
 
     @abstractmethod
-    def get_arm_qpos_from_obs(self, obs):
-        """Grm arm joint position (6D array) from observation."""
+    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+        """Get joint position from observation."""
         pass
 
     @abstractmethod
-    def get_arm_qvel_from_obs(self, obs):
-        """Grm arm joint velocity (6D array) from observation."""
-        pass
-
-    @abstractmethod
-    def get_gripper_pos_from_obs(self, obs):
-        """Grm gripper joint position (1D array) from observation."""
+    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+        """Get joint velocity from observation."""
         pass
 
     @abstractmethod
     def get_eef_wrench_from_obs(self, obs):
-        """Grm end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (6D array) from observation."""
         pass
 
     def get_sim_time(self):
