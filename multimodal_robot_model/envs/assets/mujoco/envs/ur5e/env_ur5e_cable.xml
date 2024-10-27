@@ -40,7 +40,7 @@
   </worldbody>
 
   <equality>
-    <weld name="right_boundary" body1="B24" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
+    <weld name="cable_end" body1="B24" body2="cable_end" relpose="0 0 0 1 0 0 0"/>
   </equality>
 
   <contact>
