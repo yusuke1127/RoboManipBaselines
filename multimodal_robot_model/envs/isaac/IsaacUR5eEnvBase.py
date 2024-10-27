@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from os import path
 import numpy as np
 
@@ -9,7 +10,7 @@ import gymnasium as gym
 from gymnasium import utils
 from gymnasium.spaces import Box
 
-class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
+class IsaacUR5eEnvBase(gym.Env, utils.EzPickle, metaclass=ABCMeta):
     metadata = {
         "render_modes": [
             "human",
@@ -210,17 +211,21 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         sim_params.physx.use_gpu = True # False
         return sim_params
 
+    @abstractmethod
     def setup_task_specific_variables(self):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_variables is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_assets(self):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_assets is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_actors(self, env_idx):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_actors is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_cameras(self, env_idx):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_cameras is not implemented.")
+        pass
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
@@ -380,9 +385,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         camera_fovy = single_camera_properties.height / single_camera_properties.width * single_camera_properties.horizontal_fov
         return camera_fovy
 
+    @abstractmethod
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[IsaacUR5eEnvBase] modify_world is not implemented.")
+        pass
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""

@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import argparse
 import time
 import numpy as np
@@ -8,7 +9,7 @@ import pyspacemouse
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataKey, DataManager, \
     convertDepthImageToColorImage, convertDepthImageToPointCloud
 
-class TeleopBase(object):
+class TeleopBase(metaclass=ABCMeta):
     def __init__(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--enable_3d_plot", action="store_true", help="whether to enable 3d plot")
@@ -138,8 +139,9 @@ class TeleopBase(object):
 
         # self.env.close()
 
+    @abstractmethod
     def setupEnv(self):
-        raise NotImplementedError()
+        pass
 
     def setArmCommand(self):
         if self.data_manager.status == MotionStatus.TELEOP:

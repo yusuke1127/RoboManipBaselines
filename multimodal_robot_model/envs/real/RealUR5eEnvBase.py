@@ -220,14 +220,6 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         """Get simulation time. [s]"""
         return time.time() - self.init_time
 
-    def get_body_pose(self, body_name):
-        """Get body pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        raise NotImplementedError("[RealUR5eEnvBase] get_body_pose is not implemented.")
-
-    def get_geom_pose(self, geom_name):
-        """Get geom pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        raise NotImplementedError("[RealUR5eEnvBase] get_geom_pose is not implemented.")
-
     @property
     def camera_names(self):
         """Camera names being measured."""
