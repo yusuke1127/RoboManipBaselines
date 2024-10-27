@@ -36,8 +36,8 @@ class DataKey(object):
     MEASURED_EEF_VEL = "measured_eef_vel"
     COMMAND_EEF_VEL = "command_eef_vel"
 
-    MEASURED_WRENCH = "measured_wrench"
-    COMMAND_WRENCH = "command_wrench"
+    MEASURED_EEF_WRENCH = "measured_eef_wrench"
+    COMMAND_EEF_WRENCH = "command_eef_wrench"
 
     @classmethod
     def getRgbImageKey(cls, camera_name):
@@ -57,11 +57,15 @@ class DataKey(object):
         elif orig_key == "joint_vel":
             new_key = DataKey.MEASURED_JOINT_VEL
         elif orig_key == "wrench":
-            new_key = DataKey.MEASURED_WRENCH
+            new_key = DataKey.MEASURED_EEF_WRENCH
         elif orig_key == "measured_eef":
             new_key = DataKey.MEASURED_EEF_POSE
         elif orig_key == "command_eef":
             new_key = DataKey.COMMAND_EEF_POSE
+        elif orig_key == "measured_wrench":
+            new_key = DataKey.MEASURED_EEF_WRENCH
+        elif orig_key == "command_wrench":
+            new_key = DataKey.COMMAND_EEF_WRENCH
         elif orig_key == "action":
             new_key = DataKey.COMMAND_JOINT_POS
         else:

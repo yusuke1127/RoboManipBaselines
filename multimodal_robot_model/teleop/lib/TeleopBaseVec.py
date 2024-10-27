@@ -86,7 +86,7 @@ class TeleopBaseVec(TeleopBase):
                     DataKey.COMMAND_EEF_POSE,
                     [self.motion_manager.getCommandEef()] * self.env.unwrapped.num_envs)
                 self.data_manager.appendSingleData(
-                    DataKey.MEASURED_WRENCH,
+                    DataKey.MEASURED_EEF_WRENCH,
                     [self.motion_manager.getEefWrench(obs) for obs in obs_list])
                 for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.appendSingleData(

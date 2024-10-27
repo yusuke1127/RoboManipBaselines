@@ -103,7 +103,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_VEL, self.motion_manager.getJointVel(obs))
                 self.data_manager.appendSingleData(DataKey.MEASURED_EEF_POSE, self.motion_manager.getMeasuredEef(obs))
                 self.data_manager.appendSingleData(DataKey.COMMAND_EEF_POSE, self.motion_manager.getCommandEef())
-                self.data_manager.appendSingleData(DataKey.MEASURED_WRENCH, self.motion_manager.getEefWrench(obs))
+                self.data_manager.appendSingleData(DataKey.MEASURED_EEF_WRENCH, self.motion_manager.getEefWrench(obs))
                 for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.appendSingleData(DataKey.getRgbImageKey(camera_name), info["rgb_images"][camera_name])
                     self.data_manager.appendSingleData(DataKey.getDepthImageKey(camera_name), info["depth_images"][camera_name])
