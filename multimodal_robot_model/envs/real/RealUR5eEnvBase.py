@@ -3,7 +3,6 @@ import time
 import numpy as np
 
 import gymnasium as gym
-from gymnasium import utils
 from gymnasium.spaces import Box
 
 import rtde_control
@@ -11,7 +10,7 @@ import rtde_receive
 from gello.robots.robotiq_gripper import RobotiqGripper
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
-class RealUR5eEnvBase(gym.Env, utils.EzPickle):
+class RealUR5eEnvBase(gym.Env):
     metadata = {
         "render_modes": [],
     }
@@ -23,14 +22,6 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         init_qpos,
         **kwargs,
     ):
-        utils.EzPickle.__init__(
-            self,
-            robot_ip,
-            camera_ids,
-            init_qpos,
-            **kwargs,
-        )
-
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02 # [s]

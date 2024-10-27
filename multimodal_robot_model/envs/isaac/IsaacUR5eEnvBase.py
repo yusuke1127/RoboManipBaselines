@@ -7,10 +7,9 @@ from isaacgym import gymutil
 from isaacgym import gymtorch
 
 import gymnasium as gym
-from gymnasium import utils
 from gymnasium.spaces import Box
 
-class IsaacUR5eEnvBase(gym.Env, utils.EzPickle, metaclass=ABCMeta):
+class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     metadata = {
         "render_modes": [
             "human",
@@ -23,13 +22,6 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle, metaclass=ABCMeta):
         num_envs=1,
         **kwargs,
     ):
-        utils.EzPickle.__init__(
-            self,
-            init_qpos,
-            num_envs,
-            **kwargs,
-        )
-
         self.init_qpos = init_qpos
         self.render_mode = kwargs.get("render_mode")
 
