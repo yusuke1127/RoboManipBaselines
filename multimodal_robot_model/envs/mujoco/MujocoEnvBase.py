@@ -4,7 +4,6 @@ import mujoco
 
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
-from gymnasium.spaces import Box
 
 class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
     sim_timestep = 0.004
