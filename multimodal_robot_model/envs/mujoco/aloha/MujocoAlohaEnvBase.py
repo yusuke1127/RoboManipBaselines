@@ -88,5 +88,5 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
             return obs["left/joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return np.zeros(6)

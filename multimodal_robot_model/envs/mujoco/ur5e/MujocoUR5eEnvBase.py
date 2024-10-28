@@ -45,12 +45,13 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         arm_qvel = np.array([self.data.joint(joint_name).qvel[0] for joint_name in arm_joint_name_list])
         gripper_qpos = np.array([self.data.joint(joint_name).qpos[0] for joint_name in gripper_joint_name_list])
         gripper_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
+        gripper_vel = np.zeros(1)
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
 
         return {
             "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-            "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
 
@@ -69,5 +70,5 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
             return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return obs["wrench"]

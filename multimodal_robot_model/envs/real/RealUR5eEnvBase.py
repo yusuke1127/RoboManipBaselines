@@ -164,6 +164,7 @@ class RealUR5eEnvBase(gym.Env):
 
         # Get state from Robotiq gripper
         gripper_pos = np.array([self.gripper.get_current_position()], dtype=np.float64)
+        gripper_vel = np.zeros(1)
 
         # Get wrench from force sensor
         # Set zero because UR5e does not have a wrist force sensor
@@ -172,7 +173,7 @@ class RealUR5eEnvBase(gym.Env):
 
         return {
             "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-            "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
 
@@ -212,7 +213,7 @@ class RealUR5eEnvBase(gym.Env):
             return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return obs["wrench"]
 
     def get_sim_time(self):

@@ -292,13 +292,14 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             arm_qpos = robot_dof_state["pos"][0:6]
             arm_qvel = robot_dof_state["vel"][0:6]
             gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(robot_dof_state["pos"][6:12])
+            gripper_vel = np.zeros(1)
             wrench = force_sensor.get_forces()
             force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
             torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
             obs = {
                 "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-                "joint_vel": np.concatenate((arm_qvel, np.zeros(1)), dtype=np.float64),
+                "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
                 "wrench": np.concatenate((force, torque), dtype=np.float64),
             }
             obs_list.append(obs)
@@ -356,7 +357,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return obs["wrench"]
 
     def get_sim_time(self):
@@ -364,7 +365,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         return self.gym.get_sim_time(self.sim)
 
     def get_link_pose(self, actor_name, link_name=None, link_idx=0):
-        """Get link pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        """Get link pose (tx, ty, tz, qw, qx, qy, qz)."""
         env = self.env_list[self.rep_env_idx]
         actor_idx = self.gym.find_actor_index(env, actor_name, gymapi.DOMAIN_ENV)
         if link_name is not None:

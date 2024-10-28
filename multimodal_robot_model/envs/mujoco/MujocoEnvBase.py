@@ -126,7 +126,7 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
 
     @abstractmethod
     def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (6D array) from observation."""
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         pass
 
     def get_sim_time(self):
@@ -134,12 +134,12 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         return self.data.time
 
     def get_body_pose(self, body_name):
-        """Get body pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        """Get body pose (tx, ty, tz, qw, qx, qy, qz)."""
         body = self.data.body(body_name)
         return np.concatenate((body.xpos, body.xquat))
 
     def get_geom_pose(self, geom_name):
-        """Get geom pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        """Get geom pose (tx, ty, tz, qw, qx, qy, qz)."""
         geom = self.data.geom(geom_name)
         xquat = np.zeros(4)
         mujoco.mju_mat2Quat(xquat, geom.xmat.flatten())
