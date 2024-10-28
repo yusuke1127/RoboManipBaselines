@@ -28,7 +28,7 @@ class TeleopRealUR5eGear(TeleopBase):
 
     def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.low[6]
+            self.motion_manager.gripper_pos = 150
         else:
             super().setGripperCommand()
 
