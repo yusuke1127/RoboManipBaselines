@@ -6,7 +6,7 @@ class RolloutActRealUR5eGear(RolloutAct, RolloutRealUR5eGear):
 
 if __name__ == "__main__":
     robot_ip = "192.168.11.4"
-    camera_ids = {"front": "832112072660",
+    camera_ids = {"front": "145522067924",
                   "side": None,
                   "hand": None}
     rollout = RolloutActRealUR5eGear(robot_ip, camera_ids)
