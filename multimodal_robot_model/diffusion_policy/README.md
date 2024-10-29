@@ -84,6 +84,15 @@ task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
 ```
 To disable logging by wandb, add the option `enable_wandb=False`.
 
+If you encounter the error
+```console
+ImportError: cannot import name 'cached_download' from 'huggingface_hub' (/home/kimura/workspace/MultimodalRobotModel-origin-master/multimodal_robot_model/diffusion_policy/venv_diffusion_policy/lib/python3.8/site-packages/huggingface_hub/__init__.py)
+```
+in `train.py`, downgrade `huggingface_hub` by the following command.
+```console
+$ pip install huggingface_hub==0.21.4
+```
+
 ## Policy rollout
 
 Run a trained policy in the simulator.
