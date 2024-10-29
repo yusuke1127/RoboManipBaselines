@@ -22,7 +22,7 @@ $ pip install -e .
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
 $ cd third_party/act
-$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==2.3.7 \
+$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==3.1.6 \
  dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
 $ cd detr
 $ pip install -e .

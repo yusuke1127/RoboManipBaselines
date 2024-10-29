@@ -1,4 +1,4 @@
-<mujoco model="ur5e_cable_verticalup">
+<mujoco model="ur5e_cable">
   <include file="./env_common.xml"/>
 
   <include file="../robots/ur5e/ur5e_integrated_config.xml"/>
@@ -24,13 +24,8 @@
       <include file="../robots/ur5e/ur5e_integrated_body.xml"/>
     </body>
 
-    <body name="B0" pos="-0.175 0.2 0.8325" euler="0 0 -1.5708">
-      <geom type="box" size="0.02 0.015 0.015" pos="0.0 0.0 0.0" rgba="0.1 0.8 0.1 1.0"/>
-      <!-- <freejoint/> -->
-      <composite type="rope" count="25" spacing="0.02">
-        <joint kind="main" damping="0.005"/>
-        <geom type="capsule" size="0.01 0.0075" rgba="0.8 0.8 0.2 1"/>
-      </composite>
+    <body name="cable" pos="-0.175 0.2 0.8325" quat="0.707105 0 0 -0.707108">
+      <include file="../objects/cable.xml"/>
     </body>
 
     <body name="cable_end" pos="-0.175 -0.3 0.8325" euler="0 0 -1.5708">

@@ -46,9 +46,13 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             model_path=xml_file,
             frame_skip=self.frame_skip,
             observation_space=observation_space,
+            width=640,
+            height=480,
             default_camera_config=self.default_camera_config,
             **kwargs,
         )
+        self.mujoco_renderer.width = None
+        self.mujoco_renderer.height = None
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
@@ -63,9 +67,7 @@ class MujocoUR5eEnvBase(MujocoEnv, utils.EzPickle):
             camera_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_id)
             camera["name"] = camera_name
             camera["id"] = camera_id
-            self.model.vis.global_.offheight = 480
-            self.model.vis.global_.offwidth = 640
-            camera["viewer"] = OffScreenViewer(self.model, self.data)
+            camera["viewer"] = OffScreenViewer(self.model, self.data, width=640, height=480)
             self.cameras[camera_name] = camera
 
         # This is required to automatically switch context to free camera in render()
