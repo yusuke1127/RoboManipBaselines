@@ -41,9 +41,23 @@ def parse_arg():
         help="remove seconds when starting from a white screen"
     )
     parser.add_argument(
+        "--white_detection_region_ratio", "-r", nargs=4,
+        metavar=("LEFTTOP_X", "LEFTTOP_Y", "SIZE_X", "SIZE_Y"),
+        type=float, default=[0, 0, 1, 1],
+        help="ratio for the region used to detect if the screen is white"
+    )
+    parser.add_argument(
         "--quiet", "-q", action="store_true"
     )
     args = parser.parse_args()
+
+    for i in range(len(args.white_detection_region_ratio)):
+        condition_str = f"0.0 <= args.white_detection_region_ratio[{i}] <= 1.0"
+        assert eval(condition_str), (
+            "\n\t" "asserted: " + condition_str + "\n\t"
+            f"{args.white_detection_region_ratio[i]=}"
+        )
+
     if not args.quiet:
         print(f"{args=}")
     return args
@@ -87,6 +101,7 @@ class TaskEventHandler:
     def __init__(self, task_period_list, frame_rate, shift_seconds):
         self.state = self.Stat.INITIAL
 
+        self.env_idx = 0
         self.task_period_list = task_period_list
         self.frame_rate = frame_rate
         self.shift_seconds = shift_seconds
@@ -96,7 +111,10 @@ class TaskEventHandler:
 
         seconds_curr = i_frame_curr / self.frame_rate
         time_str = seconds_to_time_str(seconds_curr)
-        tqdm.write(f"start_env:\t{(time_str, i_frame_curr, seconds_curr)=}")
+        tqdm.write(
+            self.start_env.__name__
+            + f":\t{(self.env_idx, time_str, i_frame_curr, seconds_curr)=}"
+        )
         self.task_period_list.append(f"{time_str}-")
 
     def stop_env(self, i_frame_curr):
@@ -104,8 +122,12 @@ class TaskEventHandler:
 
         seconds_curr = i_frame_curr / self.frame_rate
         time_str = seconds_to_time_str(seconds_curr)
-        tqdm.write(f"stop_env:\t{(time_str, i_frame_curr, seconds_curr)=}")
+        tqdm.write(
+            self.stop_env.__name__
+            + f":\t{(self.env_idx, time_str, i_frame_curr, seconds_curr)=}"
+        )
         self.task_period_list[-1] += time_str
+        self.env_idx += 1
 
     def initial_stop(self):
         self.state = self.Stat.STOPPED
@@ -129,18 +151,26 @@ class TaskEventHandler:
         else:
             raise AssertionError(f"{self.state=}")
 
+
 @njit
-def is_white(frame, px_bright_thresh=10, img_px_ratio_thresh=0.9):
-    px_bright = np.sum(
-        255 * 3 - px_bright_thresh <= frame.sum(axis=2)
+def is_white(frame, lefttop_x, lefttop_y, size_x, size_y, bright_thresh=10,
+             img_elem_ratio_thresh=0.9):
+    crop_x = round(frame.shape[1] * lefttop_x)
+    crop_y = round(frame.shape[0] * lefttop_y)
+    crop_w = round(frame.shape[1] * size_x)
+    crop_h = round(frame.shape[0] * size_y)
+    region = frame[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
+    n_bright = np.sum(
+        255 * 3 - bright_thresh <= region.sum(axis=2)
     )
-    img_px_ratio = px_bright / frame.shape[0] / frame.shape[1]
-    is_white_screen = img_px_ratio >= img_px_ratio_thresh
+    img_elem_ratio = n_bright / region.shape[0] / region.shape[1]
+    is_white_screen = img_elem_ratio >= img_elem_ratio_thresh
     return is_white_screen
 
 
 def update_task_period_list_ifneeded(
-    task_period_list, input_file_name, shift_seconds
+    task_period_list, input_file_name, shift_seconds,
+    white_detection_region_ratio
 ):
     if len(task_period_list) >= 1:
         return task_period_list
@@ -159,7 +189,7 @@ def update_task_period_list_ifneeded(
         ret, frame = video.read()
         if not ret:
             continue
-        is_white_screen = is_white(frame)
+        is_white_screen = is_white(frame, *white_detection_region_ratio)
         task_event_handler.handle(is_white_screen, i_frame_curr)
     task_event_handler.handle(is_white_screen=True, i_frame_curr=frame_count)
 
@@ -168,7 +198,8 @@ def update_task_period_list_ifneeded(
 
 
 def parse_frame_periods(
-    task_period_list, input_file_name, shift_seconds
+    task_period_list, input_file_name, shift_seconds,
+    white_detection_region_ratio
 ):
     return_frame_periods = list()
 
@@ -187,7 +218,7 @@ def parse_frame_periods(
         video.set(cv2.CAP_PROP_POS_FRAMES, i_frame_start)
         ret, frame_start = video.read()
         assert ret
-        is_white_screen = is_white(frame_start)
+        is_white_screen = is_white(frame_start, *white_detection_region_ratio)
         shift_frame = (
             shift_seconds * frame_rate
         ) if is_white_screen else 0.0
@@ -305,6 +336,10 @@ def read_video(
 
 
 def write_video(final_frames, output_file_name, frame_rate, codec):
+    output_dir_name = os.path.dirname(output_file_name)
+    if not os.path.exists(output_dir_name):
+        os.makedirs(output_dir_name)
+
     fourcc = cv2.VideoWriter_fourcc(*codec)
     writer_out = cv2.VideoWriter(
         output_file_name, fourcc, frame_rate,
@@ -328,7 +363,8 @@ def main():
         if not args.quiet:
             print(f"{update_task_period_list_ifneeded.__name__} ...")
         task_period_list = update_task_period_list_ifneeded(
-            task_period_list, args.input_file_name, args.shift_seconds
+            task_period_list, args.input_file_name, args.shift_seconds,
+            args.white_detection_region_ratio
         )
         if not args.quiet:
             print(f"{task_period_list=}")
@@ -348,7 +384,8 @@ def main():
     if not args.quiet:
         print(f"{parse_frame_periods.__name__} ...")
     frame_periods = parse_frame_periods(
-        task_period_list, args.input_file_name, args.shift_seconds
+        task_period_list, args.input_file_name, args.shift_seconds,
+        args.white_detection_region_ratio
     )
     max_trim_len = int(math.ceil(max([e - s for s, e in frame_periods])))
 
