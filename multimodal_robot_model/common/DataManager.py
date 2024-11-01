@@ -166,7 +166,7 @@ class DataManager(object):
 
     def getStatusImage(self):
         """Get the image corresponding to the current status."""
-        status_image = np.zeros((50, 160, 3), dtype=np.uint8)
+        status_image = np.zeros((50, 320, 3), dtype=np.uint8)
         if self.status == MotionStatus.INITIAL:
             status_image[:, :] = np.array([200, 255, 200])
         elif self.status in (MotionStatus.PRE_REACH, MotionStatus.REACH, MotionStatus.GRASP):

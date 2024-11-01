@@ -166,13 +166,12 @@ class TeleopBase(object):
         for camera_name in self.env.unwrapped.camera_names:
             rgb_image = info["rgb_images"][camera_name]
             image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
-            resized_image_size = (status_image.shape[1], int(status_image.shape[1] / image_ratio))
+            resized_image_width = status_image.shape[1] / 2
+            resized_image_size = (int(resized_image_width), int(resized_image_width / image_ratio))
             rgb_images.append(cv2.resize(rgb_image, resized_image_size))
             depth_image = convertDepthImageToColorImage(info["depth_images"][camera_name])
             depth_images.append(cv2.resize(depth_image, resized_image_size))
-        rgb_images.append(status_image)
-        depth_images.append(np.full_like(status_image, 255))
-        window_image = cv2.hconcat((cv2.vconcat(rgb_images), cv2.vconcat(depth_images)))
+        window_image = cv2.vconcat((cv2.hconcat((cv2.vconcat(rgb_images), cv2.vconcat(depth_images))), status_image))
         cv2.namedWindow("image", flags=(cv2.WINDOW_AUTOSIZE | cv2.WINDOW_KEEPRATIO | cv2.WINDOW_GUI_NORMAL))
         cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
 
