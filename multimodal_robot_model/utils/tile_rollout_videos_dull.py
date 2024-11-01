@@ -5,7 +5,6 @@ import numpy as np
 import os
 from datetime import datetime, timedelta
 from enum import Enum, auto
-from numba import njit
 from tqdm import tqdm
 
 GREEN = (0, 128, 0)
@@ -25,7 +24,9 @@ def parse_arg():
         "--task_success_list", "-s", nargs="*", default=[]
     )
     parser.add_argument(
-        "--output_file_name", "-o", type=str, default="output.mp4"
+        "--output_file_name", "-o", type=str,
+        default="./output_" + os.path.splitext(os.path.basename(__file__))[0] +
+                ".mp4"
     )
     parser.add_argument(
         "--column_num", "-n", type=int, default=3
@@ -41,21 +42,32 @@ def parse_arg():
         help="remove seconds when starting from a dull screen"
     )
     parser.add_argument(
-        "--dull_detection_region_ratio", "-r", nargs=4,
+        "--satur_thresh", "-e", type=float, default=10.0,
+        help="threshold used to determine if the screen is saturated"
+    )
+    parser.add_argument(
+        "--satur_detection_region_ratio", "-r", nargs=4,
         metavar=("LEFTTOP_X", "LEFTTOP_Y", "SIZE_X", "SIZE_Y"),
         type=float, default=[0, 0, 1, 1],
-        help="ratio for the region used to detect if the screen is dull"
+        help="ratio for the region used to detect if the screen is saturated"
     )
     parser.add_argument(
         "--quiet", "-q", action="store_true"
     )
     args = parser.parse_args()
 
-    for i in range(len(args.dull_detection_region_ratio)):
-        condition_str = f"0.0 <= args.dull_detection_region_ratio[{i}] <= 1.0"
+    for i in range(len(args.satur_detection_region_ratio)):
+        condition_str = f"0.0 <= args.satur_detection_region_ratio[{i}] <= 1.0"
         assert eval(condition_str), (
             "\n\t" "asserted: " + condition_str + "\n\t"
-            f"{args.dull_detection_region_ratio[i]=}"
+            f"{args.satur_detection_region_ratio[i]=}"
+        )
+
+    for i in range(len(args.satur_detection_region_ratio)):
+        condition_str = f"args.input_file_name != args.output_file_name"
+        assert eval(condition_str), (
+            "\n\t" "asserted: " + condition_str + "\n\t"
+            f"{(args.input_file_name, args.output_file_name)=}"
         )
 
     if not args.quiet:
@@ -98,33 +110,53 @@ class TaskEventHandler:
         STARTED = auto()
         STOPPED = auto()
 
-    def __init__(self, task_period_list, frame_rate, shift_seconds):
+    PRINT_INTERVAL_VIDEO_SEC = 5
+
+    def __init__(
+        self, task_period_list, frame_rate, shift_seconds, satur_thresh, quiet
+    ):
         self.state = self.Stat.INITIAL
 
         self.env_idx = 0
         self.task_period_list = task_period_list
         self.frame_rate = frame_rate
         self.shift_seconds = shift_seconds
+        self.satur_thresh = satur_thresh
+        self.quiet = quiet
 
-    def start_env(self, i_frame_curr):
+    def start_env(self, i_frame_curr, region_satur_mean):
         self.state = self.Stat.STARTED
 
         seconds_curr = i_frame_curr / self.frame_rate
         time_str = seconds_to_time_str(seconds_curr)
+        env_str = f"env={self.env_idx:<2}"
         tqdm.write(
-            self.start_env.__name__
-            + f":\t{(self.env_idx, time_str, i_frame_curr, seconds_curr)=}"
+            "\t".join([
+                "",
+                f"{region_satur_mean=:>7.3f}",
+                f"{self.satur_thresh=:>7.3f}",
+                time_str,
+                self.start_env.__name__,
+                env_str,
+            ])
         )
         self.task_period_list.append(f"{time_str}-")
 
-    def stop_env(self, i_frame_curr):
+    def stop_env(self, i_frame_curr, region_satur_mean):
         self.state = self.Stat.STOPPED
 
         seconds_curr = i_frame_curr / self.frame_rate
         time_str = seconds_to_time_str(seconds_curr)
+        env_str = f"env={self.env_idx:<2}"
         tqdm.write(
-            self.stop_env.__name__
-            + f":\t{(self.env_idx, time_str, i_frame_curr, seconds_curr)=}"
+            "\t".join([
+                "",
+                f"{region_satur_mean=:>7.3f}",
+                f"{self.satur_thresh=:>7.3f}",
+                time_str,
+                self.stop_env.__name__,
+                env_str,
+            ])
         )
         self.task_period_list[-1] += time_str
         self.env_idx += 1
@@ -132,54 +164,64 @@ class TaskEventHandler:
     def initial_stop(self):
         self.state = self.Stat.STOPPED
 
-    def handle(self, is_dull_screen, i_frame_curr):
+    def handle(self, is_satur_screen, i_frame_curr, region_satur_mean):
+        if (not self.quiet) and (
+            i_frame_curr % (
+                self.frame_rate * self.PRINT_INTERVAL_VIDEO_SEC
+            ) == 0
+        ):
+            seconds_curr = i_frame_curr / self.frame_rate
+            time_str = seconds_to_time_str(seconds_curr)
+            env_str = f"env={self.env_idx:<2}" \
+                if self.state == self.Stat.STARTED else " " * len("env= 0")
+            tqdm.write(
+                "\t".join([
+                    "",
+                    f"{region_satur_mean=:>7.3f}",
+                    f"{self.satur_thresh=:>7.3f}",
+                    time_str,
+                    " " * len(self.start_env.__name__),
+                    env_str,
+                    f"{self.state.name}"
+                ])
+            )
         if self.state == self.Stat.STARTED:
-            if is_dull_screen:
+            if not is_satur_screen:
                 self.stop_env(
-                    i_frame_curr - self.shift_seconds * self.frame_rate
+                    i_frame_curr - self.shift_seconds * self.frame_rate,
+                    region_satur_mean
                 )
         elif self.state == self.Stat.STOPPED:
-            if not is_dull_screen:
+            if not not is_satur_screen:
                 self.start_env(
-                    i_frame_curr + self.shift_seconds * self.frame_rate
+                    i_frame_curr + self.shift_seconds * self.frame_rate,
+                    region_satur_mean
                 )
         elif self.state == self.Stat.INITIAL:
-            if is_dull_screen:
+            if not is_satur_screen:
                 self.initial_stop()
             else:
-                self.start_env(i_frame_curr)
+                self.start_env(i_frame_curr, region_satur_mean)
         else:
             raise AssertionError(f"{self.state=}")
 
 
-#@njit
-#def is_white(frame, lefttop_x, lefttop_y, size_x, size_y, bright_thresh=10,
-#             img_elem_ratio_thresh=0.9):
-#    n_bright = np.sum(
-#        (255 * 3 - bright_thresh <= region.sum(axis=2))
-#        | (region.sum(axis=2) <= bright_thresh)
-#    )
-#    img_elem_ratio = n_bright / region.shape[0] / region.shape[1]
-#    is_white_screen = img_elem_ratio >= img_elem_ratio_thresh
-#    return is_white_screen
-
-
-def get_region(frame, lefttop_x, lefttop_y, size_x, size_y):
+def is_saturated(frame, satur_thresh, lefttop_x, lefttop_y, size_x, size_y):
     crop_x = round(frame.shape[1] * lefttop_x)
     crop_y = round(frame.shape[0] * lefttop_y)
     crop_w = round(frame.shape[1] * size_x)
     crop_h = round(frame.shape[0] * size_y)
     region = frame[crop_y:crop_y + crop_h, crop_x:crop_x + crop_w]
-    return region
-
-
-def is_dull(region_satur, dull_thresh=10.0):
-    return region_satur.mean() < dull_thresh
+    region_hsv = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+    region_satur = region_hsv[..., 1]
+    region_satur_mean = region_satur.mean()
+    is_saturated = region_satur_mean >= satur_thresh
+    return is_saturated, region_satur_mean
 
 
 def update_task_period_list_ifneeded(
     task_period_list, input_file_name, shift_seconds,
-    dull_detection_region_ratio
+    satur_thresh, satur_detection_region_ratio, quiet
 ):
     if len(task_period_list) >= 1:
         return task_period_list
@@ -189,7 +231,7 @@ def update_task_period_list_ifneeded(
     )
     video = cv2.VideoCapture(input_file_name)
     task_event_handler = TaskEventHandler(
-        task_period_list, frame_rate, shift_seconds
+        task_period_list, frame_rate, shift_seconds, satur_thresh, quiet
     )
 
     for i_frame_curr in tqdm(
@@ -198,12 +240,14 @@ def update_task_period_list_ifneeded(
         ret, frame = video.read()
         if not ret:
             continue
-        region = get_region(frame, *dull_detection_region_ratio)
-        region_hsv = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
-        is_dull_screen = is_dull(region_satur=region_hsv[..., 1])
+        is_satur_screen, region_satur_mean = is_saturated(
+            frame, satur_thresh, *satur_detection_region_ratio
+        )
 
-        task_event_handler.handle(is_dull_screen, i_frame_curr)
-    task_event_handler.handle(is_dull_screen=True, i_frame_curr=frame_count)
+        task_event_handler.handle(is_satur_screen, i_frame_curr,
+                                  region_satur_mean)
+    task_event_handler.handle(is_satur_screen=False, i_frame_curr=frame_count,
+                              region_satur_mean=-float("inf"))
 
     video.release()
     return task_event_handler.task_period_list
@@ -211,7 +255,7 @@ def update_task_period_list_ifneeded(
 
 def parse_frame_periods(
     task_period_list, input_file_name, shift_seconds,
-    dull_detection_region_ratio
+    satur_thresh, satur_detection_region_ratio
 ):
     return_frame_periods = list()
 
@@ -230,12 +274,12 @@ def parse_frame_periods(
         video.set(cv2.CAP_PROP_POS_FRAMES, i_frame_start)
         ret, frame_start = video.read()
         assert ret
-        region = get_region(frame_start, *dull_detection_region_ratio)
-        region_hsv = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
-        is_dull_screen = is_dull(region_satur=region_hsv[..., 1])
+        is_satur_screen, region_satur_mean = is_saturated(
+            frame_start, satur_thresh, *satur_detection_region_ratio
+        )
         shift_frame = (
             shift_seconds * frame_rate
-        ) if is_dull_screen else 0.0
+        ) if not is_satur_screen else 0.0
         return_frame_periods.append([i_frame_start + shift_frame, i_frame_end])
 
     video.release()
@@ -378,10 +422,11 @@ def main():
             print(f"{update_task_period_list_ifneeded.__name__} ...")
         task_period_list = update_task_period_list_ifneeded(
             task_period_list, args.input_file_name, args.shift_seconds,
-            args.dull_detection_region_ratio
+            args.satur_thresh, args.satur_detection_region_ratio, args.quiet
         )
         if not args.quiet:
             print(f"{task_period_list=}")
+    assert len(task_period_list) >= 1, f"{len(task_period_list)=}"
     if len(args.task_success_list) >= 1:
         if len(args.task_success_list) != len(task_period_list):
             raise ValueError(
@@ -399,7 +444,7 @@ def main():
         print(f"{parse_frame_periods.__name__} ...")
     frame_periods = parse_frame_periods(
         task_period_list, args.input_file_name, args.shift_seconds,
-        args.dull_detection_region_ratio
+        args.satur_thresh, args.satur_detection_region_ratio
     )
     max_trim_len = int(math.ceil(max([e - s for s, e in frame_periods])))
 
