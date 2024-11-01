@@ -37,8 +37,8 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         if kwargs.get("scale_dt") is not None:
             self.dt *= kwargs["scale_dt"]
         self.action_space = Box(
-            low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0]),
-            high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0]),
+            low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0], dtype=np.float32),
+            high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
             dtype=np.float32
         )
         self.observation_space = Box(
