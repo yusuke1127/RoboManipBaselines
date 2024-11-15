@@ -44,13 +44,13 @@
         <general gainprm="800" biasprm="0 -800 -80" forcerange="-20 20"/>
       </default>
       <default class="spring_link">
-        <joint range="0 0.85" stiffness="0.05" springref="2.62" damping="0.00125"/>
+        <joint range="0 0.85" armature="0.001" stiffness="0.05" springref="2.62" damping="0.00125"/>
       </default>
       <default class="driver">
-        <joint range="0 0.85" armature="0.005" damping="0.1" solreflimit="0.005 1"/>
+        <joint range="0 0.85" armature="0.005" damping="0.1" solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
       </default>
       <default class="follower">
-        <joint range="0 0.85" solreflimit="0.005 1"/>
+        <joint range="0 0.85" armature="0.001" solimplimit="0.95 0.99 0.001" solreflimit="0.005 1"/>
       </default>
       <site size="0.001" rgba="1 0 0 1" group="4"/>
     </default>
@@ -71,9 +71,19 @@
   </tendon>
 
   <equality>
-    <connect anchor="0 0.015 0.015" body1="right_finger" body2="right_inner_knuckle" solref="0.005 1"/>
-    <connect anchor="0 -0.015 0.015" body1="left_finger" body2="left_inner_knuckle" solref="0.005 1"/>
-    <joint joint1="left_driver_joint" joint2="right_driver_joint" polycoef="0 1 0 0 0" solref="0.005 1"/>
+    <!-- The original gripper model can not grasp an object stably, so the mechanism and parameters are updated. -->
+    <!-- <connect anchor="0 -0.015 -0.015" body1="right_finger" body2="right_outer_knuckle" solimp="0.95 0.99 0.001" solref="0.005 1"/> -->
+    <!-- <connect anchor="0 0.015 -0.015" body1="left_finger" body2="left_outer_knuckle" solimp="0.95 0.99 0.001" solref="0.005 1"/> -->
+    <joint joint1="left_driver_joint" joint2="right_driver_joint" polycoef="0 1 0 0 0"
+           solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    <joint joint1="left_driver_joint" joint2="left_inner_knuckle_joint" polycoef="0 1 0 0 0"
+           solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    <joint joint1="left_driver_joint" joint2="left_finger_joint" polycoef="0 1 0 0 0"
+           solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    <joint joint1="right_driver_joint" joint2="right_inner_knuckle_joint" polycoef="0 1 0 0 0"
+           solimp="0.95 0.99 0.001" solref="0.005 1"/>
+    <joint joint1="right_driver_joint" joint2="right_finger_joint" polycoef="0 1 0 0 0"
+           solimp="0.95 0.99 0.001" solref="0.005 1"/>
   </equality>
 
   <actuator>
@@ -84,7 +94,7 @@
     <general name="act5" joint="joint5" class="size2"/>
     <general name="act6" joint="joint6" class="size3" ctrlrange="-1.69297 3.14159"/>
     <general name="act7" joint="joint7" class="size3"/>
-    <general name="gripper" tendon="split" forcerange="-50 50" ctrlrange="0 255" biastype="affine" gainprm="0.333"
-      biasprm="0 -100 -10"/>
+    <general name="gripper" tendon="split" forcerange="-100 100" ctrlrange="0 255"
+             biastype="affine" gainprm="0.3137255 0 0" biasprm="0 -100 -10"/>
   </actuator>
 </mujoco>
