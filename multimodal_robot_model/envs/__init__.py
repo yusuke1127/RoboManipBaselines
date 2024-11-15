@@ -19,6 +19,17 @@ register(
     entry_point="multimodal_robot_model.envs.mujoco:MujocoUR5eClothEnv",
 )
 
+## Xarm7
+register(
+    id="multimodal_robot_model/MujocoXarm7CableEnv-v0",
+    entry_point="multimodal_robot_model.envs.mujoco:MujocoXarm7CableEnv",
+)
+
+register(
+    id="multimodal_robot_model/MujocoXarm7RingEnv-v0",
+    entry_point="multimodal_robot_model.envs.mujoco:MujocoXarm7RingEnv",
+)
+
 ## Aloha
 register(
     id="multimodal_robot_model/MujocoAlohaCableEnv-v0",
