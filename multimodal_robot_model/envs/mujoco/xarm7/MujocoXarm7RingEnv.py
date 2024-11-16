@@ -11,7 +11,7 @@ class MujocoXarm7RingEnv(MujocoXarm7EnvBase):
         MujocoXarm7EnvBase.__init__(
             self,
             path.join(path.dirname(__file__), "../../assets/mujoco/envs/xarm7/env_xarm7_ring.xml"),
-            np.array([0.0, 0.0, 0.0, 0.0, np.pi, np.pi/2, 0.0,
+            np.array([0.0, 0.0, 0.0, 0.0, np.pi, np.pi/2, np.pi,
                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
             **kwargs)
 

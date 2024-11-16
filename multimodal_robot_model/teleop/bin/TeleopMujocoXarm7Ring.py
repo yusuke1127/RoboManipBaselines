@@ -21,7 +21,7 @@ class TeleopMujocoXarm7Ring(TeleopBase):
                 target_pos += np.array([-0.2, 0.05, -0.05]) # [m]
             elif self.data_manager.status == MotionStatus.REACH:
                 target_pos += np.array([-0.15, 0.05, -0.05]) # [m]
-            self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(0.0, np.pi/2, 0.0), target_pos)
+            self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(0.0, 1.5 * np.pi, np.pi), target_pos)
         else:
             super().setArmCommand()
 
