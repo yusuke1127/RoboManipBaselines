@@ -99,4 +99,9 @@
     <general name="gripper" tendon="split" forcerange="-100 100" ctrlrange="0 255"
              biastype="affine" gainprm="0.3137255 0 0" biasprm="0 -100 -10"/>
   </actuator>
+
+  <sensor>
+    <force name="force_sensor" site="force_sensor"/>
+    <torque name="torque_sensor" site="force_sensor"/>
+  </sensor>
 </mujoco>

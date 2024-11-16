@@ -49,11 +49,8 @@ class MujocoXarm7EnvBase(MujocoEnvBase):
         gripper_qpos = np.array([self.data.joint(joint_name).qpos[0] for joint_name in gripper_joint_name_list])
         gripper_pos = gripper_qpos.mean(keepdims=True) / 0.8 * 255.0
         gripper_vel = np.zeros(1)
-        # TODO
-        # force = self.data.sensor("force_sensor").data.flat.copy()
-        # torque = self.data.sensor("torque_sensor").data.flat.copy()
-        force = np.zeros(3)
-        torque = np.zeros(3)
+        force = self.data.sensor("force_sensor").data.flat.copy()
+        torque = self.data.sensor("torque_sensor").data.flat.copy()
 
         return {
             "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
