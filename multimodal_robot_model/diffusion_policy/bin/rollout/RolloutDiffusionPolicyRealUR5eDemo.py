@@ -1,7 +1,7 @@
 from multimodal_robot_model.diffusion_policy import RolloutDiffusionPolicy
-from multimodal_robot_model.common.rollout import RolloutRealUR5eGear
+from multimodal_robot_model.common.rollout import RolloutRealUR5eDemo
 
-class RolloutDiffusionPolicyRealUR5eGear(RolloutDiffusionPolicy, RolloutRealUR5eGear):
+class RolloutDiffusionPolicyRealUR5eDemo(RolloutDiffusionPolicy, RolloutRealUR5eDemo):
     pass
 
 if __name__ == "__main__":
@@ -9,5 +9,5 @@ if __name__ == "__main__":
     camera_ids = {"front": "145522067924",
                   "side": None,
                   "hand": "153122070885"}
-    rollout = RolloutDiffusionPolicyRealUR5eGear(robot_ip, camera_ids)
+    rollout = RolloutDiffusionPolicyRealUR5eDemo(robot_ip, camera_ids)
     rollout.run()

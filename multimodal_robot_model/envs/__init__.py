@@ -48,6 +48,6 @@ register(
 
 # Real
 register(
-    id="multimodal_robot_model/RealUR5eGearEnv-v0",
-    entry_point="multimodal_robot_model.envs.real:RealUR5eGearEnv",
+    id="multimodal_robot_model/RealUR5eDemoEnv-v0",
+    entry_point="multimodal_robot_model.envs.real:RealUR5eDemoEnv",
 )

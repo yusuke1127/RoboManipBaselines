@@ -2,7 +2,7 @@ import numpy as np
 
 from .RealUR5eEnvBase import RealUR5eEnvBase
 
-class RealUR5eGearEnv(RealUR5eEnvBase):
+class RealUR5eDemoEnv(RealUR5eEnvBase):
     def __init__(
         self,
         robot_ip,

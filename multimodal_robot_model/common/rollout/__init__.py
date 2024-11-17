@@ -11,4 +11,4 @@ from .RolloutIsaacUR5eChain import RolloutIsaacUR5eChain
 from .RolloutIsaacUR5eCabinet import RolloutIsaacUR5eCabinet
 
 # Real
-from .RolloutRealUR5eGear import RolloutRealUR5eGear
+from .RolloutRealUR5eDemo import RolloutRealUR5eDemo

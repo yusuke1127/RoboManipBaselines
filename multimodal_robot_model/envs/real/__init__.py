@@ -1,1 +1,1 @@
-from .RealUR5eGearEnv import RealUR5eGearEnv
+from .RealUR5eDemoEnv import RealUR5eDemoEnv
