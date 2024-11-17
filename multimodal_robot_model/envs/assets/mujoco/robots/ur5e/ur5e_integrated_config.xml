@@ -1,5 +1,5 @@
 <mujoco model="ur5e_integrated_config">
-  <compiler angle="radian" meshdir="../robots/meshes" autolimits="true"/>
+  <compiler angle="radian" meshdir="../../assets/meshes" autolimits="true"/>
 
   <default>
     <default class="ur5e">

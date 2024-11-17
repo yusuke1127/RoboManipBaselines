@@ -3,15 +3,14 @@ import time
 import numpy as np
 
 import gymnasium as gym
-from gymnasium import utils
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Dict
 
 import rtde_control
 import rtde_receive
 from gello.robots.robotiq_gripper import RobotiqGripper
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
-class RealUR5eEnvBase(gym.Env, utils.EzPickle):
+class RealUR5eEnvBase(gym.Env):
     metadata = {
         "render_modes": [],
     }
@@ -23,31 +22,31 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         init_qpos,
         **kwargs,
     ):
-        utils.EzPickle.__init__(
-            self,
-            robot_ip,
-            camera_ids,
-            init_qpos,
-            **kwargs,
-        )
-
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02 # [s]
         if kwargs.get("scale_dt") is not None:
             self.dt *= kwargs["scale_dt"]
+
         self.action_space = Box(
             low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0], dtype=np.float32),
             high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
             dtype=np.float32
         )
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
-        )
+        self.observation_space = Dict({
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+        })
+
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = None
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos = init_qpos
         self.qvel_limit = np.deg2rad(191) # [rad/s]
 
@@ -127,7 +126,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         start_time = time.time()
 
         # Overwrite duration or qpos for safety
-        arm_qpos_command = action[0:6]
+        arm_qpos_command = action[self.arm_action_idxes]
         scaled_qvel_limit = np.clip(qvel_limit_scale, 0.01, 10.0) * self.qvel_limit
         if duration is None:
             duration_min, duration_max = 0.1, 10.0 # [s]
@@ -153,7 +152,7 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[6]
+        gripper_pos = action[self.gripper_action_idx]
         speed = 50
         force = 10
         self.gripper.move(int(gripper_pos), speed, force)
@@ -171,13 +170,18 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
 
         # Get state from Robotiq gripper
         gripper_pos = np.array([self.gripper.get_current_position()], dtype=np.float64)
+        gripper_vel = np.zeros(1)
 
         # Get wrench from force sensor
         # Set zero because UR5e does not have a wrist force sensor
         force = np.zeros(3)
         torque = np.zeros(3)
 
-        return np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque))
+        return {
+            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
+            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+            "wrench": np.concatenate((force, torque), dtype=np.float64),
+        }
 
     def _get_info(self):
         info = {}
@@ -200,33 +204,27 @@ class RealUR5eEnvBase(gym.Env, utils.EzPickle):
 
         return info
 
-    def get_arm_qpos_from_obs(self, obs):
-        """Grm arm joint position (6D array) from observation."""
-        return obs[0:6]
+    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+        """Get joint position from observation."""
+        if exclude_gripper:
+            return obs["joint_pos"][self.arm_action_idxes]
+        else:
+            return obs["joint_pos"]
 
-    def get_arm_qvel_from_obs(self, obs):
-        """Grm arm joint velocity (6D array) from observation."""
-        return obs[6:12]
-
-    def get_gripper_pos_from_obs(self, obs):
-        """Grm gripper joint position (1D array) from observation."""
-        return obs[12:13]
+    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+        """Get joint velocity from observation."""
+        if exclude_gripper:
+            return obs["joint_vel"][self.arm_action_idxes]
+        else:
+            return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Grm end-effector wrench (6D array) from observation."""
-        return obs[13:19]
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
+        return obs["wrench"]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""
         return time.time() - self.init_time
-
-    def get_body_pose(self, body_name):
-        """Get body pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        raise NotImplementedError("[RealUR5eEnvBase] get_body_pose is not implemented.")
-
-    def get_geom_pose(self, geom_name):
-        """Get geom pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
-        raise NotImplementedError("[RealUR5eEnvBase] get_geom_pose is not implemented.")
 
     @property
     def camera_names(self):

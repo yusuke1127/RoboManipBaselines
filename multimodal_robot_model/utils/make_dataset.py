@@ -62,7 +62,7 @@ def load_skip_resize_data(file_info):
         if resized_img_size is not None:
             _front_images = resize_img(_front_images, (resized_img_size, resized_img_size))
             _side_images = resize_img(_side_images, (resized_img_size, resized_img_size))
-        _wrenches = data_manager.getData(DataKey.MEASURED_WRENCH)[::skip]
+        _wrenches = data_manager.getData(DataKey.MEASURED_EEF_WRENCH)[::skip]
         _joints = data_manager.getData(DataKey.MEASURED_JOINT_POS)[::skip]
         _actions = data_manager.getData(DataKey.COMMAND_JOINT_POS)[::skip]
     except KeyError as e:

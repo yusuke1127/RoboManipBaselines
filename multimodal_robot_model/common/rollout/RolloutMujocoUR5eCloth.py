@@ -27,6 +27,6 @@ class RolloutMujocoUR5eCloth(RolloutBase):
 
     def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.low[6]
+            self.motion_manager.gripper_pos = self.env.action_space.low[self.env.unwrapped.gripper_action_idx]
         else:
             super().setGripperCommand()

@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import argparse
 import time
 import numpy as np
@@ -8,7 +9,7 @@ import pyspacemouse
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataKey, DataManager, \
     convertDepthImageToColorImage, convertDepthImageToPointCloud
 
-class TeleopBase(object):
+class TeleopBase(metaclass=ABCMeta):
     def __init__(self):
         parser = argparse.ArgumentParser()
         parser.add_argument("--enable_3d_plot", action="store_true", help="whether to enable 3d plot")
@@ -102,7 +103,7 @@ class TeleopBase(object):
                 self.data_manager.appendSingleData(DataKey.MEASURED_JOINT_VEL, self.motion_manager.getJointVel(obs))
                 self.data_manager.appendSingleData(DataKey.MEASURED_EEF_POSE, self.motion_manager.getMeasuredEef(obs))
                 self.data_manager.appendSingleData(DataKey.COMMAND_EEF_POSE, self.motion_manager.getCommandEef())
-                self.data_manager.appendSingleData(DataKey.MEASURED_WRENCH, self.motion_manager.getEefWrench(obs))
+                self.data_manager.appendSingleData(DataKey.MEASURED_EEF_WRENCH, self.motion_manager.getEefWrench(obs))
                 for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.appendSingleData(DataKey.getRgbImageKey(camera_name), info["rgb_images"][camera_name])
                     self.data_manager.appendSingleData(DataKey.getDepthImageKey(camera_name), info["depth_images"][camera_name])
@@ -138,8 +139,9 @@ class TeleopBase(object):
 
         # self.env.close()
 
+    @abstractmethod
     def setupEnv(self):
-        raise NotImplementedError()
+        pass
 
     def setArmCommand(self):
         if self.data_manager.status == MotionStatus.TELEOP:
@@ -151,7 +153,7 @@ class TeleopBase(object):
 
     def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+            self.motion_manager.gripper_pos = self.env.action_space.high[self.env.unwrapped.gripper_action_idx]
         elif self.data_manager.status == MotionStatus.TELEOP:
             gripper_scale = 5.0
             if self.spacemouse_state.buttons[0] > 0 and self.spacemouse_state.buttons[-1] <= 0:

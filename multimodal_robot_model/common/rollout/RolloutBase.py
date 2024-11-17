@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import sys
 import argparse
 import time
@@ -10,7 +11,7 @@ import torch
 import pinocchio as pin
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataManager
 
-class RolloutBase(object):
+class RolloutBase(metaclass=ABCMeta):
     def __init__(self):
         self.setupArgs()
 
@@ -110,11 +111,13 @@ class RolloutBase(object):
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
 
+    @abstractmethod
     def setupPolicy(self):
-        raise NotImplementedError()
+        pass
 
+    @abstractmethod
     def setupEnv(self):
-        raise NotImplementedError()
+        pass
 
     def setupPlot(self, fig_ax=None):
         matplotlib.use("agg")
@@ -146,16 +149,18 @@ class RolloutBase(object):
 
     def setArmCommand(self):
         if self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[:6]
+            self.motion_manager.joint_pos = self.pred_action[self.env.unwrapped.arm_action_idxes]
 
     def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+            self.motion_manager.gripper_pos = self.env.action_space.high[self.env.unwrapped.gripper_action_idx]
         elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[6]
+            self.motion_manager.gripper_pos = self.pred_action[self.env.unwrapped.gripper_action_idx]
 
+    @abstractmethod
     def inferPolicy(self):
-        raise NotImplementedError("[RolloutBase] inferPolicy is not implemented.")
+        pass
 
+    @abstractmethod
     def drawPlot(self):
-        raise NotImplementedError("[RolloutBase] drawPlot is not implemented.")
+        pass

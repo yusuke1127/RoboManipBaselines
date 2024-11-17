@@ -42,3 +42,8 @@ Confirm that the sample program can be executed.
 $ cd IsaacGym_Preview_4_Package/isaacgym/python/examples
 $ python joint_monkey.py
 ```
+
+Isaac Gym and MuJoCo version 3 are conflicted by a file of the same name, `libsdf.so`, which triggers the following error: `undefined symbol: _ZN32pxrInternal_v0_19__pxrReserved__17 SdfValueTypeNamesE`. Downgrade MuJoCo by the following command.
+```console
+$ pip install mujoco==2.3.7
+```

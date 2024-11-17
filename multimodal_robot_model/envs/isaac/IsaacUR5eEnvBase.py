@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from os import path
 import numpy as np
 
@@ -6,10 +7,9 @@ from isaacgym import gymutil
 from isaacgym import gymtorch
 
 import gymnasium as gym
-from gymnasium import utils
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Dict
 
-class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
+class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     metadata = {
         "render_modes": [
             "human",
@@ -22,13 +22,6 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         num_envs=1,
         **kwargs,
     ):
-        utils.EzPickle.__init__(
-            self,
-            init_qpos,
-            num_envs,
-            **kwargs,
-        )
-
         self.init_qpos = init_qpos
         self.render_mode = kwargs.get("render_mode")
 
@@ -38,10 +31,13 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = self.get_link_pose("ur5e", "base_link")
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
 
         # Setup environment parameters
         self.skip_sim = 2
         self.dt = self.skip_sim * self.gym.get_sim_params(self.sim).dt
+
         robot_dof_props = self.gym.get_actor_dof_properties(
             self.env_list[self.rep_env_idx], self.robot_handle_list[self.rep_env_idx])
         self.action_space = Box(
@@ -49,12 +45,19 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
             dtype=np.float32
         )
-        self.observation_space = Box(
-            low=-np.inf, high=np.inf, shape=(19,), dtype=np.float64
-        )
+        self.observation_space = Dict({
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+        })
+
         self.action_list = None
         self.obs_list = None
         self.info_list = None
+
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
+
         self.action_fluctuation_scale = np.array([np.deg2rad(0.1)] * 6 + [0.0], dtype=np.float32)
         self.action_fluctuation_list = [np.zeros(self.action_space.shape, dtype=np.float32) for env_idx in range(self.num_envs)]
 
@@ -210,17 +213,21 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         sim_params.physx.use_gpu = True # False
         return sim_params
 
+    @abstractmethod
     def setup_task_specific_variables(self):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_variables is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_assets(self):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_assets is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_actors(self, env_idx):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_actors is not implemented.")
+        pass
 
+    @abstractmethod
     def setup_task_specific_cameras(self, env_idx):
-        raise NotImplementedError("[IsaacUR5eEnvBase] setup_task_specific_cameras is not implemented.")
+        pass
 
     def reset(self, *, seed=None, options=None):
         super().reset(seed=seed)
@@ -293,11 +300,16 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
             arm_qpos = robot_dof_state["pos"][0:6]
             arm_qvel = robot_dof_state["vel"][0:6]
             gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(robot_dof_state["pos"][6:12])
+            gripper_vel = np.zeros(1)
             wrench = force_sensor.get_forces()
             force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
             torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
-            obs = np.concatenate((arm_qpos, arm_qvel, gripper_pos, force, torque), dtype=np.float64)
+            obs = {
+                "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
+                "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+                "wrench": np.concatenate((force, torque), dtype=np.float64),
+            }
             obs_list.append(obs)
 
         return obs_list
@@ -338,28 +350,30 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         """Get the number of the Isaac Gym parallel environments."""
         return len(self.env_list)
 
-    def get_arm_qpos_from_obs(self, obs):
-        """Grm arm joint position (6D array) from observation."""
-        return obs[0:6]
+    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+        """Get joint position from observation."""
+        if exclude_gripper:
+            return obs["joint_pos"][self.arm_action_idxes]
+        else:
+            return obs["joint_pos"]
 
-    def get_arm_qvel_from_obs(self, obs):
-        """Grm arm joint velocity (6D array) from observation."""
-        return obs[6:12]
-
-    def get_gripper_pos_from_obs(self, obs):
-        """Grm gripper joint position (1D array) from observation."""
-        return obs[12:13]
+    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+        """Get joint velocity from observation."""
+        if exclude_gripper:
+            return obs["joint_vel"][self.arm_action_idxes]
+        else:
+            return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
-        """Grm end-effector wrench (6D array) from observation."""
-        return obs[13:19]
+        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
+        return obs["wrench"]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""
         return self.gym.get_sim_time(self.sim)
 
     def get_link_pose(self, actor_name, link_name=None, link_idx=0):
-        """Get link pose in the format [tx, ty, tz, qw, qx, qy, qz]."""
+        """Get link pose (tx, ty, tz, qw, qx, qy, qz)."""
         env = self.env_list[self.rep_env_idx]
         actor_idx = self.gym.find_actor_index(env, actor_name, gymapi.DOMAIN_ENV)
         if link_name is not None:
@@ -380,9 +394,10 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
         camera_fovy = single_camera_properties.height / single_camera_properties.width * single_camera_properties.horizontal_fov
         return camera_fovy
 
+    @abstractmethod
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[IsaacUR5eEnvBase] modify_world is not implemented.")
+        pass
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""
@@ -392,8 +407,8 @@ class IsaacUR5eEnvBase(gym.Env, utils.EzPickle):
     def get_robot_dof_pos_from_qpos(self, qpos):
         robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
         robot_dof_pos = np.zeros(robot_num_dofs, dtype=np.float32)
-        robot_dof_pos[0:6] = qpos[:6]
-        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(qpos[6])
+        robot_dof_pos[0:6] = qpos[self.arm_action_idxes]
+        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(qpos[self.gripper_action_idx])
         return robot_dof_pos
 
     def get_gripper_dof_pos_from_gripper_pos(self, gripper_pos):
