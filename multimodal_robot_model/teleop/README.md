@@ -1,36 +1,19 @@
 # Data collection by teleoperation
 
+A full list of teleoperation environments can be found in [the environment catalog](../../doc/EnvironmentCatalog.md).
+
 Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1potaosirh/teleop_data_20240414.zip?rlkey=2vt1h5gde7l42vrwz4axj10da&dl=0).
 **This data is in an old format and will be replaced with a new format soon.**
 
 ## Record teleoperation data
 Connect SpaceMouse to your PC before launching the script.
 
-### Task to pass the cable between two poles
+Start up the teleoperation environment by the following command.
 ```console
 $ python bin/TeleopMujocoUR5eCable.py
 ```
 https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
 
-### Task to pick a ring and put it around the pole
-```console
-$ python bin/TeleopMujocoUR5eRing.py
-```
-https://github.com/user-attachments/assets/0eb76bbc-6b9d-43f6-95b1-8600e12a47cf
-
-### Task to scoop up particles
-```console
-$ python bin/TeleopMujocoUR5eParticle.py
-```
-https://github.com/user-attachments/assets/305300bd-6685-46ab-9704-5a15d901ed7a
-
-### Task to roll up the cloth
-```console
-$ python bin/TeleopMujocoUR5eCloth.py
-```
-https://github.com/user-attachments/assets/88bb9d84-7ca9-4d45-b457-cb9931cfb9a1
-
-### Other options
 If you want to collect data only in a simulation environment with limited world indices (for example, only 0 and 5), add the following option:
 ```console
 $ python bin/TeleopMujocoUR5eCable.py --world_idx_list 0 5

@@ -30,7 +30,9 @@ Multi-Task Action Chunking Transformer
 See [teleop](./multimodal_robot_model/teleop).
 
 ## Environments for robot manipulation
-See [envs](./multimodal_robot_model/envs).
+See [the environment catalog](doc/EnvironmentCatalog.md) for a full list of environments.
+
+See [envs](./multimodal_robot_model/envs) for installation procedures for each environment.
 
 ## Utilities
 See [utils](./multimodal_robot_model/utils).

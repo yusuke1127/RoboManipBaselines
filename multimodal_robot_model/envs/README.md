@@ -1,5 +1,7 @@
 # Environments for robot manipulation
 
+A full list of teleoperation environments can be found in [the environment catalog](../../doc/EnvironmentCatalog.md).
+
 ## Install
 ### [Real UR5e environments](./real)
 Install [ur_rtde](https://sdurobotics.gitlab.io/ur_rtde/installation/installation.html) by the following commands.
