@@ -17,7 +17,7 @@ class TeleopRealUR5eDemo(TeleopBase):
             robot_ip=self.robot_ip,
             camera_ids=self.camera_ids
         )
-        self.demo_name = "RealUR5eDemo"
+        self.demo_name = self.args.demo_name or "RealUR5eDemo"
 
     def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):

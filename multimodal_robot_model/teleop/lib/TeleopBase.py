@@ -12,6 +12,7 @@ from multimodal_robot_model.common import MotionManager, MotionStatus, DataKey, 
 class TeleopBase(metaclass=ABCMeta):
     def __init__(self):
         parser = argparse.ArgumentParser()
+        parser.add_argument("--demo_name", type=str, default=None, help="demonstration name")
         parser.add_argument("--enable_3d_plot", action="store_true", help="whether to enable 3d plot")
         parser.add_argument("--compress_rgb", type=int, default=1, help="whether to compress rgb image")
         parser.add_argument("--compress_depth", type=int, default=0, help="whether to compress depth image (slow)")

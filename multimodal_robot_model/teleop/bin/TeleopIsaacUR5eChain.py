@@ -11,7 +11,7 @@ class TeleopIsaacUR5eChain(TeleopBase):
             "multimodal_robot_model/IsaacUR5eChainEnv-v0",
             render_mode="human"
         )
-        self.demo_name = "IsaacUR5eChain"
+        self.demo_name = self.args.demo_name or "IsaacUR5eChain"
 
     def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):

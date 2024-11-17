@@ -11,7 +11,7 @@ class TeleopMujocoUR5eRing(TeleopBase):
             "multimodal_robot_model/MujocoUR5eRingEnv-v0",
             render_mode="human"
         )
-        self.demo_name = "MujocoUR5eRing"
+        self.demo_name = self.args.demo_name or "MujocoUR5eRing"
 
     def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):

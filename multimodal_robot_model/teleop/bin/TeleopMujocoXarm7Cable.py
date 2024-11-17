@@ -11,7 +11,7 @@ class TeleopMujocoXarm7Cable(TeleopBase):
             "multimodal_robot_model/MujocoXarm7CableEnv-v0",
             render_mode="human"
         )
-        self.demo_name = "MujocoXarm7Cable"
+        self.demo_name = self.args.demo_name or "MujocoXarm7Cable"
 
     def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):

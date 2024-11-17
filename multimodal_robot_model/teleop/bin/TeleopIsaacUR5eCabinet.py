@@ -11,7 +11,7 @@ class TeleopIsaacUR5eCabinet(TeleopBase):
             "multimodal_robot_model/IsaacUR5eCabinetEnv-v0",
             render_mode="human"
         )
-        self.demo_name = "IsaacUR5eCabinet"
+        self.demo_name = self.args.demo_name or "IsaacUR5eCabinet"
 
     def setArmCommand(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
