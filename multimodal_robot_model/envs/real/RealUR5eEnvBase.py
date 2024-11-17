@@ -27,17 +27,20 @@ class RealUR5eEnvBase(gym.Env):
         self.dt = 0.02 # [s]
         if kwargs.get("scale_dt") is not None:
             self.dt *= kwargs["scale_dt"]
+
         self.action_space = Box(
             low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0], dtype=np.float32),
             high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
             dtype=np.float32
         )
-        self.gripper_action_idx = 6
         self.observation_space = Dict({
             "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
         })
+
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
 
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
@@ -123,7 +126,7 @@ class RealUR5eEnvBase(gym.Env):
         start_time = time.time()
 
         # Overwrite duration or qpos for safety
-        arm_qpos_command = action[0:6]
+        arm_qpos_command = action[self.arm_action_idxes]
         scaled_qvel_limit = np.clip(qvel_limit_scale, 0.01, 10.0) * self.qvel_limit
         if duration is None:
             duration_min, duration_max = 0.1, 10.0 # [s]
@@ -149,7 +152,7 @@ class RealUR5eEnvBase(gym.Env):
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[6]
+        gripper_pos = action[self.gripper_action_idx]
         speed = 50
         force = 10
         self.gripper.move(int(gripper_pos), speed, force)
@@ -204,14 +207,14 @@ class RealUR5eEnvBase(gym.Env):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][:6]
+            return obs["joint_pos"][self.arm_action_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][:6]
+            return obs["joint_vel"][self.arm_action_idxes]
         else:
             return obs["joint_vel"]
 

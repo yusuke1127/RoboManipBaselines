@@ -28,6 +28,7 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         self.init_qvel[:] = 0.0
 
         self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
 
     def _get_obs(self):
         arm_joint_name_list = [
@@ -62,14 +63,14 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][:6]
+            return obs["joint_pos"][self.arm_action_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][:6]
+            return obs["joint_vel"][self.arm_action_idxes]
         else:
             return obs["joint_vel"]
 

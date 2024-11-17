@@ -37,6 +37,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         # Setup environment parameters
         self.skip_sim = 2
         self.dt = self.skip_sim * self.gym.get_sim_params(self.sim).dt
+
         robot_dof_props = self.gym.get_actor_dof_properties(
             self.env_list[self.rep_env_idx], self.robot_handle_list[self.rep_env_idx])
         self.action_space = Box(
@@ -44,15 +45,19 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
             dtype=np.float32
         )
-        self.gripper_action_idx = 6
         self.observation_space = Dict({
             "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
         })
+
         self.action_list = None
         self.obs_list = None
         self.info_list = None
+
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
+
         self.action_fluctuation_scale = np.array([np.deg2rad(0.1)] * 6 + [0.0], dtype=np.float32)
         self.action_fluctuation_list = [np.zeros(self.action_space.shape, dtype=np.float32) for env_idx in range(self.num_envs)]
 
@@ -348,14 +353,14 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][:6]
+            return obs["joint_pos"][self.arm_action_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][:6]
+            return obs["joint_vel"][self.arm_action_idxes]
         else:
             return obs["joint_vel"]
 
@@ -402,8 +407,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     def get_robot_dof_pos_from_qpos(self, qpos):
         robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
         robot_dof_pos = np.zeros(robot_num_dofs, dtype=np.float32)
-        robot_dof_pos[0:6] = qpos[:6]
-        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(qpos[6])
+        robot_dof_pos[0:6] = qpos[self.arm_action_idxes]
+        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(qpos[self.gripper_action_idx])
         return robot_dof_pos
 
     def get_gripper_dof_pos_from_gripper_pos(self, gripper_pos):
