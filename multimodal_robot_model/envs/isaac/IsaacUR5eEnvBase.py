@@ -31,6 +31,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = self.get_link_pose("ur5e", "base_link")
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
 
         # Setup environment parameters
         self.skip_sim = 2
@@ -42,6 +44,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
             high=np.concatenate((robot_dof_props["upper"][0:6], np.array([255.0], dtype=np.float32))),
             dtype=np.float32
         )
+        self.gripper_action_idx = 6
         self.observation_space = Dict({
             "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),

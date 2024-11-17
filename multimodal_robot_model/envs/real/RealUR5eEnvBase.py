@@ -32,6 +32,7 @@ class RealUR5eEnvBase(gym.Env):
             high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
             dtype=np.float32
         )
+        self.gripper_action_idx = 6
         self.observation_space = Dict({
             "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
             "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
@@ -41,6 +42,8 @@ class RealUR5eEnvBase(gym.Env):
         # Setup robot
         self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = None
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos = init_qpos
         self.qvel_limit = np.deg2rad(191) # [rad/s]
 

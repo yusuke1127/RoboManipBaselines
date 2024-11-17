@@ -23,9 +23,13 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
         mujoco.mj_kinematics(self.model, self.data)
         self.arm_urdf_path = path.join(path.dirname(__file__), "../../assets/common/robots/aloha/vx300s.urdf")
         self.arm_root_pose = self.get_body_pose("left/base_link")
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos[0:len(init_qpos)] = init_qpos
         self.init_qpos[len(init_qpos):2*len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
+
+        self.gripper_action_idx = 6
 
     def step(self, action):
         # Copy the same action to both arms

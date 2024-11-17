@@ -22,8 +22,12 @@ class MujocoXarm7EnvBase(MujocoEnvBase):
         mujoco.mj_kinematics(self.model, self.data)
         self.arm_urdf_path = path.join(path.dirname(__file__), "../../assets/common/robots/xarm7/xarm7.urdf")
         self.arm_root_pose = self.get_body_pose("xarm7_root_frame")
+        self.ik_eef_joint_id = 7
+        self.ik_arm_joint_ids = slice(0, 7)
         self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
+
+        self.gripper_action_idx = 7
 
     def _get_obs(self):
         arm_joint_name_list = [

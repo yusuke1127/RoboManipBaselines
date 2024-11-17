@@ -22,8 +22,12 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         mujoco.mj_kinematics(self.model, self.data)
         self.arm_urdf_path = path.join(path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf")
         self.arm_root_pose = self.get_body_pose("ur5e_root_frame")
+        self.ik_eef_joint_id = 6
+        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos[:len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
+
+        self.gripper_action_idx = 6
 
     def _get_obs(self):
         arm_joint_name_list = [

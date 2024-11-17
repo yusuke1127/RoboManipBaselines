@@ -21,19 +21,17 @@ class MotionManager(object):
         self.pin_data_obs = self.pin_model.createData()
 
         # Setup arm
-        self.joint_pos = self.env.unwrapped.init_qpos[:6].copy()
-        self.eef_joint_id = 6
+        self.joint_pos = self.env.unwrapped.init_qpos[self.env.unwrapped.ik_arm_joint_ids].copy()
         pin.forwardKinematics(self.pin_model, self.pin_data, self.joint_pos)
-        self._original_target_se3 = self.pin_data.oMi[self.eef_joint_id].copy()
+        self._original_target_se3 = self.pin_data.oMi[self.env.unwrapped.ik_eef_joint_id].copy()
         self.target_se3 = self._original_target_se3.copy()
 
         # Setup gripper
         self._gripper_pos = 0.0
-        self.gripper_action_idx = 6
 
     def reset(self):
         """Reset states of arm and gripper."""
-        self.joint_pos = self.env.unwrapped.init_qpos[:6].copy()
+        self.joint_pos = self.env.unwrapped.init_qpos[self.env.unwrapped.ik_arm_joint_ids].copy()
         self.target_se3 = self._original_target_se3.copy()
         self.gripper_pos = 0.0
 
@@ -42,7 +40,7 @@ class MotionManager(object):
         # https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_b-examples_d-inverse-kinematics.html
         error_se3 = self.current_se3.actInv(self.target_se3)
         error_vec = pin.log(error_se3).vector # in joint frame
-        J = pin.computeJointJacobian(self.pin_model, self.pin_data, self.joint_pos, self.eef_joint_id) # in joint frame
+        J = pin.computeJointJacobian(self.pin_model, self.pin_data, self.joint_pos, self.env.unwrapped.ik_eef_joint_id) # in joint frame
         J = -1 * np.dot(pin.Jlog6(error_se3.inverse()), J)
         damping_scale = 1e-6
         delta_joint_pos = -1 * J.T.dot(np.linalg.solve(
@@ -90,7 +88,7 @@ class MotionManager(object):
         """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation."""
         measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=True)
         pin.forwardKinematics(self.pin_model, self.pin_data_obs, measured_joint_pos)
-        measured_se3 = self.pin_data_obs.oMi[self.eef_joint_id]
+        measured_se3 = self.pin_data_obs.oMi[self.env.unwrapped.ik_eef_joint_id]
         return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 
     def getCommandEef(self):
@@ -100,7 +98,7 @@ class MotionManager(object):
     @property
     def current_se3(self):
         """Get the current pose of the end-effector."""
-        return self.pin_data.oMi[self.eef_joint_id]
+        return self.pin_data.oMi[self.env.unwrapped.ik_eef_joint_id]
 
     @property
     def gripper_pos(self):
@@ -111,5 +109,5 @@ class MotionManager(object):
     def gripper_pos(self, new_gripper_pos):
         """Set the target gripper position."""
         self._gripper_pos = np.clip(new_gripper_pos,
-                                    self.env.action_space.low[self.gripper_action_idx],
-                                    self.env.action_space.high[self.gripper_action_idx])
+                                    self.env.action_space.low[self.env.unwrapped.gripper_action_idx],
+                                    self.env.action_space.high[self.env.unwrapped.gripper_action_idx])
