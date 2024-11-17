@@ -59,21 +59,3 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
             "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
-
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
-        """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
-        else:
-            return obs["joint_pos"]
-
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
-        """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
-        else:
-            return obs["joint_vel"]
-
-    def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
-        return obs["wrench"]

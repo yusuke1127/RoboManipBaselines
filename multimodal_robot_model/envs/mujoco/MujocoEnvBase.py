@@ -114,20 +114,23 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
             camera["viewer"].close()
         MujocoEnv.close(self)
 
-    @abstractmethod
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
-        pass
+        if exclude_gripper:
+            return obs["joint_pos"][self.arm_action_idxes]
+        else:
+            return obs["joint_pos"]
 
-    @abstractmethod
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
-        pass
+        if exclude_gripper:
+            return obs["joint_vel"][self.arm_action_idxes]
+        else:
+            return obs["joint_vel"]
 
-    @abstractmethod
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
-        pass
+        return obs["wrench"]
 
     def get_sim_time(self):
         """Get simulation time. [s]"""
