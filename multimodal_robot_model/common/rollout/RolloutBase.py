@@ -153,7 +153,7 @@ class RolloutBase(metaclass=ABCMeta):
 
     def setGripperCommand(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[6]
+            self.motion_manager.gripper_pos = self.env.action_space.high[self.env.unwrapped.gripper_action_idx]
         elif self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.gripper_pos = self.pred_action[6]
 
