@@ -26,6 +26,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.render_mode = kwargs.get("render_mode")
 
         # Setup Isaac Gym
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
         self.setupSim(num_envs)
 
         # Setup robot
@@ -54,9 +56,6 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.action_list = None
         self.obs_list = None
         self.info_list = None
-
-        self.gripper_action_idx = 6
-        self.arm_action_idxes = slice(0, 6)
 
         self.action_fluctuation_scale = np.array([np.deg2rad(0.1)] * 6 + [0.0], dtype=np.float32)
         self.action_fluctuation_list = [np.zeros(self.action_space.shape, dtype=np.float32) for env_idx in range(self.num_envs)]
