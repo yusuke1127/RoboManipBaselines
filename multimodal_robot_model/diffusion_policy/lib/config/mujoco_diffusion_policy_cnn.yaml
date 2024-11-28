@@ -1,10 +1,9 @@
-name: train_diffusion_unet_hybrid
+name: train_diffusion_policy
 
 enable_wandb: True # added in multimodal_robot_model
 
 task_name: ${task.name}
 shape_meta: ${task.shape_meta}
-exp_name: "default"
 
 horizon: 16
 n_obs_steps: 2
@@ -102,8 +101,8 @@ logging:
   project: diffusion_policy_debug
   resume: True
   mode: online
-  name: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
-  tags: ["${name}", "${task_name}", "${exp_name}"]
+  name: ${task_name}_${now:%Y%m%d-%H%M%S}
+  tags: ["${name}", "${task_name}"]
   id: null
   group: null
 
@@ -116,17 +115,13 @@ checkpoint:
   save_last_ckpt: True
   save_last_snapshot: False
 
-multi_run:
-  run_dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
-  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_${name}_${task_name}
-
 hydra:
   job:
     override_dirname: ${name}
   run:
-    dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+    dir: 'log/${task_name}_${now:%Y%m%d-%H%M%S}'
   sweep:
-    dir: 'log/${now:%Y.%m.%d}/${now:%H.%M.%S}_${name}_${task_name}'
+    dir: 'log/${task_name}_${now:%Y%m%d-%H%M%S}'
     subdir: ${hydra.job.num}
 
 task:
