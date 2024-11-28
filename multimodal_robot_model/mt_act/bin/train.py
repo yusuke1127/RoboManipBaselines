@@ -76,7 +76,7 @@ def main(args):
         'task_name': task_name,
         'seed': args['seed'],
         'temporal_agg': args['temporal_agg'],
-        'run_name': args['run_name'], 
+        'run_name': args['run_name'],
         'multi_task': args['multi_task'] ,
         'batch_size': args['batch_size']
     }
@@ -267,5 +267,5 @@ if __name__ == '__main__':
 
     # add this for multi-task embedding condition
     parser.add_argument('--multi_task', action='store_true')
-    
+
     main(vars(parser.parse_args()))
