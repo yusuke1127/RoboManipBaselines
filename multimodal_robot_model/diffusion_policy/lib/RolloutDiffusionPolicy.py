@@ -39,7 +39,7 @@ class RolloutDiffusionPolicy(RolloutBase):
 
         # Set variables
         self.joint_dim = cfg.shape_meta.action.shape[0]
-        self.joint_scales = [1.0] * 6 + [0.01]
+        self.joint_scales = [1.0] * (self.joint_dim - 1) + [0.01]
         self.image_size = tuple(cfg.task.image_shape[1:][::-1])
         self.n_obs_steps = cfg.n_obs_steps
         self.front_image_history = None
