@@ -6,7 +6,6 @@
 #
 
 import os
-import sys
 from tqdm import tqdm
 import torch
 import argparse

@@ -1,6 +1,5 @@
 import numpy as np
 import pinocchio as pin
-import mujoco
 
 
 class MotionManager(object):

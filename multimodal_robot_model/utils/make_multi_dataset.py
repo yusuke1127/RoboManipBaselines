@@ -108,7 +108,7 @@ def load_data(in_dir, task_names, skip, resized_img_size, nproc):
     in_file_names.sort()
     try:
         assert len(in_file_names) >= 1, f"{len(in_file_names)=}"
-    except AssertionError as e:
+    except AssertionError:
         sys.stderr.write(f"{sys.stderr.name} {in_dir=}\n")
         raise
 
@@ -119,7 +119,7 @@ def load_data(in_dir, task_names, skip, resized_img_size, nproc):
     for i, t in enumerate(_tasks):
         try:
             assert len(t) == 1, f"{len(t)=}"
-        except AssertionError as e:
+        except AssertionError:
             sys.stderr.write(f"{sys.stderr.name} {task_names=}\n")
             sys.stderr.write(f"{sys.stderr.name} {(in_file_names[i], i)=}\n")
             sys.stderr.write(f"{sys.stderr.name} {(len(t)==1, len(t), t)=}\n")

@@ -204,7 +204,7 @@ class TrainAct(object):
                 torch.save(self.policy.state_dict(), ckpt_path)
                 self.plot_history(train_history, validation_history, epoch)
 
-        ckpt_path = os.path.join(self.args.ckpt_dir, f"policy_last.ckpt")
+        ckpt_path = os.path.join(self.args.ckpt_dir, "policy_last.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
 
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info

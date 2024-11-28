@@ -1,7 +1,4 @@
-import numpy as np
-import pinocchio as pin
 import gymnasium as gym
-import multimodal_robot_model
 from multimodal_robot_model.common import MotionStatus
 from .RolloutBase import RolloutBase
 

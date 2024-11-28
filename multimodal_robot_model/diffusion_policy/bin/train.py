@@ -5,15 +5,10 @@ from omegaconf import OmegaConf
 import pathlib
 from torch.utils.data import DataLoader
 import copy
-import random
 import tqdm
 import numpy as np
-import shutil
 from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import (
     TrainDiffusionUnetHybridWorkspace,
-)
-from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
-    DiffusionUnetHybridImagePolicy,
 )
 from diffusion_policy.dataset.base_dataset import BaseImageDataset
 from diffusion_policy.common.checkpoint_util import TopKCheckpointManager

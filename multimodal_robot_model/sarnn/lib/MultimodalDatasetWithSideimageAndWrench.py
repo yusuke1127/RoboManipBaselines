@@ -7,7 +7,7 @@
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 try:
     from torchvision.transforms import v2 as transforms

@@ -1,11 +1,7 @@
 import numpy as np
 import torch
-import os
 from functools import lru_cache
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import random
-import glob
 from pathlib import Path
 from dataclasses import dataclass
 from multimodal_robot_model.mt_act import CAMERA_NAMES, TEXT_EMBEDDINGS, TASKS

@@ -61,7 +61,7 @@ def parse_arg():
         )
 
     for i in range(len(args.satur_detection_region_ratio)):
-        condition_str = f"args.input_file_name != args.output_file_name"
+        condition_str = "args.input_file_name != args.output_file_name"
         assert eval(condition_str), (
             "\n\t"
             "asserted: " + condition_str + "\n\t"

@@ -1,7 +1,5 @@
 import numpy as np
 import gymnasium as gym
-import pinocchio as pin
-import multimodal_robot_model
 from multimodal_robot_model.teleop import TeleopBase
 from multimodal_robot_model.common import MotionStatus
 

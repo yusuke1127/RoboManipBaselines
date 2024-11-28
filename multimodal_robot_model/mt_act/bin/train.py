@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from copy import deepcopy
 from tqdm import tqdm
 from einops import rearrange
-import glob
 import sys
 
 # import wandb
@@ -40,7 +39,7 @@ def main(args):
     num = len(list(Path(dataset_dir[0]).glob("**/*.npy")))
     try:
         assert num > 0
-    except AssertionError as e:
+    except AssertionError:
         print(f"{dataset_dir=}")
         print(f"{dataset_dir[0]=}")
         print(f"{num=}")
@@ -102,7 +101,7 @@ def main(args):
     # save dataset stats
     if not os.path.isdir(ckpt_dir):
         os.makedirs(ckpt_dir)
-    stats_path = os.path.join(ckpt_dir, f"dataset_stats.pkl")
+    stats_path = os.path.join(ckpt_dir, "dataset_stats.pkl")
     with open(stats_path, "wb") as f:
         pickle.dump(stats, f)
 
@@ -110,7 +109,7 @@ def main(args):
     best_epoch, min_val_loss, best_state_dict = best_ckpt_info
 
     # save best checkpoint
-    ckpt_path = os.path.join(ckpt_dir, f"policy_best.ckpt")
+    ckpt_path = os.path.join(ckpt_dir, "policy_best.ckpt")
     torch.save(best_state_dict, ckpt_path)
     print(f"Best ckpt, val loss {min_val_loss:.6f} @ epoch{best_epoch}")
 
@@ -231,7 +230,7 @@ def train_bc(train_dataloader, val_dataloader, config):
             torch.save(policy.state_dict(), ckpt_path)
             plot_history(train_history, validation_history, epoch, ckpt_dir, seed)
 
-    ckpt_path = os.path.join(ckpt_dir, f"policy_last.ckpt")
+    ckpt_path = os.path.join(ckpt_dir, "policy_last.ckpt")
     torch.save(policy.state_dict(), ckpt_path)
 
     best_epoch, min_val_loss, best_state_dict = best_ckpt_info

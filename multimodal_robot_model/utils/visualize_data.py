@@ -1,8 +1,6 @@
 import argparse
 import matplotlib.pylab as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
-import cv2
 from multimodal_robot_model.common import (
     DataKey,
     DataManager,

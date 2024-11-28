@@ -3,7 +3,6 @@ import glob
 import cv2
 import argparse
 import os
-import matplotlib.pylab as plt
 from multimodal_robot_model.common import DataKey, DataManager
 from PIL import Image, ImageOps
 

@@ -8,7 +8,6 @@ import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import torch
-import pinocchio as pin
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataManager
 
 

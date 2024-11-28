@@ -4,7 +4,6 @@ import time
 import numpy as np
 import cv2
 import matplotlib.pylab as plt
-from mpl_toolkits.mplot3d import Axes3D
 import pyspacemouse
 from multimodal_robot_model.common import (
     MotionManager,

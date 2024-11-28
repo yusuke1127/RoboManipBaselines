@@ -98,7 +98,7 @@ def load_data(in_dir, skip, resized_img_size, nproc):
     in_file_names.sort()
     try:
         assert len(in_file_names) >= 1, f"{len(in_file_names)=}"
-    except AssertionError as e:
+    except AssertionError:
         sys.stderr.write(f"{sys.stderr.name} {in_dir=}\n")
         raise
     pool = Pool(nproc)
