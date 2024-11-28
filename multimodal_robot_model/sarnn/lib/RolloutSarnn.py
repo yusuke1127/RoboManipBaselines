@@ -28,9 +28,16 @@ class RolloutSarnn(RolloutBase):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
         self.params = restore_args(os.path.join(checkpoint_dir, "args.json"))
 
-        # Define model
+        # Set variables
+        self.joint_bounds = np.load(os.path.join(checkpoint_dir, "action_bounds.npy"))
+        self.joint_dim = self.joint_bounds.shape[-1]
+        self.joint_scales = [1.0] * (self.joint_dim - 1) + [0.01]
         self.im_size = 64
-        self.joint_dim = 7
+        self.v_min_max = [self.params["vmin"], self.params["vmax"]]
+        self.pred_action_list = np.empty((0, self.joint_dim))
+        self.rnn_state = None
+
+        # Define model
         self.policy = SARNN(
             rec_dim=self.params["rec_dim"],
             joint_dim=self.joint_dim,
@@ -47,13 +54,6 @@ class RolloutSarnn(RolloutBase):
         ckpt = torch.load(self.args.checkpoint, map_location=torch.device("cpu"))
         self.policy.load_state_dict(ckpt["model_state_dict"])
         self.policy.eval()
-
-        # Set variables
-        self.v_min_max = [self.params["vmin"], self.params["vmax"]]
-        self.joint_bounds = np.load(os.path.join(checkpoint_dir, "action_bounds.npy"))
-        self.joint_scales = [1.0] * 6 + [0.01]
-        self.pred_action_list = np.empty((0, self.joint_dim))
-        self.rnn_state = None
 
     def setupPlot(self):
         fig_ax = plt.subplots(1, 3, figsize=(13.5, 5.0), dpi=60, squeeze=False)

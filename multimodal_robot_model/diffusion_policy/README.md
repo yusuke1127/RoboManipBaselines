@@ -7,8 +7,6 @@ Install dependent packages by the following commands.
 $ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
 $ sudo aptitude install libavdevice-dev libavfilter-dev # Required for Ubuntu 22.04 / Python 3.8.16
 $ pip install -r requirements.txt
-$ # If urllib3 version is greater than 2, execute this command
-$ pip install 'urllib3<2'
 ```
 
 Install [r3m](https://github.com/facebookresearch/r3m) by the following commands.

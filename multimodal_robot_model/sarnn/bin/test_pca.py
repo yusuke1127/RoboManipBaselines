@@ -42,11 +42,12 @@ if not args.no_wrench:
     wrench_bounds = np.load(os.path.join(args.data_dir, "wrench_bounds.npy"))
 
 # define model
+joint_dim = joints.shape[-1]
 if (not args.no_side_image) and (not args.no_wrench):
     from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
     model = SARNNwithSideimageAndWrench(
         rec_dim=params["rec_dim"],
-        joint_dim=7,
+        joint_dim=joint_dim,
         wrench_dim=6,
         k_dim=params["k_dim"],
         heatmap_size=params["heatmap_size"],
@@ -57,7 +58,7 @@ elif args.no_side_image and args.no_wrench:
     from eipl.model import SARNN
     model = SARNN(
         rec_dim=params["rec_dim"],
-        joint_dim=7,
+        joint_dim=joint_dim,
         k_dim=params["k_dim"],
         heatmap_size=params["heatmap_size"],
         temperature=params["temperature"],

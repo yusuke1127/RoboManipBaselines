@@ -8,6 +8,7 @@ import cv2
 import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy
+from detr.models.detr_vae import DETRVAE
 from eipl.utils import tensor2numpy
 from multimodal_robot_model.common.rollout import RolloutBase
 
@@ -41,6 +42,17 @@ class RolloutAct(RolloutBase):
             self.args.skip_draw = self.args.skip
 
     def setupPolicy(self):
+        # Load data statistics
+        stats_path = os.path.join(self.args.ckpt_dir, "dataset_stats.pkl")
+        with open(stats_path, "rb") as f:
+            self.stats = pickle.load(f)
+
+        # Set policy parameters
+        self.state_dim = len(self.stats["joint_mean"])
+        self.action_dim = len(self.stats["action_mean"])
+        DETRVAE.set_state_dim(self.state_dim)
+        DETRVAE.set_action_dim(self.action_dim)
+
         # Define policy
         self.policy_config = {
             "num_queries": self.args.chunk_size,
@@ -75,15 +87,9 @@ class RolloutAct(RolloutBase):
         self.policy.cuda()
         self.policy.eval()
 
-        # Load data statistics
-        stats_path = os.path.join(self.args.ckpt_dir, "dataset_stats.pkl")
-        with open(stats_path, "rb") as f:
-            self.stats = pickle.load(f)
-
         # Set variables
-        self.joint_dim = 7
-        self.joint_scales = [1.0] * 6 + [0.01]
-        self.pred_action_list = np.empty((0, self.joint_dim))
+        self.joint_scales = [1.0] * (self.action_dim - 1) + [0.01]
+        self.pred_action_list = np.empty((0, self.action_dim))
         self.all_actions_history = []
 
     def setupPlot(self):
@@ -113,7 +119,7 @@ class RolloutAct(RolloutBase):
         k = 0.01
         exp_weights = np.exp(-k * np.arange(len(self.all_actions_history)))
         exp_weights = exp_weights / exp_weights.sum()
-        action = np.zeros(self.joint_dim)
+        action = np.zeros(self.action_dim)
         for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
         self.pred_action = action * self.stats["action_std"] + self.stats["action_mean"]
