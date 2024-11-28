@@ -6,7 +6,6 @@
 #
 
 import os
-import sys
 import shutil
 import random
 import torch
@@ -22,15 +21,16 @@ from torch.utils.data import DataLoader
 
 from eipl.utils import EarlyStopping, check_args, set_logdir, normalization
 
+
 class TrainSarnn(object):
     def __init__(self):
-        self.setupArgs()
+        self.setup_args()
 
-        self.setupDataset()
+        self.setup_dataset()
 
-        self.setupPolicy()
+        self.setup_policy()
 
-    def setupArgs(self):
+    def setup_args(self):
         parser = argparse.ArgumentParser(description="Train SARNN")
 
         parser.add_argument("--data_dir", type=str, required=True)
@@ -63,7 +63,7 @@ class TrainSarnn(object):
         args = parser.parse_args()
         self.args = check_args(args)
 
-    def setupDataset(self):
+    def setup_dataset(self):
         # fix seed
         if self.args.random_seed is not None:
             random.seed(self.args.random_seed)
@@ -98,44 +98,52 @@ class TrainSarnn(object):
             wrench_bounds = np.load(data_dir / "wrench_bounds.npy")
             wrenches_raw = np.load(sorted(train_data_dir.glob("**/wrenches.npy"))[0])
             wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
-        front_images_raw = np.load(sorted(train_data_dir.glob("**/front_images.npy"))[0])
-        front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+        front_images_raw = np.load(
+            sorted(train_data_dir.glob("**/front_images.npy"))[0]
+        )
+        front_images = normalization(
+            front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
+        )
         if not self.args.no_side_image:
-            side_images_raw = np.load(sorted(train_data_dir.glob("**/side_images.npy"))[0])
-            side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+            side_images_raw = np.load(
+                sorted(train_data_dir.glob("**/side_images.npy"))[0]
+            )
+            side_images = normalization(
+                side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
+            )
         masks = np.load(sorted(train_data_dir.glob("**/masks.npy"))[0])
 
         if (not self.args.no_side_image) and (not self.args.no_wrench):
             assert not self.args.with_mask, "with_mask option is not supported for the model with side_image and wrench."
-            from multimodal_robot_model.sarnn import MultimodalDatasetWithSideimageAndWrench
+            from multimodal_robot_model.sarnn import (
+                MultimodalDatasetWithSideimageAndWrench,
+            )
+
             train_dataset = MultimodalDatasetWithSideimageAndWrench(
                 front_images,
                 side_images,
                 joints,
                 wrenches,
                 device=self.device,
-                stdev=stdev
+                stdev=stdev,
             )
         elif self.args.no_side_image and self.args.no_wrench:
             if self.args.with_mask:
                 from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+
                 train_dataset = MultimodalDatasetWithMask(
-                    front_images,
-                    joints,
-                    masks,
-                    device=self.device,
-                    stdev=stdev
+                    front_images, joints, masks, device=self.device, stdev=stdev
                 )
             else:
                 from eipl.data import MultimodalDataset
+
                 train_dataset = MultimodalDataset(
-                    front_images,
-                    joints,
-                    device=self.device,
-                    stdev=stdev
+                    front_images, joints, device=self.device, stdev=stdev
                 )
         else:
-            raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}")
+            raise AssertionError(
+                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
+            )
         self.train_loader = DataLoader(
             train_dataset,
             batch_size=self.args.batch_size,
@@ -151,10 +159,16 @@ class TrainSarnn(object):
             wrenches_raw = np.load(sorted(test_data_dir.glob("**/wrenches.npy"))[0])
             wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
         front_images_raw = np.load(sorted(test_data_dir.glob("**/front_images.npy"))[0])
-        front_images = normalization(front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+        front_images = normalization(
+            front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
+        )
         if not self.args.no_side_image:
-            side_images_raw = np.load(sorted(test_data_dir.glob("**/side_images.npy"))[0])
-            side_images = normalization(side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax)
+            side_images_raw = np.load(
+                sorted(test_data_dir.glob("**/side_images.npy"))[0]
+            )
+            side_images = normalization(
+                side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
+            )
         masks = np.load(sorted(test_data_dir.glob("**/masks.npy"))[0])
 
         if (not self.args.no_side_image) and (not self.args.no_wrench):
@@ -164,28 +178,25 @@ class TrainSarnn(object):
                 joints,
                 wrenches,
                 device=self.device,
-                stdev=None
+                stdev=None,
             )
         elif self.args.no_side_image and self.args.no_wrench:
             if self.args.with_mask:
                 from multimodal_robot_model.sarnn import MultimodalDatasetWithMask
+
                 test_dataset = MultimodalDatasetWithMask(
-                    front_images,
-                    joints,
-                    masks,
-                    device=self.device,
-                    stdev=stdev
+                    front_images, joints, masks, device=self.device, stdev=stdev
                 )
             else:
                 from eipl.data import MultimodalDataset
+
                 test_dataset = MultimodalDataset(
-                    front_images,
-                    joints,
-                    device=self.device,
-                    stdev=None
+                    front_images, joints, device=self.device, stdev=None
                 )
         else:
-            raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}")
+            raise AssertionError(
+                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
+            )
         self.test_loader = DataLoader(
             test_dataset,
             batch_size=self.args.batch_size,
@@ -193,12 +204,13 @@ class TrainSarnn(object):
             drop_last=False,
         )
 
-    def setupPolicy(self):
+    def setup_policy(self):
         joint_dim = self.train_loader.dataset[0][0][1].shape[-1]
 
         # define model
         if (not self.args.no_side_image) and (not self.args.no_wrench):
             from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
+
             self.model = SARNNwithSideimageAndWrench(
                 rec_dim=self.args.rec_dim,
                 joint_dim=joint_dim,
@@ -210,6 +222,7 @@ class TrainSarnn(object):
             )
         elif self.args.no_side_image and self.args.no_wrench:
             from eipl.model import SARNN
+
             self.model = SARNN(
                 rec_dim=self.args.rec_dim,
                 joint_dim=joint_dim,
@@ -219,7 +232,9 @@ class TrainSarnn(object):
                 im_size=[64, 64],
             )
         else:
-            raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}")
+            raise AssertionError(
+                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
+            )
 
         # torch.compile makes PyTorch code run faster
         if self.args.compile:
@@ -231,7 +246,11 @@ class TrainSarnn(object):
 
         # load trainer/tester class
         if (not self.args.no_side_image) and (not self.args.no_wrench):
-            from multimodal_robot_model.sarnn import fullBPTTtrainerWithSideimageAndWrench, Loss
+            from multimodal_robot_model.sarnn import (
+                fullBPTTtrainerWithSideimageAndWrench,
+                Loss,
+            )
+
             loss_weights = [
                 {
                     Loss.FRONT_IMG: self.args.front_img_loss,
@@ -239,22 +258,44 @@ class TrainSarnn(object):
                     Loss.JOINT: self.args.joint_loss,
                     Loss.WRENCH: self.args.wrench_loss,
                     Loss.FRONT_PT: self.args.front_pt_loss,
-                    Loss.SIDE_PT: self.args.side_pt_loss
-                }[loss] for loss in Loss
+                    Loss.SIDE_PT: self.args.side_pt_loss,
+                }[loss]
+                for loss in Loss
             ]
             self.trainer = fullBPTTtrainerWithSideimageAndWrench(
-                self.model, self.optimizer, loss_weights=loss_weights, device=self.device
+                self.model,
+                self.optimizer,
+                loss_weights=loss_weights,
+                device=self.device,
             )
         elif self.args.no_side_image and self.args.no_wrench:
-            loss_weights = [self.args.front_img_loss, self.args.joint_loss, self.args.front_pt_loss]
+            loss_weights = [
+                self.args.front_img_loss,
+                self.args.joint_loss,
+                self.args.front_pt_loss,
+            ]
             if self.args.with_mask:
                 from multimodal_robot_model.sarnn import fullBPTTtrainerWithMask
-                self.trainer = fullBPTTtrainerWithMask(self.model, self.optimizer, loss_weights=loss_weights, device=self.device)
+
+                self.trainer = fullBPTTtrainerWithMask(
+                    self.model,
+                    self.optimizer,
+                    loss_weights=loss_weights,
+                    device=self.device,
+                )
             else:
                 from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
-                self.trainer = fullBPTTtrainer(self.model, self.optimizer, loss_weights=loss_weights, device=self.device)
+
+                self.trainer = fullBPTTtrainer(
+                    self.model,
+                    self.optimizer,
+                    loss_weights=loss_weights,
+                    device=self.device,
+                )
         else:
-            raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}")
+            raise AssertionError(
+                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
+            )
 
     def run(self):
         save_name = os.path.join(self.log_dir_path, "SARNN.pth")
@@ -266,7 +307,9 @@ class TrainSarnn(object):
                 # train and test
                 train_loss = self.trainer.process_epoch(self.train_loader)
                 with torch.no_grad():
-                    test_loss = self.trainer.process_epoch(self.test_loader, training=False)
+                    test_loss = self.trainer.process_epoch(
+                        self.test_loader, training=False
+                    )
                 writer.add_scalar("Loss/train_loss", train_loss, epoch)
                 writer.add_scalar("Loss/test_loss", test_loss, epoch)
 
@@ -281,6 +324,7 @@ class TrainSarnn(object):
                     OrderedDict(train_loss=train_loss, test_loss=test_loss)
                 )
                 pbar_epoch.update()
+
 
 if __name__ == "__main__":
     train = TrainSarnn()

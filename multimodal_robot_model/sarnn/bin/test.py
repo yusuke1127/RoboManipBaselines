@@ -6,7 +6,6 @@
 #
 
 import os
-import sys
 from tqdm import tqdm
 import torch
 import argparse
@@ -17,8 +16,18 @@ from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization
 
 # argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--filename", type=str, required=True, help=".pth file that PyTorch loads as checkpoint for model")
-parser.add_argument("--data_dir", type=str, required=True, help="directory that stores test data, that has been generated, and will be loaded")
+parser.add_argument(
+    "--filename",
+    type=str,
+    required=True,
+    help=".pth file that PyTorch loads as checkpoint for model",
+)
+parser.add_argument(
+    "--data_dir",
+    type=str,
+    required=True,
+    help="directory that stores test data, that has been generated, and will be loaded",
+)
 parser.add_argument("--idx", type=int, default=0)
 parser.add_argument("--no_side_image", action="store_true")
 parser.add_argument("--no_wrench", action="store_true")
@@ -48,6 +57,7 @@ joints = joints_raw[idx]
 joint_dim = joints.shape[-1]
 if (not args.no_side_image) and (not args.no_wrench):
     from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
+
     model = SARNNwithSideimageAndWrench(
         rec_dim=params["rec_dim"],
         joint_dim=joint_dim,
@@ -59,6 +69,7 @@ if (not args.no_side_image) and (not args.no_wrench):
     )
 elif args.no_side_image and args.no_wrench:
     from eipl.model import SARNN
+
     model = SARNN(
         rec_dim=params["rec_dim"],
         joint_dim=joint_dim,
@@ -68,7 +79,9 @@ elif args.no_side_image and args.no_wrench:
         im_size=[64, 64],
     )
 else:
-    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+    raise AssertionError(
+        f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}"
+    )
 
 if params["compile"]:
     model = torch.compile(model)
@@ -81,7 +94,12 @@ model.eval()
 # Inference
 im_size = 64
 front_image_list, side_image_list, joint_list, wrench_list = [], [], [], []
-enc_front_pts_list, enc_side_pts_list, dec_front_pts_list, dec_side_pts_list = [], [], [], []
+enc_front_pts_list, enc_side_pts_list, dec_front_pts_list, dec_side_pts_list = (
+    [],
+    [],
+    [],
+    [],
+)
 state = None
 nloop = len(front_images)
 for loop_ct in range(nloop):
@@ -101,11 +119,25 @@ for loop_ct in range(nloop):
 
     # predict rnn
     if (not args.no_side_image) and (not args.no_wrench):
-        y_front_image, y_side_image, y_joint, y_wrench, enc_front_pts, enc_side_pts, dec_front_pts, dec_side_pts, state = model(front_img_t, side_img_t, joint_t, wrench_t, state)
+        (
+            y_front_image,
+            y_side_image,
+            y_joint,
+            y_wrench,
+            enc_front_pts,
+            enc_side_pts,
+            dec_front_pts,
+            dec_side_pts,
+            state,
+        ) = model(front_img_t, side_img_t, joint_t, wrench_t, state)
     elif args.no_side_image and args.no_wrench:
-        y_front_image, y_joint, enc_front_pts, dec_front_pts, state = model(front_img_t, joint_t, state)
+        y_front_image, y_joint, enc_front_pts, dec_front_pts, state = model(
+            front_img_t, joint_t, state
+        )
     else:
-        raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+        raise AssertionError(
+            f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}"
+        )
 
     # denormalization
     pred_front_image = tensor2numpy(y_front_image[0])
@@ -165,7 +197,9 @@ elif args.no_side_image and args.no_wrench:
     fig, ax = plt.subplots(1, 3, figsize=(14, 6), dpi=60)
     ax = ax.reshape(-1, 3)
 else:
-    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+    raise AssertionError(
+        f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}"
+    )
 joint_scales = [1.0] * (joints.shape[1] - 1) + [0.01]
 pbar = tqdm(total=pred_joint.shape[0] + 1, desc=anim.FuncAnimation.__name__)
 
@@ -178,9 +212,15 @@ def anim_update(i):
     # plot camera front_image
     ax[0, 0].imshow(front_images[i])
     for j in range(params["k_dim"]):
-        ax[0, 0].plot(enc_front_pts[i, j, 0], enc_front_pts[i, j, 1], "co", markersize=12)  # encoder
         ax[0, 0].plot(
-            dec_front_pts[i, j, 0], dec_front_pts[i, j, 1], "rx", markersize=12, markeredgewidth=2
+            enc_front_pts[i, j, 0], enc_front_pts[i, j, 1], "co", markersize=12
+        )  # encoder
+        ax[0, 0].plot(
+            dec_front_pts[i, j, 0],
+            dec_front_pts[i, j, 1],
+            "rx",
+            markersize=12,
+            markeredgewidth=2,
         )  # decoder
     ax[0, 0].axis("off")
     ax[0, 0].set_title("Input front_image", fontsize=20)
@@ -194,9 +234,15 @@ def anim_update(i):
         # plot camera side_image
         ax[1, 0].imshow(side_images[i])
         for j in range(params["k_dim"]):
-            ax[1, 0].plot(enc_front_pts[i, j, 0], enc_front_pts[i, j, 1], "co", markersize=12)  # encoder
             ax[1, 0].plot(
-                dec_front_pts[i, j, 0], dec_front_pts[i, j, 1], "rx", markersize=12, markeredgewidth=2
+                enc_front_pts[i, j, 0], enc_front_pts[i, j, 1], "co", markersize=12
+            )  # encoder
+            ax[1, 0].plot(
+                dec_front_pts[i, j, 0],
+                dec_front_pts[i, j, 1],
+                "rx",
+                markersize=12,
+                markeredgewidth=2,
             )  # decoder
         ax[1, 0].axis("off")
         ax[1, 0].set_title("Input side_image", fontsize=20)
@@ -211,7 +257,9 @@ def anim_update(i):
     ax[0, 2].set_xlim(0, T)
     ax[0, 2].plot(joints[1:] * joint_scales, linestyle="dashed", c="k")
     for joint_idx in range(pred_joint.shape[1]):
-        ax[0, 2].plot(np.arange(i + 1), pred_joint[: i + 1, joint_idx] * joint_scales[joint_idx])
+        ax[0, 2].plot(
+            np.arange(i + 1), pred_joint[: i + 1, joint_idx] * joint_scales[joint_idx]
+        )
     ax[0, 2].set_xlabel("Step", fontsize=20)
     ax[0, 2].set_title("Joint", fontsize=20)
     ax[0, 2].tick_params(axis="x", labelsize=16)

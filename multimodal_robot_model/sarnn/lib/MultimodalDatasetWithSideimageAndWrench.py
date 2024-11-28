@@ -7,7 +7,7 @@
 
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 try:
     from torchvision.transforms import v2 as transforms
@@ -27,7 +27,9 @@ class MultimodalDatasetWithSideimageAndWrench(Dataset):
         stdev (float, optional): Set the standard deviation for normal distribution to generate noise.
     """
 
-    def __init__(self, front_images, side_images, joints, wrenches, device="cpu", stdev=None):
+    def __init__(
+        self, front_images, side_images, joints, wrenches, device="cpu", stdev=None
+    ):
         """
         The constructor of Multimodal Dataset class. Initializes the front images, side images, joints, wrenches, and transformation.
 
@@ -91,4 +93,7 @@ class MultimodalDatasetWithSideimageAndWrench(Dataset):
                 mean=0, std=self.stdev, size=y_wrench.shape, device=self.device
             )
 
-        return [[x_front_img, x_side_img, x_joint, x_wrench], [y_front_img, y_side_img, y_joint, y_wrench]]
+        return [
+            [x_front_img, x_side_img, x_joint, x_wrench],
+            [y_front_img, y_side_img, y_joint, y_wrench],
+        ]

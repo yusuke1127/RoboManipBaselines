@@ -5,7 +5,6 @@
 # see https://www.gnu.org/licenses/agpl-3.0.txt
 #
 
-import sys
 import os
 from tqdm import tqdm
 import argparse

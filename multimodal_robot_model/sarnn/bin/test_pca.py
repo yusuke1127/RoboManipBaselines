@@ -6,7 +6,6 @@
 #
 
 import os
-import sys
 from tqdm import tqdm
 import torch
 import argparse
@@ -19,8 +18,18 @@ from eipl.utils import restore_args, tensor2numpy, normalization
 
 # argument parser
 parser = argparse.ArgumentParser()
-parser.add_argument("--filename", type=str, required=True, help=".pth file that PyTorch loads as checkpoint for model")
-parser.add_argument("--data_dir", type=str, required=True, help="directory that stores test data, that has been generated, and will be loaded")
+parser.add_argument(
+    "--filename",
+    type=str,
+    required=True,
+    help=".pth file that PyTorch loads as checkpoint for model",
+)
+parser.add_argument(
+    "--data_dir",
+    type=str,
+    required=True,
+    help="directory that stores test data, that has been generated, and will be loaded",
+)
 parser.add_argument("--no_side_image", action="store_true")
 parser.add_argument("--no_wrench", action="store_true")
 args = parser.parse_args()
@@ -45,6 +54,7 @@ if not args.no_wrench:
 joint_dim = joints.shape[-1]
 if (not args.no_side_image) and (not args.no_wrench):
     from multimodal_robot_model.sarnn import SARNNwithSideimageAndWrench
+
     model = SARNNwithSideimageAndWrench(
         rec_dim=params["rec_dim"],
         joint_dim=joint_dim,
@@ -56,6 +66,7 @@ if (not args.no_side_image) and (not args.no_wrench):
     )
 elif args.no_side_image and args.no_wrench:
     from eipl.model import SARNN
+
     model = SARNN(
         rec_dim=params["rec_dim"],
         joint_dim=joint_dim,
@@ -65,7 +76,9 @@ elif args.no_side_image and args.no_wrench:
         im_size=[64, 64],
     )
 else:
-    raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+    raise AssertionError(
+        f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}"
+    )
 
 if params["compile"]:
     model = torch.compile(model)
@@ -96,11 +109,15 @@ for loop_ct in range(nloop):
 
     # predict rnn
     if (not args.no_side_image) and (not args.no_wrench):
-        _, _, _, _, _, _, _, _, state = model(front_img_t, side_img_t, joint_t, wrench_t, state)
+        _, _, _, _, _, _, _, _, state = model(
+            front_img_t, side_img_t, joint_t, wrench_t, state
+        )
     elif args.no_side_image and args.no_wrench:
         _, _, _, _, state = model(front_img_t, joint_t, state)
     else:
-        raise AssertionError(f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}")
+        raise AssertionError(
+            f"Not asserted (no_side_image, no_wrench): {(args.no_side_image, args.no_wrench)}"
+        )
     states.append(state[0])
 
 states = torch.permute(torch.stack(states), (1, 0, 2))
