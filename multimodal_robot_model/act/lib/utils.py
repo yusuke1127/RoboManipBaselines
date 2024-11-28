@@ -18,7 +18,7 @@ def load_array(dir_path, glob_pattern):
 
 class EpisodicDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_dir, is_sim, camera_names, norm_stats):
-        super(EpisodicDataset).__init__()
+        super().__init__()
         self.dataset_dir = dataset_dir
         self.camera_names = camera_names
         self.norm_stats = norm_stats

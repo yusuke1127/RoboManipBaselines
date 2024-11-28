@@ -40,7 +40,7 @@ class SARNNwithSideimageAndWrench(nn.Module):
         kernel_size=3,
         im_size=[64, 64],
     ):
-        super(SARNNwithSideimageAndWrench, self).__init__()
+        super().__init__()
 
         self.k_dim = k_dim
         activation = nn.LeakyReLU(negative_slope=0.3)
