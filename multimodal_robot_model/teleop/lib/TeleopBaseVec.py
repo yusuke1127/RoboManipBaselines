@@ -29,10 +29,10 @@ class TeleopBaseVec(TeleopBase):
                         world_idx = self.args.world_idx_list[self.data_manager.data_idx % len(self.args.world_idx_list)]
                 else:
                     raise NotImplementedError("[TeleopBaseVec] The \"replay_log\" option is not supported.")
-                    self.data_manager.loadData(self.args.replay_log)
+                    self.data_manager.load_data(self.args.replay_log)
                     print("- Load teleoperation data: {}".format(self.args.replay_log))
-                    world_idx = self.data_manager.getData("world_idx").tolist()
-                self.data_manager.setupSimWorld(world_idx)
+                    world_idx = self.data_manager.get_data("world_idx").tolist()
+                self.data_manager.setup_sim_world(world_idx)
                 self.env.reset()
                 obs_list = self.env.unwrapped.obs_list
                 info_list = self.env.unwrapped.info_list
@@ -50,50 +50,50 @@ class TeleopBaseVec(TeleopBase):
             # Get action
             if self.args.replay_log is not None and \
                self.data_manager.status in (MotionStatus.TELEOP, MotionStatus.END):
-                action = self.data_manager.getSingleData(DataKey.COMMAND_JOINT_POS, self.teleop_time_idx)
+                action = self.data_manager.get_single_data(DataKey.COMMAND_JOINT_POS, self.teleop_time_idx)
             else:
                 # Set commands
-                self.setArmCommand()
-                self.setGripperCommand()
+                self.set_arm_command()
+                self.set_gripper_command()
 
                 # Solve IK
-                self.motion_manager.drawMarkers()
-                self.motion_manager.inverseKinematics()
+                self.motion_manager.draw_markers()
+                self.motion_manager.inverse_kinematics()
 
-                action = self.motion_manager.getAction()
+                action = self.motion_manager.get_action()
                 update_fluctuation = (self.data_manager.status == MotionStatus.TELEOP)
                 action_list = self.env.unwrapped.get_fluctuated_action_list(action, update_fluctuation)
 
             # Record data
             if self.data_manager.status == MotionStatus.TELEOP and self.args.replay_log is None:
-                self.data_manager.appendSingleData(
+                self.data_manager.append_single_data(
                     DataKey.TIME,
                     [self.data_manager.status_elapsed_duration] * self.env.unwrapped.num_envs)
-                self.data_manager.appendSingleData(
+                self.data_manager.append_single_data(
                     DataKey.MEASURED_JOINT_POS,
-                    [self.motion_manager.getJointPos(obs) for obs in obs_list])
-                self.data_manager.appendSingleData(
+                    [self.motion_manager.get_joint_pos(obs) for obs in obs_list])
+                self.data_manager.append_single_data(
                     DataKey.COMMAND_JOINT_POS,
                     action_list)
-                self.data_manager.appendSingleData(
+                self.data_manager.append_single_data(
                     DataKey.MEASURED_JOINT_VEL,
-                    [self.motion_manager.getJointVel(obs) for obs in obs_list])
-                self.data_manager.appendSingleData(
+                    [self.motion_manager.get_joint_vel(obs) for obs in obs_list])
+                self.data_manager.append_single_data(
                     DataKey.MEASURED_EEF_POSE,
-                    [self.motion_manager.getMeasuredEef(obs) for obs in obs_list])
+                    [self.motion_manager.get_measured_eef(obs) for obs in obs_list])
                 # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
-                self.data_manager.appendSingleData(
+                self.data_manager.append_single_data(
                     DataKey.COMMAND_EEF_POSE,
-                    [self.motion_manager.getCommandEef()] * self.env.unwrapped.num_envs)
-                self.data_manager.appendSingleData(
+                    [self.motion_manager.get_command_eef()] * self.env.unwrapped.num_envs)
+                self.data_manager.append_single_data(
                     DataKey.MEASURED_EEF_WRENCH,
-                    [self.motion_manager.getEefWrench(obs) for obs in obs_list])
+                    [self.motion_manager.get_eef_wrench(obs) for obs in obs_list])
                 for camera_name in self.env.unwrapped.camera_names:
-                    self.data_manager.appendSingleData(
-                        DataKey.getRgbImageKey(camera_name),
+                    self.data_manager.append_single_data(
+                        DataKey.get_rgb_image_key(camera_name),
                         [info["rgb_images"][camera_name] for info in info_list])
-                    self.data_manager.appendSingleData(
-                        DataKey.getDepthImageKey(camera_name),
+                    self.data_manager.append_single_data(
+                        DataKey.get_depth_image_key(camera_name),
                         [info["depth_images"][camera_name] for info in info_list])
 
             # Step environment
@@ -111,7 +111,7 @@ class TeleopBaseVec(TeleopBase):
                 self.drawPointCloud(info_list[[self.env.unwrapped.rep_env_idx]])
 
             # Manage status
-            self.manageStatus()
+            self.manage_status()
             if self.quit_flag:
                 break
 
@@ -131,7 +131,7 @@ class TeleopBaseVec(TeleopBase):
 
         # self.env.close()
 
-    def saveData(self):
+    def save_data(self):
         filename_list = []
         aug_idx = 0
         for env_idx, success in enumerate(self.env.unwrapped.success_list):
@@ -151,14 +151,14 @@ class TeleopBaseVec(TeleopBase):
         if self.args.compress_rgb:
             print("- Compress rgb images")
             for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compressData(
-                    DataKey.getRgbImageKey(camera_name), "jpg", filter_list=list(map(bool, filename_list)))
+                self.data_manager.compress_data(
+                    DataKey.get_rgb_image_key(camera_name), "jpg", filter_list=list(map(bool, filename_list)))
         if self.args.compress_depth:
             print("- Compress depth images")
             for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compressData(
-                    DataKey.getDepthImageKey(camera_name), "exr", filter_list=list(map(bool, filename_list)))
-        self.data_manager.saveData(filename_list)
+                self.data_manager.compress_data(
+                    DataKey.get_depth_image_key(camera_name), "exr", filter_list=list(map(bool, filename_list)))
+        self.data_manager.save_data(filename_list)
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:
             print("- Teleoperation succeeded: Save the {} data such as {}, etc.".format(

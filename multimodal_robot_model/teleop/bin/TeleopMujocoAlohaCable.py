@@ -12,14 +12,14 @@ class TeleopMujocoAlohaCable(TeleopBase):
         # Command configuration
         self.command_rpy_scale = 2e-2
 
-    def setupEnv(self):
+    def setup_env(self):
         self.env = gym.make(
             "multimodal_robot_model/MujocoAlohaCableEnv-v0",
             render_mode="human"
         )
         self.demo_name = self.args.demo_name or "MujocoAlohaCable"
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_pos = self.env.unwrapped.get_body_pose("B0")[0:3]
             target_pos[1] += 0.05 # [m]
@@ -31,7 +31,7 @@ class TeleopMujocoAlohaCable(TeleopBase):
                 target_rpy = np.array([0.0, np.deg2rad(60), -np.pi/2])
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(*target_rpy), target_pos)
         else:
-            super().setArmCommand()
+            super().set_arm_command()
 
 if __name__ == "__main__":
     teleop = TeleopMujocoAlohaCable()

@@ -12,20 +12,20 @@ from multimodal_robot_model.common.rollout import RolloutBase
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 class RolloutDiffusionPolicy(RolloutBase):
-    def setupArgs(self, parser=None):
+    def setup_args(self, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
         parser.add_argument("--checkpoint", type=str, default=None, help="diffusion policy checkpoint file (*.ckpt)")
 
-        super().setupArgs(parser)
+        super().setup_args(parser)
 
         if self.args.skip is None:
             self.args.skip = 3
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
-    def setupPolicy(self):
+    def setup_policy(self):
         # Define policy
         ckpt_data = torch.load(self.args.checkpoint)
         cfg = ckpt_data["cfg"]
@@ -47,11 +47,11 @@ class RolloutDiffusionPolicy(RolloutBase):
         self.future_action_seq = []
         self.pred_action_list = np.empty((0, self.joint_dim))
 
-    def setupPlot(self):
+    def setup_plot(self):
         fig_ax = plt.subplots(1, 2, figsize=(13.5, 5.0), dpi=60, squeeze=False)
-        super().setupPlot(fig_ax=fig_ax)
+        super().setup_plot(fig_ax=fig_ax)
 
-    def inferPolicy(self):
+    def infer_policy(self):
         if self.auto_time_idx % self.args.skip != 0:
             return False
 
@@ -64,7 +64,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         else:
             self.front_image_history.pop(0)
             self.front_image_history.append(self.front_image)
-        obs_joint = self.motion_manager.getJointPos(self.obs)
+        obs_joint = self.motion_manager.get_joint_pos(self.obs)
         if self.obs_joint_history is None:
             self.obs_joint_history = []
             for _ in range(self.n_obs_steps):
@@ -98,7 +98,7 @@ class RolloutDiffusionPolicy(RolloutBase):
 
         return inference_called
 
-    def drawPlot(self):
+    def draw_plot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:
             return
 

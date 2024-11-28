@@ -24,13 +24,13 @@ from eipl.utils import EarlyStopping, check_args, set_logdir, normalization
 
 class TrainSarnn(object):
     def __init__(self):
-        self.setupArgs()
+        self.setup_args()
 
-        self.setupDataset()
+        self.setup_dataset()
 
-        self.setupPolicy()
+        self.setup_policy()
 
-    def setupArgs(self):
+    def setup_args(self):
         parser = argparse.ArgumentParser(description="Train SARNN")
 
         parser.add_argument("--data_dir", type=str, required=True)
@@ -63,7 +63,7 @@ class TrainSarnn(object):
         args = parser.parse_args()
         self.args = check_args(args)
 
-    def setupDataset(self):
+    def setup_dataset(self):
         # fix seed
         if self.args.random_seed is not None:
             random.seed(self.args.random_seed)
@@ -193,7 +193,7 @@ class TrainSarnn(object):
             drop_last=False,
         )
 
-    def setupPolicy(self):
+    def setup_policy(self):
         joint_dim = self.train_loader.dataset[0][0][1].shape[-1]
 
         # define model

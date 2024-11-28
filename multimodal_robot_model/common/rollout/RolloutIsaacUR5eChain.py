@@ -6,13 +6,13 @@ from multimodal_robot_model.common import MotionStatus
 from .RolloutBase import RolloutBase
 
 class RolloutIsaacUR5eChain(RolloutBase):
-    def setupEnv(self):
+    def setup_env(self):
         self.env = gym.make(
             "multimodal_robot_model/IsaacUR5eChainEnv-v0",
             render_mode="human"
         )
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_pos = self.env.unwrapped.get_link_pose("chain_end", "box")[0:3]
             if self.data_manager.status == MotionStatus.PRE_REACH:
@@ -20,12 +20,12 @@ class RolloutIsaacUR5eChain(RolloutBase):
             elif self.data_manager.status == MotionStatus.REACH:
                 target_pos[2] += 0.14 # [m]
             self.motion_manager.target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
-            self.motion_manager.inverseKinematics()
+            self.motion_manager.inverse_kinematics()
         else:
-            super().setArmCommand()
+            super().set_arm_command()
 
-    def setGripperCommand(self):
+    def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = 150.0
         else:
-            super().setGripperCommand()
+            super().set_gripper_command()

@@ -11,7 +11,7 @@ class RolloutRealUR5eDemo(RolloutBase):
         self.camera_ids = camera_ids
         super().__init__()
 
-    def setupEnv(self):
+    def setup_env(self):
         self.env = gym.make(
             "multimodal_robot_model/RealUR5eDemoEnv-v0",
             robot_ip=self.robot_ip,
@@ -19,15 +19,15 @@ class RolloutRealUR5eDemo(RolloutBase):
             scale_dt=self.args.scale_dt
         )
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             # No action is required in pre-reach or reach phases
             pass
         else:
-            super().setArmCommand()
+            super().set_arm_command()
 
-    def setGripperCommand(self):
+    def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = 150
         else:
-            super().setGripperCommand()
+            super().set_gripper_command()

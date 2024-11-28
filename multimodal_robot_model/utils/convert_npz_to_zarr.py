@@ -34,10 +34,10 @@ ep_ends = np.zeros(len(in_file_names), dtype=np.int64)
 def get_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
     data_manager = DataManager(env=None)
-    data_manager.loadData(in_file_name)
-    _actions = data_manager.getData(DataKey.COMMAND_JOINT_POS)[::args.skip]
-    _joints = data_manager.getData(DataKey.MEASURED_JOINT_POS)[::args.skip]
-    _images = data_manager.getData(DataKey.getRgbImageKey("front"))[::args.skip]
+    data_manager.load_data(in_file_name)
+    _actions = data_manager.get_data(DataKey.COMMAND_JOINT_POS)[::args.skip]
+    _joints = data_manager.get_data(DataKey.MEASURED_JOINT_POS)[::args.skip]
+    _images = data_manager.get_data(DataKey.get_rgb_image_key("front"))[::args.skip]
     return (_actions, _joints, _images)
 
 

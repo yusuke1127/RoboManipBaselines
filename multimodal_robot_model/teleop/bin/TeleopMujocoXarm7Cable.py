@@ -6,14 +6,14 @@ from multimodal_robot_model.teleop import TeleopBase
 from multimodal_robot_model.common import MotionStatus
 
 class TeleopMujocoXarm7Cable(TeleopBase):
-    def setupEnv(self):
+    def setup_env(self):
         self.env = gym.make(
             "multimodal_robot_model/MujocoXarm7CableEnv-v0",
             render_mode="human"
         )
         self.demo_name = self.args.demo_name or "MujocoXarm7Cable"
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_pos = self.env.unwrapped.get_body_pose("cable_end")[0:3]
             if self.data_manager.status == MotionStatus.PRE_REACH:
@@ -22,7 +22,7 @@ class TeleopMujocoXarm7Cable(TeleopBase):
                 target_pos[2] = 0.925 # [m]
             self.motion_manager.target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi, 0.0, -np.pi/2), target_pos)
         else:
-            super().setArmCommand()
+            super().set_arm_command()
 
 if __name__ == "__main__":
     teleop = TeleopMujocoXarm7Cable()

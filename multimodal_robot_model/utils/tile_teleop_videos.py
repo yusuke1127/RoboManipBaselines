@@ -32,9 +32,9 @@ for e in args.envs:
 
     data_manager = DataManager(env=None)
     print(f"[tile_teleop_videos] Load a npz file: {files[0]}")
-    data_manager.loadData(files[0])
+    data_manager.load_data(files[0])
 
-    front_images.append(data_manager.getData(DataKey.getRgbImageKey("front"))[:,::2,::2,:])
+    front_images.append(data_manager.get_data(DataKey.get_rgb_image_key("front"))[:,::2,::2,:])
     img_l = front_images[-1].shape[0] if img_l < front_images[-1].shape[0] else img_l
 
 fourcc = cv2.VideoWriter_fourcc("m", "p", "4", "v")

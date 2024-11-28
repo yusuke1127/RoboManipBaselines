@@ -13,7 +13,7 @@ from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS
 from multimodal_robot_model.common.rollout import RolloutBase
 
 class RolloutMtAct(RolloutBase):
-    def setupArgs(self, parser=None):
+    def setup_args(self, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
@@ -33,14 +33,14 @@ class RolloutMtAct(RolloutBase):
 
         argv = sys.argv
         argv += ["--policy_class", "ACT", "--num_epochs", "-1", "--multi_task"]
-        super().setupArgs(parser, argv)
+        super().setup_args(parser, argv)
 
         if self.args.skip is None:
             self.args.skip = 3
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
-    def setupPolicy(self):
+    def setup_policy(self):
         # Set task embedding
         task_idx = Tasks.index(args.task_name)
         self.task_emb = np.asarray(TEXT_EMBEDDINGS[task_idx])
@@ -91,11 +91,11 @@ class RolloutMtAct(RolloutBase):
         self.pred_action_list = np.empty((0, self.joint_dim))
         self.all_actions_history = []
 
-    def setupPlot(self):
+    def setup_plot(self):
         fig_ax = plt.subplots(2, max(2, self.policy_config["enc_layers"]), figsize=(13.5, 6.0), dpi=60, squeeze=False)
-        super().setupPlot(fig_ax=fig_ax)
+        super().setup_plot(fig_ax=fig_ax)
 
-    def inferPolicy(self):
+    def infer_policy(self):
         if self.auto_time_idx % self.args.skip != 0:
             return False
 
@@ -104,7 +104,7 @@ class RolloutMtAct(RolloutBase):
         front_image_input = self.front_image.transpose(2, 0, 1)
         front_image_input = front_image_input.astype(np.float32) / 255.0
         front_image_input = torch.Tensor(np.expand_dims(front_image_input, 0)).cuda().unsqueeze(0)
-        joint_input = self.motion_manager.getJointPos(self.obs)
+        joint_input = self.motion_manager.get_joint_pos(self.obs)
         joint_input = (joint_input - self.stats["joint_mean"]) / self.stats["joint_std"]
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0)).cuda()
 
@@ -126,7 +126,7 @@ class RolloutMtAct(RolloutBase):
 
         return True
 
-    def drawPlot(self):
+    def draw_plot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:
             return
 

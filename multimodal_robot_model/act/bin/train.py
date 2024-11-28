@@ -15,13 +15,13 @@ from detr.models.detr_vae import DETRVAE
 
 class TrainAct(object):
     def __init__(self):
-        self.setupArgs()
+        self.setup_args()
 
-        self.setupDataset()
+        self.setup_dataset()
 
-        self.setupPolicy()
+        self.setup_policy()
 
-    def setupArgs(self):
+    def setup_args(self):
         parser = argparse.ArgumentParser(description="Train ACT")
 
         parser.add_argument("--dataset_dir", action="store", type=str, help="dataset_dir", required=False, default="./data/")
@@ -40,7 +40,7 @@ class TrainAct(object):
 
         self.args = parser.parse_args()
 
-    def setupDataset(self):
+    def setup_dataset(self):
         set_seed(1)
 
         is_sim = True
@@ -49,7 +49,7 @@ class TrainAct(object):
         self.train_dataloader, self.val_dataloader, self.stats, _ = load_data(
             self.args.dataset_dir, is_sim, self.args.camera_names, batch_size_train, batch_size_val)
 
-    def setupPolicy(self):
+    def setup_policy(self):
         set_seed(self.args.seed)
 
         state_dim = self.train_dataloader.dataset[0][1].shape[0]

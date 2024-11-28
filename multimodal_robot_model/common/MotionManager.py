@@ -35,7 +35,7 @@ class MotionManager(object):
         self.target_se3 = self._original_target_se3.copy()
         self.gripper_pos = 0.0
 
-    def inverseKinematics(self):
+    def inverse_kinematics(self):
         """Solve inverse kinematics."""
         # https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_b-examples_d-inverse-kinematics.html
         error_se3 = self.current_se3.actInv(self.target_se3)
@@ -48,14 +48,14 @@ class MotionManager(object):
         self.joint_pos = pin.integrate(self.pin_model, self.joint_pos, delta_joint_pos)
         pin.forwardKinematics(self.pin_model, self.pin_data, self.joint_pos)
 
-    def setRelativeTargetSE3(self, delta_pos=None, delta_rpy=None):
+    def set_relative_target_se3(self, delta_pos=None, delta_rpy=None):
         """Set the target pose of the end-effector relatively."""
         if delta_pos is not None:
             self.target_se3.translation += delta_pos
         if delta_rpy is not None:
             self.target_se3.rotation = np.matmul(pin.rpy.rpyToMatrix(*delta_rpy), self.target_se3.rotation)
 
-    def drawMarkers(self):
+    def draw_markers(self):
         """Draw markers of the current and target poses of the end-effector to viewer."""
         self.env.unwrapped.draw_box_marker(
             pos=self.target_se3.translation,
@@ -68,30 +68,30 @@ class MotionManager(object):
             size=(0.02, 0.02, 0.03),
             rgba=(1, 0, 0, 0.5))
 
-    def getAction(self):
+    def get_action(self):
         """Get action for Gym."""
         return np.concatenate([self.joint_pos, [self.gripper_pos]])
 
-    def getJointPos(self, obs):
+    def get_joint_pos(self, obs):
         """Get joint position from observation."""
         return self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=False)
 
-    def getJointVel(self, obs):
+    def get_joint_vel(self, obs):
         """Get joint velocity from observation."""
         return self.env.unwrapped.get_joint_vel_from_obs(obs, exclude_gripper=False)
 
-    def getEefWrench(self, obs):
+    def get_eef_wrench(self, obs):
         """Get end-effector wrench from observation."""
         return self.env.unwrapped.get_eef_wrench_from_obs(obs)
 
-    def getMeasuredEef(self, obs):
+    def get_measured_eef(self, obs):
         """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation."""
         measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=True)
         pin.forwardKinematics(self.pin_model, self.pin_data_obs, measured_joint_pos)
         measured_se3 = self.pin_data_obs.oMi[self.env.unwrapped.ik_eef_joint_id]
         return np.concatenate([measured_se3.translation, pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 
-    def getCommandEef(self):
+    def get_command_eef(self):
         """Get command end-effector pose (tx, ty, tz, qw, qx, qy, qz)."""
         return np.concatenate([self.target_se3.translation, pin.Quaternion(self.target_se3.rotation).coeffs()[[3, 0, 1, 2]]])
 

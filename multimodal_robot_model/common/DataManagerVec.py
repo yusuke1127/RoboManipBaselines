@@ -12,17 +12,17 @@ class DataManagerVec(DataManager):
 
         self.all_data_seq_list = [{} for env_idx in range(self.env.unwrapped.num_envs)]
 
-    def appendSingleData(self, key, data_list):
+    def append_single_data(self, key, data_list):
         """Append a single data to the data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         for all_data_seq, data in zip(self.all_data_seq_list, data_list):
             if key not in all_data_seq:
                 all_data_seq[key] = []
             all_data_seq[key].append(data)
 
-    def getSingleData(self, key, time_idx):
+    def get_single_data(self, key, time_idx):
         """Get a single data from the data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         data_list = []
         for all_data_seq in self.all_data_seq_list:
             data = all_data_seq[key][time_idx]
@@ -35,9 +35,9 @@ class DataManagerVec(DataManager):
             data_list.append(data)
         return data_list
 
-    def getData(self, key):
+    def get_data(self, key):
         """Get a data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         data_seq_list = []
         for all_data_seq in self.all_data_seq_list:
             data_seq = all_data_seq[key]
@@ -50,9 +50,9 @@ class DataManagerVec(DataManager):
             data_seq_list.append(data_seq)
         return data_seq_list
 
-    def compressData(self, key, compress_flag, filter_list=None):
+    def compress_data(self, key, compress_flag, filter_list=None):
         """Compress data."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         for data_idx, all_data_seq in enumerate(self.all_data_seq_list):
             if (filter_list is not None) and (not filter_list[data_idx]):
                 continue
@@ -62,11 +62,11 @@ class DataManagerVec(DataManager):
                 elif compress_flag == "exr":
                     all_data_seq[key][time_idx] = cv2.imencode(".exr", data)[1]
 
-    def saveData(self, filename_list):
+    def save_data(self, filename_list):
         """Save data."""
         # For backward compatibility
         for orig_key in self.all_data_seq_list[0].keys():
-            new_key = DataKey.replaceDeprecatedKey(orig_key)
+            new_key = DataKey.replace_deprecated_key(orig_key)
             if orig_key != new_key:
                 for all_data_seq in self.all_data_seq_list:
                     all_data_seq[new_key] = all_data_seq.pop(orig_key)
@@ -86,11 +86,11 @@ class DataManagerVec(DataManager):
 
         self.data_idx += 1
 
-    def loadData(self, filename_list):
+    def load_data(self, filename_list):
         """Load data."""
         self.all_data_seq_list = [{} for file_idx in range(len(filename_list))]
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
             npz_data = np.load(filename, allow_pickle=True)
             for orig_key in npz_data.keys():
-                new_key = DataKey.replaceDeprecatedKey(orig_key) # For backward compatibility
+                new_key = DataKey.replace_deprecated_key(orig_key) # For backward compatibility
                 all_data_seq[new_key] = np.copy(npz_data[orig_key])

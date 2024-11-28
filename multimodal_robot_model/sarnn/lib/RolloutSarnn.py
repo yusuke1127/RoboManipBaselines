@@ -9,21 +9,21 @@ from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization,
 from multimodal_robot_model.common.rollout import RolloutBase
 
 class RolloutSarnn(RolloutBase):
-    def setupArgs(self, parser=None):
+    def setup_args(self, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
         parser.add_argument("--checkpoint", type=str, default=None, help="SARNN policy checkpoint file (*.pth)")
         parser.add_argument("--cropped_img_size", type=int, default=280, help="size to crop the image")
 
-        super().setupArgs(parser)
+        super().setup_args(parser)
 
         if self.args.skip is None:
             self.args.skip = 6
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
-    def setupPolicy(self):
+    def setup_policy(self):
         # Restore parameters
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
         self.params = restore_args(os.path.join(checkpoint_dir, "args.json"))
@@ -55,11 +55,11 @@ class RolloutSarnn(RolloutBase):
         self.policy.load_state_dict(ckpt["model_state_dict"])
         self.policy.eval()
 
-    def setupPlot(self):
+    def setup_plot(self):
         fig_ax = plt.subplots(1, 3, figsize=(13.5, 5.0), dpi=60, squeeze=False)
-        super().setupPlot(fig_ax=fig_ax)
+        super().setup_plot(fig_ax=fig_ax)
 
-    def inferPolicy(self):
+    def infer_policy(self):
         if self.auto_time_idx % self.args.skip != 0:
             return False
 
@@ -72,7 +72,7 @@ class RolloutSarnn(RolloutBase):
         front_image_input = self.obs_front_image.transpose(2, 0, 1)
         front_image_input = normalization(front_image_input, (0, 255), self.v_min_max)
         front_image_input = torch.Tensor(np.expand_dims(front_image_input, 0))
-        joint_input = self.motion_manager.getAction()
+        joint_input = self.motion_manager.get_action()
         joint_input = normalization(joint_input, self.joint_bounds, self.v_min_max)
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0))
 
@@ -92,7 +92,7 @@ class RolloutSarnn(RolloutBase):
 
         return True
 
-    def drawPlot(self):
+    def draw_plot(self):
         if self.auto_time_idx % self.args.skip_draw != 0:
             return
 

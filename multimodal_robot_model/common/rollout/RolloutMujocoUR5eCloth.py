@@ -6,13 +6,13 @@ from multimodal_robot_model.common import MotionStatus
 from .RolloutBase import RolloutBase
 
 class RolloutMujocoUR5eCloth(RolloutBase):
-    def setupEnv(self):
+    def setup_env(self):
         self.env = gym.make(
             "multimodal_robot_model/MujocoUR5eClothEnv-v0",
             render_mode="human"
         )
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
             target_se3 = pin.SE3(pin.rpy.rpyToMatrix(np.pi/2, 0.0, 0.25*np.pi),
                                  self.env.unwrapped.get_body_pose("board")[0:3])
@@ -21,12 +21,12 @@ class RolloutMujocoUR5eCloth(RolloutBase):
             elif self.data_manager.status == MotionStatus.REACH:
                 target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.3]))
             self.motion_manager.target_se3 = target_se3
-            self.motion_manager.inverseKinematics()
+            self.motion_manager.inverse_kinematics()
         else:
-            super().setArmCommand()
+            super().set_arm_command()
 
-    def setGripperCommand(self):
+    def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.low[self.env.unwrapped.gripper_action_idx]
         else:
-            super().setGripperCommand()
+            super().set_gripper_command()

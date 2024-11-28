@@ -40,17 +40,17 @@ class DataKey(object):
     COMMAND_EEF_WRENCH = "command_eef_wrench"
 
     @classmethod
-    def getRgbImageKey(cls, camera_name):
+    def get_rgb_image_key(cls, camera_name):
         """Get the rgb image key from the camera name."""
         return camera_name.lower() + "_rgb_image"
 
     @classmethod
-    def getDepthImageKey(cls, camera_name):
+    def get_depth_image_key(cls, camera_name):
         """Get the depth image key from the camera name."""
         return camera_name.lower() + "_depth_image"
 
     @classmethod
-    def replaceDeprecatedKey(cls, orig_key):
+    def replace_deprecated_key(cls, orig_key):
         """Replace a deprecated key with a new key for backward compatibility."""
         if orig_key == "joint_pos":
             new_key = DataKey.MEASURED_JOINT_POS
@@ -96,16 +96,16 @@ class DataManager(object):
 
         self.all_data_seq = {}
 
-    def appendSingleData(self, key, data):
+    def append_single_data(self, key, data):
         """Append a single data to the data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         if key not in self.all_data_seq:
             self.all_data_seq[key] = []
         self.all_data_seq[key].append(data)
 
-    def getSingleData(self, key, time_idx):
+    def get_single_data(self, key, time_idx):
         """Get a single data from the data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         data = self.all_data_seq[key][time_idx]
         if "rgb_image" in key:
             if data.ndim == 1:
@@ -115,9 +115,9 @@ class DataManager(object):
                 data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
         return data
 
-    def getData(self, key):
+    def get_data(self, key):
         """Get a data sequence."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         data_seq = self.all_data_seq[key]
         if "rgb_image" in key:
             if data_seq[0].ndim == 1:
@@ -127,20 +127,20 @@ class DataManager(object):
                 data_seq = np.array([cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED) for data in data_seq])
         return data_seq
 
-    def compressData(self, key, compress_flag):
+    def compress_data(self, key, compress_flag):
         """Compress data."""
-        key = DataKey.replaceDeprecatedKey(key) # For backward compatibility
+        key = DataKey.replace_deprecated_key(key) # For backward compatibility
         for time_idx, data in enumerate(self.all_data_seq[key]):
             if compress_flag == "jpg":
                 self.all_data_seq[key][time_idx] = cv2.imencode(".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95))[1]
             elif compress_flag == "exr":
                 self.all_data_seq[key][time_idx] = cv2.imencode(".exr", data)[1]
 
-    def saveData(self, filename):
+    def save_data(self, filename):
         """Save data."""
         # For backward compatibility
         for orig_key in self.all_data_seq.keys():
-            new_key = DataKey.replaceDeprecatedKey(orig_key)
+            new_key = DataKey.replace_deprecated_key(orig_key)
             if orig_key != new_key:
                 self.all_data_seq[new_key] = self.all_data_seq.pop(orig_key)
 
@@ -154,21 +154,21 @@ class DataManager(object):
         np.savez(filename, **self.all_data_seq, **self.general_info, **self.world_info, **self.camera_info)
         self.data_idx += 1
 
-    def loadData(self, filename):
+    def load_data(self, filename):
         """Load data."""
         self.all_data_seq = {}
         npz_data = np.load(filename, allow_pickle=True)
         for orig_key in npz_data.keys():
-            new_key = DataKey.replaceDeprecatedKey(orig_key) # For backward compatibility
+            new_key = DataKey.replace_deprecated_key(orig_key) # For backward compatibility
             self.all_data_seq[new_key] = np.copy(npz_data[orig_key])
 
-    def goToNextStatus(self):
+    def go_to_next_status(self):
         """Go to the next status."""
         if self.status == MotionStatus(len(MotionStatus) - 1):
             raise ValueError("Cannot go from the last status to the next.")
         self.status = MotionStatus(self.status.value + 1)
 
-    def getStatusImage(self):
+    def get_status_image(self):
         """Get the image corresponding to the current status."""
         status_image = np.zeros((50, 320, 3), dtype=np.uint8)
         if self.status == MotionStatus.INITIAL:
@@ -184,7 +184,7 @@ class DataManager(object):
         cv2.putText(status_image, self.status.name, (5, 35), cv2.FONT_HERSHEY_DUPLEX, 0.8, (0, 0, 0), 2)
         return status_image
 
-    def setupSimWorld(self, world_idx=None):
+    def setup_sim_world(self, world_idx=None):
         """Setup the simulation world."""
         if world_idx is None:
             kwargs = {"cumulative_idx": self.data_idx}
@@ -193,10 +193,10 @@ class DataManager(object):
         self.world_idx = self.env.unwrapped.modify_world(**kwargs)
         self.world_info = {"world_idx": self.world_idx}
 
-    def setupCameraInfo(self):
+    def setup_camera_info(self):
         """Set camera info."""
         for camera_name in self.env.unwrapped.camera_names:
-            depth_key = DataKey.getDepthImageKey(camera_name)
+            depth_key = DataKey.get_depth_image_key(camera_name)
             self.camera_info[depth_key + "_fovy"] = self.env.unwrapped.get_camera_fovy(camera_name)
 
     @property

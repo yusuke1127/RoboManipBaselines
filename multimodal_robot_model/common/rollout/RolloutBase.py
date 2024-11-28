@@ -13,13 +13,13 @@ from multimodal_robot_model.common import MotionManager, MotionStatus, DataManag
 
 class RolloutBase(metaclass=ABCMeta):
     def __init__(self):
-        self.setupArgs()
+        self.setup_args()
 
-        self.setupPolicy()
+        self.setup_policy()
 
-        self.setupEnv()
+        self.setup_env()
 
-        self.setupPlot()
+        self.setup_plot()
 
         # Setup motion manager
         self.motion_manager = MotionManager(self.env)
@@ -27,7 +27,7 @@ class RolloutBase(metaclass=ABCMeta):
 
         # Setup data manager
         self.data_manager = DataManager(self.env)
-        self.data_manager.setupSimWorld(self.args.world_idx)
+        self.data_manager.setup_sim_world(self.args.world_idx)
 
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
@@ -36,19 +36,19 @@ class RolloutBase(metaclass=ABCMeta):
         while True:
             if self.data_manager.status == MotionStatus.TELEOP:
                 inference_start_time = time.time()
-                inference_called = self.inferPolicy()
+                inference_called = self.infer_policy()
                 inference_duration = time.time() - inference_start_time
                 if inference_called:
                     inference_duration_list.append(inference_duration)
 
-            self.setArmCommand()
-            self.setGripperCommand()
+            self.set_arm_command()
+            self.set_gripper_command()
 
-            action = self.motion_manager.getAction()
+            action = self.motion_manager.get_action()
             self.obs, _, _, _, self.info = self.env.step(action)
 
             if self.data_manager.status == MotionStatus.TELEOP:
-                self.drawPlot()
+                self.draw_plot()
 
             # Manage status
             key = cv2.waitKey(1)
@@ -56,26 +56,26 @@ class RolloutBase(metaclass=ABCMeta):
                 initial_duration = 1.0 # [s]
                 if (not self.args.wait_before_start and self.data_manager.status_elapsed_duration > initial_duration) or \
                    (self.args.wait_before_start and key == ord("n")):
-                    self.data_manager.goToNextStatus()
+                    self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.PRE_REACH:
                 pre_reach_duration = 0.7 # [s]
                 if self.data_manager.status_elapsed_duration > pre_reach_duration:
-                    self.data_manager.goToNextStatus()
+                    self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.REACH:
                 reach_duration = 0.3 # [s]
                 if self.data_manager.status_elapsed_duration > reach_duration:
-                    self.data_manager.goToNextStatus()
+                    self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.GRASP:
                 grasp_duration = 0.5 # [s]
                 if self.data_manager.status_elapsed_duration > grasp_duration:
                     self.auto_time_idx = 0
                     print("- Press the 'n' key to finish policy rollout.")
-                    self.data_manager.goToNextStatus()
+                    self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.TELEOP:
                 self.auto_time_idx += 1
                 if key == ord("n"):
                     print("- Statistics on policy inference")
-                    policy_model_size = self.calcModelSize()
+                    policy_model_size = self.calc_model_size()
                     print(f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}")
                     gpu_memory_usage = torch.cuda.max_memory_reserved()
                     print(f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}")
@@ -84,7 +84,7 @@ class RolloutBase(metaclass=ABCMeta):
                           f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
                           f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}")
                     print("- Press the 'n' key to exit.")
-                    self.data_manager.goToNextStatus()
+                    self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.END:
                 if key == ord("n"):
                     break
@@ -93,7 +93,7 @@ class RolloutBase(metaclass=ABCMeta):
 
         # self.env.close()
 
-    def setupArgs(self, parser=None, argv=None):
+    def setup_args(self, parser=None, argv=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
@@ -112,14 +112,14 @@ class RolloutBase(metaclass=ABCMeta):
         self.args = parser.parse_args(argv[1:])
 
     @abstractmethod
-    def setupPolicy(self):
+    def setup_policy(self):
         pass
 
     @abstractmethod
-    def setupEnv(self):
+    def setup_env(self):
         pass
 
-    def setupPlot(self, fig_ax=None):
+    def setup_plot(self, fig_ax=None):
         matplotlib.use("agg")
         if fig_ax is None:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(10.0, 5.0), dpi=60, squeeze=False)
@@ -136,7 +136,7 @@ class RolloutBase(metaclass=ABCMeta):
             cv2.moveWindow("Policy image", *self.args.win_xy_policy)
         cv2.waitKey(1)
 
-    def calcModelSize(self):
+    def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2
         model = self.policy
         param_size = 0
@@ -147,20 +147,20 @@ class RolloutBase(metaclass=ABCMeta):
             buffer_size += buffer.nelement() * buffer.element_size()
         return param_size + buffer_size
 
-    def setArmCommand(self):
+    def set_arm_command(self):
         if self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.joint_pos = self.pred_action[self.env.unwrapped.arm_action_idxes]
 
-    def setGripperCommand(self):
+    def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.high[self.env.unwrapped.gripper_action_idx]
         elif self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.gripper_pos = self.pred_action[self.env.unwrapped.gripper_action_idx]
 
     @abstractmethod
-    def inferPolicy(self):
+    def infer_policy(self):
         pass
 
     @abstractmethod
-    def drawPlot(self):
+    def draw_plot(self):
         pass
