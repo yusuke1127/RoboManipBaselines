@@ -296,10 +296,13 @@ class TeleopBase(metaclass=ABCMeta):
                 dist_thre=dist_thre_list[camera_idx],
             )
             if self.point_cloud_scatter_list[camera_idx] is None:
-                get_min_max = lambda v_min, v_max: (
-                    0.75 * v_min + 0.25 * v_max,
-                    0.25 * v_min + 0.75 * v_max,
-                )
+
+                def get_min_max(v_min, v_max):
+                    return (
+                        0.75 * v_min + 0.25 * v_max,
+                        0.25 * v_min + 0.75 * v_max,
+                    )
+
                 self.ax[camera_idx].view_init(elev=-90, azim=-90)
                 self.ax[camera_idx].set_xlim(
                     *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())

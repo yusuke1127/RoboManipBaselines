@@ -33,7 +33,6 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         self.trials = Trials()
         self.task_emb_per_trial = []
         self.verbose = True
-        lens = []
 
         tasks = load_array(self.dataset_dir, "**/tasks.npy")
         self.task_emb_per_trial += list(

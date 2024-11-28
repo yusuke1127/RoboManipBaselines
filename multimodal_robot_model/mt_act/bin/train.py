@@ -25,7 +25,6 @@ from policy import ACTPolicy, CNNMLPPolicy
 def main(args):
     set_seed(1)
     # command line parameters
-    is_eval = args["eval"]
     ckpt_dir = args["ckpt_dir"]
     dataset_dir = args["dataset_dir"]
     dataset_dir = dataset_dir[0].split(" ")
@@ -164,7 +163,6 @@ def train_bc(train_dataloader, val_dataloader, config):
     seed = config["seed"]
     policy_class = config["policy_class"]
     policy_config = config["policy_config"]
-    run_name = config["run_name"]
     set_seed(seed)
 
     # wandb.init(name=f"{run_name}_B{config['batch_size']}_{config['lr']}", project="cactiv2")

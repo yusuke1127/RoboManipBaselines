@@ -11,7 +11,6 @@ from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import (
     TrainDiffusionUnetHybridWorkspace,
 )
 from diffusion_policy.dataset.base_dataset import BaseImageDataset
-from diffusion_policy.common.checkpoint_util import TopKCheckpointManager
 from diffusion_policy.common.json_logger import JsonLogger
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.model.diffusion.ema_model import EMAModel
@@ -82,11 +81,6 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                     "output_dir": self.output_dir,
                 }
             )
-
-        # configure checkpoint
-        topk_manager = TopKCheckpointManager(
-            save_dir=os.path.join(self.output_dir, "checkpoints"), **cfg.checkpoint.topk
-        )
 
         # device transfer
         device = torch.device(cfg.training.device)

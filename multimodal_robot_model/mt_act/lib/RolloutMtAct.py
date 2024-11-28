@@ -83,7 +83,7 @@ class RolloutMtAct(RolloutBase):
 
     def setup_policy(self):
         # Set task embedding
-        task_idx = Tasks.index(args.task_name)
+        task_idx = TASKS.index(self.args.task_name)
         self.task_emb = np.asarray(TEXT_EMBEDDINGS[task_idx])
         self.task_emb = torch.from_numpy(self.task_emb).unsqueeze(0).float().cuda()
 

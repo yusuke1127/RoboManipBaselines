@@ -143,10 +143,13 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
             dist_thre=dist_thre_list[ax_idx - 1],
         )
         if scatter_list[ax_idx - 1] is None:
-            get_min_max = lambda v_min, v_max: (
-                0.75 * v_min + 0.25 * v_max,
-                0.25 * v_min + 0.75 * v_max,
-            )
+
+            def get_min_max(v_min, v_max):
+                return (
+                    0.75 * v_min + 0.25 * v_max,
+                    0.25 * v_min + 0.75 * v_max,
+                )
+
             ax[ax_idx, 2].view_init(elev=-90, azim=-90)
             ax[ax_idx, 2].set_xlim(
                 *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())

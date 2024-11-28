@@ -130,7 +130,6 @@ class TeleopBaseVec(TeleopBase):
             self.env.step(action)
             obs_list = self.env.unwrapped.obs_list
             info_list = self.env.unwrapped.info_list
-            success_list = self.env.unwrapped.success_list
 
             # Draw images
             self.drawImage(info_list[self.env.unwrapped.rep_env_idx])
