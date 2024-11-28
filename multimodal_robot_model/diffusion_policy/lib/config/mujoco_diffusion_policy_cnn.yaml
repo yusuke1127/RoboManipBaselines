@@ -1,5 +1,4 @@
 name: train_diffusion_unet_hybrid
-_target_: lib.workspace.train_diffusion_unet_hybrid_no_sim_workspace.TrainDiffusionUnetHybridNoSimWorkspace
 
 enable_wandb: True # added in multimodal_robot_model
 
@@ -147,7 +146,7 @@ task:
       shape: [7]
 
   dataset:
-    _target_: lib.dataset.mujoco_dataset.MujocoDataset
+    _target_: multimodal_robot_model.diffusion_policy.MujocoDataset
     zarr_path: data/teleop_data/learning_data.zarr
     horizon: ${horizon}
     pad_before: ${eval:'${n_obs_steps}-1'}
