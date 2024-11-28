@@ -60,8 +60,8 @@ Train the model. The trained weights are saved in the `log` folder.
 
 ```console
 $ python ./bin/train.py \
---dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME --task_name sim_ur5ecable \
---policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
+--dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME \
+--kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
 --num_epochs 1000 --lr 1e-5 \
 --seed 0
 ```
