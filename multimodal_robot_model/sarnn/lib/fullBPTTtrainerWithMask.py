@@ -3,6 +3,7 @@ import torch.nn as nn
 from eipl.utils import LossScheduler, tensor2numpy
 from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
 
+
 class fullBPTTtrainerWithMask(fullBPTTtrainer):
     def process_epoch(self, data, training=True):
         if not training:
@@ -37,24 +38,29 @@ class fullBPTTtrainerWithMask(fullBPTTtrainer):
 
             criterion = nn.MSELoss(reduction="none")
 
-            img_loss = torch.mean(
-                criterion(yi_hat, y_img[:, 1:]),
-                dim=(2, 3, 4))
+            img_loss = torch.mean(criterion(yi_hat, y_img[:, 1:]), dim=(2, 3, 4))
             masked_img_loss = torch.sum(img_loss * mask[:, 1:]) / torch.sum(mask[:, 1:])
 
-            joint_loss = torch.mean(
-                criterion(yv_hat, y_joint[:, 1:]),
-                dim=2)
-            masked_joint_loss = torch.sum(joint_loss * mask[:, 1:]) / torch.sum(mask[:, 1:])
+            joint_loss = torch.mean(criterion(yv_hat, y_joint[:, 1:]), dim=2)
+            masked_joint_loss = torch.sum(joint_loss * mask[:, 1:]) / torch.sum(
+                mask[:, 1:]
+            )
 
             pt_loss = torch.mean(
-                criterion(torch.stack(dec_pts_list[:-1]), torch.stack(enc_pts_list[1:])) ,
-                dim=2).T
-            masked_pt_loss = torch.sum(pt_loss * mask[:, 1:-1]) / torch.sum(mask[:, 1:-1])
+                criterion(
+                    torch.stack(dec_pts_list[:-1]), torch.stack(enc_pts_list[1:])
+                ),
+                dim=2,
+            ).T
+            masked_pt_loss = torch.sum(pt_loss * mask[:, 1:-1]) / torch.sum(
+                mask[:, 1:-1]
+            )
 
-            loss = self.loss_weights[0] * masked_img_loss + \
-                self.loss_weights[1] * masked_joint_loss + \
-                self.scheduler(self.loss_weights[2]) * masked_pt_loss
+            loss = (
+                self.loss_weights[0] * masked_img_loss
+                + self.loss_weights[1] * masked_joint_loss
+                + self.scheduler(self.loss_weights[2]) * masked_pt_loss
+            )
             total_loss += tensor2numpy(loss)
 
             if training:

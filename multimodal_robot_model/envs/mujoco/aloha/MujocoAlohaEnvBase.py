@@ -5,28 +5,41 @@ from gymnasium.spaces import Box, Dict
 
 from ..MujocoEnvBase import MujocoEnvBase
 
+
 class MujocoAlohaEnvBase(MujocoEnvBase):
     default_camera_config = {
         "azimuth": 0.0,
         "elevation": -20.0,
         "distance": 1.8,
-        "lookat": [0.0, 0.0, 0.3]
+        "lookat": [0.0, 0.0, 0.3],
     }
-    observation_space = Dict({
-        "left/joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-        "left/joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-        "right/joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-        "right/joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-    })
+    observation_space = Dict(
+        {
+            "left/joint_pos": Box(
+                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+            ),
+            "left/joint_vel": Box(
+                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+            ),
+            "right/joint_pos": Box(
+                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+            ),
+            "right/joint_vel": Box(
+                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+            ),
+        }
+    )
 
     def setup_robot(self, init_qpos):
         mujoco.mj_kinematics(self.model, self.data)
-        self.arm_urdf_path = path.join(path.dirname(__file__), "../../assets/common/robots/aloha/vx300s.urdf")
+        self.arm_urdf_path = path.join(
+            path.dirname(__file__), "../../assets/common/robots/aloha/vx300s.urdf"
+        )
         self.arm_root_pose = self.get_body_pose("left/base_link")
         self.ik_eef_joint_id = 6
         self.ik_arm_joint_ids = slice(0, 6)
-        self.init_qpos[0:len(init_qpos)] = init_qpos
-        self.init_qpos[len(init_qpos):2*len(init_qpos)] = init_qpos
+        self.init_qpos[0 : len(init_qpos)] = init_qpos
+        self.init_qpos[len(init_qpos) : 2 * len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
         self.gripper_action_idx = 6

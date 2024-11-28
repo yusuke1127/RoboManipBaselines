@@ -11,6 +11,7 @@ import torch
 import pinocchio as pin
 from multimodal_robot_model.common import MotionManager, MotionStatus, DataManager
 
+
 class RolloutBase(metaclass=ABCMeta):
     def __init__(self):
         self.setup_args()
@@ -53,20 +54,22 @@ class RolloutBase(metaclass=ABCMeta):
             # Manage status
             key = cv2.waitKey(1)
             if self.data_manager.status == MotionStatus.INITIAL:
-                initial_duration = 1.0 # [s]
-                if (not self.args.wait_before_start and self.data_manager.status_elapsed_duration > initial_duration) or \
-                   (self.args.wait_before_start and key == ord("n")):
+                initial_duration = 1.0  # [s]
+                if (
+                    not self.args.wait_before_start
+                    and self.data_manager.status_elapsed_duration > initial_duration
+                ) or (self.args.wait_before_start and key == ord("n")):
                     self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.PRE_REACH:
-                pre_reach_duration = 0.7 # [s]
+                pre_reach_duration = 0.7  # [s]
                 if self.data_manager.status_elapsed_duration > pre_reach_duration:
                     self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.REACH:
-                reach_duration = 0.3 # [s]
+                reach_duration = 0.3  # [s]
                 if self.data_manager.status_elapsed_duration > reach_duration:
                     self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.GRASP:
-                grasp_duration = 0.5 # [s]
+                grasp_duration = 0.5  # [s]
                 if self.data_manager.status_elapsed_duration > grasp_duration:
                     self.auto_time_idx = 0
                     print("- Press the 'n' key to finish policy rollout.")
@@ -76,19 +79,25 @@ class RolloutBase(metaclass=ABCMeta):
                 if key == ord("n"):
                     print("- Statistics on policy inference")
                     policy_model_size = self.calc_model_size()
-                    print(f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}")
+                    print(
+                        f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}"
+                    )
                     gpu_memory_usage = torch.cuda.max_memory_reserved()
-                    print(f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}")
+                    print(
+                        f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}"
+                    )
                     inference_duration_list = np.array(inference_duration_list)
-                    print("  - Inference duration [s] | "
-                          f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
-                          f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}")
+                    print(
+                        "  - Inference duration [s] | "
+                        f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
+                        f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}"
+                    )
                     print("- Press the 'n' key to exit.")
                     self.data_manager.go_to_next_status()
             elif self.data_manager.status == MotionStatus.END:
                 if key == ord("n"):
                     break
-            if key == 27: # escape key
+            if key == 27:  # escape key
                 break
 
         # self.env.close()
@@ -97,15 +106,42 @@ class RolloutBase(metaclass=ABCMeta):
         if parser is None:
             parser = argparse.ArgumentParser()
 
-        parser.add_argument("--world_idx", type=int, default=0, help="index of the simulation world (0-5)")
-        parser.add_argument("--skip", type=int, help="step interval to infer policy", required=False)
-        parser.add_argument("--skip_draw", type=int, help="step interval to draw the plot", required=False)
-        parser.add_argument("--scale_dt", type=float,
-                            help="dt scale of environment (used only in real-world environments)", required=False)
-        parser.add_argument("--seed", type=int, default=42, help="random seed", required=False)
-        parser.add_argument("--win_xy_policy", type=int, nargs=2,
-                            help="xy position of window to plot policy information", required=False)
-        parser.add_argument("--wait_before_start", action="store_true", help="whether to wait a key input before starting simulation")
+        parser.add_argument(
+            "--world_idx",
+            type=int,
+            default=0,
+            help="index of the simulation world (0-5)",
+        )
+        parser.add_argument(
+            "--skip", type=int, help="step interval to infer policy", required=False
+        )
+        parser.add_argument(
+            "--skip_draw",
+            type=int,
+            help="step interval to draw the plot",
+            required=False,
+        )
+        parser.add_argument(
+            "--scale_dt",
+            type=float,
+            help="dt scale of environment (used only in real-world environments)",
+            required=False,
+        )
+        parser.add_argument(
+            "--seed", type=int, default=42, help="random seed", required=False
+        )
+        parser.add_argument(
+            "--win_xy_policy",
+            type=int,
+            nargs=2,
+            help="xy position of window to plot policy information",
+            required=False,
+        )
+        parser.add_argument(
+            "--wait_before_start",
+            action="store_true",
+            help="whether to wait a key input before starting simulation",
+        )
 
         if argv is None:
             argv = sys.argv
@@ -122,7 +158,9 @@ class RolloutBase(metaclass=ABCMeta):
     def setup_plot(self, fig_ax=None):
         matplotlib.use("agg")
         if fig_ax is None:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=(10.0, 5.0), dpi=60, squeeze=False)
+            self.fig, self.ax = plt.subplots(
+                1, 1, figsize=(10.0, 5.0), dpi=60, squeeze=False
+            )
         else:
             self.fig, self.ax = fig_ax
         for _ax in np.ravel(self.ax):
@@ -149,13 +187,19 @@ class RolloutBase(metaclass=ABCMeta):
 
     def set_arm_command(self):
         if self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[self.env.unwrapped.arm_action_idxes]
+            self.motion_manager.joint_pos = self.pred_action[
+                self.env.unwrapped.arm_action_idxes
+            ]
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[self.env.unwrapped.gripper_action_idx]
+            self.motion_manager.gripper_pos = self.env.action_space.high[
+                self.env.unwrapped.gripper_action_idx
+            ]
         elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[self.env.unwrapped.gripper_action_idx]
+            self.motion_manager.gripper_pos = self.pred_action[
+                self.env.unwrapped.gripper_action_idx
+            ]
 
     @abstractmethod
     def infer_policy(self):

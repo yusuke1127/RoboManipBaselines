@@ -9,14 +9,21 @@ import cv2
 import torch
 from diffusion_policy.common.pytorch_util import dict_apply
 from multimodal_robot_model.common.rollout import RolloutBase
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
 
 class RolloutDiffusionPolicy(RolloutBase):
     def setup_args(self, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
-        parser.add_argument("--checkpoint", type=str, default=None, help="diffusion policy checkpoint file (*.ckpt)")
+        parser.add_argument(
+            "--checkpoint",
+            type=str,
+            default=None,
+            help="diffusion policy checkpoint file (*.ckpt)",
+        )
 
         super().setup_args(parser)
 
@@ -77,24 +84,35 @@ class RolloutDiffusionPolicy(RolloutBase):
             inference_called = True
 
             # Preprocess
-            front_image_history_input = np.moveaxis(np.array(self.front_image_history).astype(np.float32) / 255, -1, 1)
-            obs_joint_history_input = np.array(self.obs_joint_history).astype(np.float32)
+            front_image_history_input = np.moveaxis(
+                np.array(self.front_image_history).astype(np.float32) / 255, -1, 1
+            )
+            obs_joint_history_input = np.array(self.obs_joint_history).astype(
+                np.float32
+            )
             obs_dict_input = {
                 "image": np.expand_dims(front_image_history_input, 0),
-                "joint": np.expand_dims(obs_joint_history_input, 0)
+                "joint": np.expand_dims(obs_joint_history_input, 0),
             }
-            obs_dict_input = dict_apply(obs_dict_input, lambda x: torch.from_numpy(x).to(device=self.policy.device))
+            obs_dict_input = dict_apply(
+                obs_dict_input,
+                lambda x: torch.from_numpy(x).to(device=self.policy.device),
+            )
 
             # Infer
             action_dict_output = self.policy.predict_action(obs_dict_input)
-            action_dict_output = dict_apply(action_dict_output, lambda x: x.detach().to("cpu").numpy())
+            action_dict_output = dict_apply(
+                action_dict_output, lambda x: x.detach().to("cpu").numpy()
+            )
             self.future_action_seq = list(action_dict_output["action"][0])
         else:
             inference_called = False
 
         # Store predicted action
         self.pred_action = self.future_action_seq.pop(0)
-        self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
+        self.pred_action_list = np.concatenate(
+            [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
+        )
 
         return inference_called
 
@@ -115,8 +133,10 @@ class RolloutDiffusionPolicy(RolloutBase):
         self.ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 1].set_xlim(0, xlim)
         for joint_idx in range(self.pred_action_list.shape[1]):
-            self.ax[0, 1].plot(np.arange(self.pred_action_list.shape[0]),
-                          self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx])
+            self.ax[0, 1].plot(
+                np.arange(self.pred_action_list.shape[0]),
+                self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
+            )
         self.ax[0, 1].set_xlabel("Step", fontsize=20)
         self.ax[0, 1].set_title("Joint", fontsize=20)
         self.ax[0, 1].tick_params(axis="x", labelsize=16)
@@ -125,4 +145,7 @@ class RolloutDiffusionPolicy(RolloutBase):
 
         self.fig.tight_layout()
         self.canvas.draw()
-        cv2.imshow("Policy image", cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR))
+        cv2.imshow(
+            "Policy image",
+            cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
+        )

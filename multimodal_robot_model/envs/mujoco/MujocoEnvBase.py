@@ -5,6 +5,7 @@ import mujoco
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 
+
 class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
     sim_timestep = 0.004
     frame_skip = 8
@@ -47,10 +48,14 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         self.cameras = {}
         for camera_id in range(self.model.ncam):
             camera = {}
-            camera_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_id)
+            camera_name = mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_CAMERA, camera_id
+            )
             camera["name"] = camera_name
             camera["id"] = camera_id
-            camera["viewer"] = OffScreenViewer(self.model, self.data, width=640, height=480)
+            camera["viewer"] = OffScreenViewer(
+                self.model, self.data, width=640, height=480
+            )
             self.cameras[camera_name] = camera
 
         # This is required to automatically switch context to free camera in render()
@@ -90,9 +95,13 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         info["depth_images"] = {}
         for camera in self.cameras.values():
             camera["viewer"].make_context_current()
-            rgb_image = camera["viewer"].render(render_mode="rgb_array", camera_id=camera["id"])
+            rgb_image = camera["viewer"].render(
+                render_mode="rgb_array", camera_id=camera["id"]
+            )
             info["rgb_images"][camera["name"]] = rgb_image
-            depth_image = camera["viewer"].render(render_mode="depth_array", camera_id=camera["id"])
+            depth_image = camera["viewer"].render(
+                render_mode="depth_array", camera_id=camera["id"]
+            )
             # See https://github.com/google-deepmind/mujoco/blob/631b16e7ad192df936195658fe79f2ada85f755c/python/mujoco/renderer.py#L170-L178
             extent = self.model.stat.extent
             near = self.model.vis.map.znear * extent
@@ -170,4 +179,5 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
             label="",
             type=mujoco.mjtGeom.mjGEOM_BOX,
             size=size,
-            rgba=rgba)
+            rgba=rgba,
+        )

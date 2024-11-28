@@ -31,7 +31,9 @@ class fullBPTTtrainerWithSideimageAndWrench:
         input_param (float): input parameter of sequential generation. 1.0 means open mode.
     """
 
-    def __init__(self, model, optimizer, loss_weights=[1.0 for _ in Loss], device="cpu"):
+    def __init__(
+        self, model, optimizer, loss_weights=[1.0 for _ in Loss], device="cpu"
+    ):
         self.device = device
         self.optimizer = optimizer
         self.loss_weights = loss_weights
@@ -57,7 +59,10 @@ class fullBPTTtrainerWithSideimageAndWrench:
             self.model.train()
 
         total_loss = 0.0
-        for n_batch, ((x_front_img, x_side_img, x_joint, x_wrench), (y_front_img, y_side_img, y_joint, y_wrench)) in enumerate(data):
+        for n_batch, (
+            (x_front_img, x_side_img, x_joint, x_wrench),
+            (y_front_img, y_side_img, y_joint, y_wrench),
+        ) in enumerate(data):
             if "cpu" in self.device:
                 x_front_img = x_front_img.to(self.device)
                 y_front_img = y_front_img.to(self.device)
@@ -70,11 +75,30 @@ class fullBPTTtrainerWithSideimageAndWrench:
 
             state = None
             yif_list, yis_list, yvj_list, yvw_list = [], [], [], []
-            dec_f_pts_list, dec_s_pts_list, enc_f_pts_list, enc_s_pts_list = [], [], [], []
+            dec_f_pts_list, dec_s_pts_list, enc_f_pts_list, enc_s_pts_list = (
+                [],
+                [],
+                [],
+                [],
+            )
             self.optimizer.zero_grad(set_to_none=True)
             for t in range(x_front_img.shape[1] - 1):
-                _yif_hat, _yis_hat, _yvj_hat, _yvw_hat, enc_f_ij, enc_s_ij, dec_f_ij, dec_s_ij, state = self.model(
-                    x_front_img[:, t], x_side_img[:, t], x_joint[:, t], x_wrench[:, t], state
+                (
+                    _yif_hat,
+                    _yis_hat,
+                    _yvj_hat,
+                    _yvw_hat,
+                    enc_f_ij,
+                    enc_s_ij,
+                    dec_f_ij,
+                    dec_s_ij,
+                    state,
+                ) = self.model(
+                    x_front_img[:, t],
+                    x_side_img[:, t],
+                    x_joint[:, t],
+                    x_wrench[:, t],
+                    state,
                 )
                 yif_list.append(_yif_hat)
                 yis_list.append(_yis_hat)
@@ -90,10 +114,20 @@ class fullBPTTtrainerWithSideimageAndWrench:
             yvj_hat = torch.permute(torch.stack(yvj_list), (1, 0, 2))
             yvw_hat = torch.permute(torch.stack(yvw_list), (1, 0, 2))
 
-            front_img_loss = nn.MSELoss()(yif_hat, y_front_img[:, 1:]) * self.loss_weights[Loss.FRONT_IMG]
-            side_img_loss = nn.MSELoss()(yis_hat, y_side_img[:, 1:]) * self.loss_weights[Loss.SIDE_IMG]
-            joint_loss = nn.MSELoss()(yvj_hat, y_joint[:, 1:]) * self.loss_weights[Loss.JOINT]
-            wrench_loss = nn.MSELoss()(yvw_hat, y_wrench[:, 1:]) * self.loss_weights[Loss.WRENCH]
+            front_img_loss = (
+                nn.MSELoss()(yif_hat, y_front_img[:, 1:])
+                * self.loss_weights[Loss.FRONT_IMG]
+            )
+            side_img_loss = (
+                nn.MSELoss()(yis_hat, y_side_img[:, 1:])
+                * self.loss_weights[Loss.SIDE_IMG]
+            )
+            joint_loss = (
+                nn.MSELoss()(yvj_hat, y_joint[:, 1:]) * self.loss_weights[Loss.JOINT]
+            )
+            wrench_loss = (
+                nn.MSELoss()(yvw_hat, y_wrench[:, 1:]) * self.loss_weights[Loss.WRENCH]
+            )
             # Gradually change the loss value using the LossScheluder class.
             front_pt_loss = nn.MSELoss()(
                 torch.stack(dec_f_pts_list[:-1]), torch.stack(enc_f_pts_list[1:])
@@ -101,7 +135,14 @@ class fullBPTTtrainerWithSideimageAndWrench:
             side_pt_loss = nn.MSELoss()(
                 torch.stack(dec_s_pts_list[:-1]), torch.stack(enc_s_pts_list[1:])
             ) * self.scheduler(self.loss_weights[Loss.SIDE_PT])
-            loss = front_img_loss + side_img_loss + joint_loss + wrench_loss + front_pt_loss + side_pt_loss
+            loss = (
+                front_img_loss
+                + side_img_loss
+                + joint_loss
+                + wrench_loss
+                + front_pt_loss
+                + side_pt_loss
+            )
             total_loss += loss.item()
 
             if training:

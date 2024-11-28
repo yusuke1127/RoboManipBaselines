@@ -5,6 +5,7 @@ import multimodal_robot_model
 from multimodal_robot_model.common import MotionStatus
 from .RolloutBase import RolloutBase
 
+
 class RolloutRealUR5eDemo(RolloutBase):
     def __init__(self, robot_ip, camera_ids):
         self.robot_ip = robot_ip
@@ -16,7 +17,7 @@ class RolloutRealUR5eDemo(RolloutBase):
             "multimodal_robot_model/RealUR5eDemoEnv-v0",
             robot_ip=self.robot_ip,
             camera_ids=self.camera_ids,
-            scale_dt=self.args.scale_dt
+            scale_dt=self.args.scale_dt,
         )
 
     def set_arm_command(self):

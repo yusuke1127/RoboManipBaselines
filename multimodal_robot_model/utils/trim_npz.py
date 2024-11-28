@@ -60,7 +60,9 @@ for in_npz_path in in_npz_path_list:
         ax[0, 1].set_title("Joint", fontsize=20)
         ax[0, 1].tick_params(axis="x", labelsize=16)
         ax[0, 1].tick_params(axis="y", labelsize=16)
-        ax[0, 1].vlines(time_idx, -np.pi, np.pi, color="black", linestyles="dotted", linewidth=4)
+        ax[0, 1].vlines(
+            time_idx, -np.pi, np.pi, color="black", linestyles="dotted", linewidth=4
+        )
         if start_idx is not None:
             ax[0, 1].vlines(start_idx, -np.pi, np.pi, color="blue", linewidth=2)
         if end_idx is not None:
@@ -78,16 +80,20 @@ for in_npz_path in in_npz_path_list:
             end_idx = time_idx
         elif key == ord("r"):
             start_idx, end_idx = None, None
-        elif key == 81: # left key
+        elif key == 81:  # left key
             time_idx = max(time_idx - 1, 0)
-        elif key == 82: # up key
+        elif key == 82:  # up key
             time_idx = min(time_idx + 5, seq_len - 1)
-        elif key == 83: # right key
+        elif key == 83:  # right key
             time_idx = min(time_idx + 1, seq_len - 1)
-        elif key == 84: # down key
+        elif key == 84:  # down key
             time_idx = max(time_idx - 5, 0)
-        elif key == 32: # space key
-            if (start_idx is not None) and (end_idx is not None) and (start_idx >= end_idx):
+        elif key == 32:  # space key
+            if (
+                (start_idx is not None)
+                and (end_idx is not None)
+                and (start_idx >= end_idx)
+            ):
                 print("[trim_npz] Error: start index is larger than end index.")
             else:
                 break

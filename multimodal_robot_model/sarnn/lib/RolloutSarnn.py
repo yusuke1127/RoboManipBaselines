@@ -5,16 +5,30 @@ import matplotlib.pylab as plt
 import cv2
 import torch
 from eipl.model import SARNN
-from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization, resize_img
+from eipl.utils import (
+    restore_args,
+    tensor2numpy,
+    deprocess_img,
+    normalization,
+    resize_img,
+)
 from multimodal_robot_model.common.rollout import RolloutBase
+
 
 class RolloutSarnn(RolloutBase):
     def setup_args(self, parser=None):
         if parser is None:
             parser = argparse.ArgumentParser()
 
-        parser.add_argument("--checkpoint", type=str, default=None, help="SARNN policy checkpoint file (*.pth)")
-        parser.add_argument("--cropped_img_size", type=int, default=280, help="size to crop the image")
+        parser.add_argument(
+            "--checkpoint",
+            type=str,
+            default=None,
+            help="SARNN policy checkpoint file (*.pth)",
+        )
+        parser.add_argument(
+            "--cropped_img_size", type=int, default=280, help="size to crop the image"
+        )
 
         super().setup_args(parser)
 
@@ -65,10 +79,17 @@ class RolloutSarnn(RolloutBase):
 
         # Preprocess
         self.obs_front_image = self.info["rgb_images"]["front"]
-        [fro_lef, fro_top] = [(self.obs_front_image.shape[ax] - self.args.cropped_img_size) // 2 for ax in [0, 1]]
-        [fro_rig, fro_bot] = [(p + self.args.cropped_img_size) for p in [fro_lef, fro_top]]
+        [fro_lef, fro_top] = [
+            (self.obs_front_image.shape[ax] - self.args.cropped_img_size) // 2
+            for ax in [0, 1]
+        ]
+        [fro_rig, fro_bot] = [
+            (p + self.args.cropped_img_size) for p in [fro_lef, fro_top]
+        ]
         self.obs_front_image = self.obs_front_image[fro_lef:fro_rig, fro_top:fro_bot, :]
-        self.obs_front_image = resize_img(np.expand_dims(self.obs_front_image, 0), (self.im_size, self.im_size))[0]
+        self.obs_front_image = resize_img(
+            np.expand_dims(self.obs_front_image, 0), (self.im_size, self.im_size)
+        )[0]
         front_image_input = self.obs_front_image.transpose(2, 0, 1)
         front_image_input = normalization(front_image_input, (0, 255), self.v_min_max)
         front_image_input = torch.Tensor(np.expand_dims(front_image_input, 0))
@@ -77,18 +98,35 @@ class RolloutSarnn(RolloutBase):
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0))
 
         # Infer
-        front_image_output, joint_output, enc_front_pts_output, dec_front_pts_output, self.rnn_state = \
-            self.policy(front_image_input, joint_input, self.rnn_state)
+        (
+            front_image_output,
+            joint_output,
+            enc_front_pts_output,
+            dec_front_pts_output,
+            self.rnn_state,
+        ) = self.policy(front_image_input, joint_input, self.rnn_state)
 
         # Postprocess
         self.pred_front_image = tensor2numpy(front_image_output[0])
-        self.pred_front_image = deprocess_img(self.pred_front_image, self.params["vmin"], self.params["vmax"])
+        self.pred_front_image = deprocess_img(
+            self.pred_front_image, self.params["vmin"], self.params["vmax"]
+        )
         self.pred_front_image = self.pred_front_image.transpose(1, 2, 0)
         self.pred_action = tensor2numpy(joint_output[0])
-        self.pred_action = normalization(self.pred_action, self.v_min_max, self.joint_bounds)
-        self.pred_action_list = np.concatenate([self.pred_action_list, np.expand_dims(self.pred_action, 0)])
-        self.enc_front_pts = tensor2numpy(enc_front_pts_output[0]).reshape(self.params["k_dim"], 2) * self.im_size
-        self.dec_front_pts = tensor2numpy(dec_front_pts_output[0]).reshape(self.params["k_dim"], 2) * self.im_size
+        self.pred_action = normalization(
+            self.pred_action, self.v_min_max, self.joint_bounds
+        )
+        self.pred_action_list = np.concatenate(
+            [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
+        )
+        self.enc_front_pts = (
+            tensor2numpy(enc_front_pts_output[0]).reshape(self.params["k_dim"], 2)
+            * self.im_size
+        )
+        self.dec_front_pts = (
+            tensor2numpy(dec_front_pts_output[0]).reshape(self.params["k_dim"], 2)
+            * self.im_size
+        )
 
         return True
 
@@ -104,9 +142,15 @@ class RolloutSarnn(RolloutBase):
         self.ax[0, 0].imshow(self.obs_front_image)
         for j in range(self.params["k_dim"]):
             self.ax[0, 0].plot(
-                self.enc_front_pts[j, 0], self.enc_front_pts[j, 1], "co", markersize=12)
+                self.enc_front_pts[j, 0], self.enc_front_pts[j, 1], "co", markersize=12
+            )
             self.ax[0, 0].plot(
-                self.dec_front_pts[j, 0], self.dec_front_pts[j, 1], "rx", markersize=12, markeredgewidth=2)
+                self.dec_front_pts[j, 0],
+                self.dec_front_pts[j, 1],
+                "rx",
+                markersize=12,
+                markeredgewidth=2,
+            )
         self.ax[0, 0].set_title("Observed image", fontsize=20)
 
         # Draw predicted image
@@ -118,8 +162,10 @@ class RolloutSarnn(RolloutBase):
         self.ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 2].set_xlim(0, xlim)
         for joint_idx in range(self.pred_action_list.shape[1]):
-            self.ax[0, 2].plot(np.arange(self.pred_action_list.shape[0]),
-                               self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx])
+            self.ax[0, 2].plot(
+                np.arange(self.pred_action_list.shape[0]),
+                self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
+            )
         self.ax[0, 2].set_xlabel("Step", fontsize=20)
         self.ax[0, 2].set_title("Joint", fontsize=20)
         self.ax[0, 2].tick_params(axis="x", labelsize=16)
@@ -128,4 +174,7 @@ class RolloutSarnn(RolloutBase):
 
         self.fig.tight_layout()
         self.canvas.draw()
-        cv2.imshow("Policy image", cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR))
+        cv2.imshow(
+            "Policy image",
+            cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
+        )

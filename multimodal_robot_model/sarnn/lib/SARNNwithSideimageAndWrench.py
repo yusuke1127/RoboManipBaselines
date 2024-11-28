@@ -237,13 +237,27 @@ class SARNNwithSideimageAndWrench(nn.Module):
         # Reshape decoded front points
         dec_front_pts_in = dec_front_pts.reshape(-1, self.k_dim, 2)
         front_heatmap = self.front_issm(dec_front_pts_in)  # Inverse Spatial Softmax
-        front_hid = torch.mul(front_heatmap, front_im_hid)  # Multiply heatmap with front image feature `front_im_hid`
+        front_hid = torch.mul(
+            front_heatmap, front_im_hid
+        )  # Multiply heatmap with front image feature `front_im_hid`
 
         # Reshape decoded side points
         dec_side_pts_in = dec_side_pts.reshape(-1, self.k_dim, 2)
         side_heatmap = self.side_issm(dec_side_pts_in)  # Inverse Spatial Softmax
-        side_hid = torch.mul(side_heatmap, side_im_hid)  # Multiply heatmap with side image feature `side_im_hid`
+        side_hid = torch.mul(
+            side_heatmap, side_im_hid
+        )  # Multiply heatmap with side image feature `side_im_hid`
 
         y_front_image = self.decoder_front_image(front_hid)  # Decode front image
         y_side_image = self.decoder_side_image(side_hid)  # Decode side image
-        return y_front_image, y_side_image, y_joint, y_wrench, enc_front_pts, enc_side_pts, dec_front_pts, dec_side_pts, rnn_hid
+        return (
+            y_front_image,
+            y_side_image,
+            y_joint,
+            y_wrench,
+            enc_front_pts,
+            enc_side_pts,
+            dec_front_pts,
+            dec_side_pts,
+            rnn_hid,
+        )

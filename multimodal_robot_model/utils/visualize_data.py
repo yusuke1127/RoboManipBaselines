@@ -3,11 +3,15 @@ import matplotlib.pylab as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import cv2
-from multimodal_robot_model.common import DataKey, DataManager, convertDepthImageToPointCloud
+from multimodal_robot_model.common import (
+    DataKey,
+    DataManager,
+    convertDepthImageToPointCloud,
+)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("teleop_filename", type=str)
-parser.add_argument('--skip', default=10, type=int, help='skip', required=False)
+parser.add_argument("--skip", default=10, type=int, help="skip", required=False)
 args = parser.parse_args()
 
 plt.rcParams["keymap.quit"] = ["q", "escape"]
@@ -21,7 +25,10 @@ fig.tight_layout(pad=0.1)
 data_manager = DataManager(env=None)
 data_manager.load_data(args.teleop_filename)
 
-time_range = (data_manager.get_data(DataKey.TIME)[0], data_manager.get_data(DataKey.TIME)[-1])
+time_range = (
+    data_manager.get_data(DataKey.TIME)[0],
+    data_manager.get_data(DataKey.TIME)[-1],
+)
 ax[0, 0].set_xlim(*time_range)
 ax[0, 1].set_xlim(*time_range)
 ax[0, 2].set_xlim(*time_range)
@@ -52,29 +59,46 @@ command_eef_list = []
 measured_eef_list = []
 
 break_flag = False
+
+
 def key_event(event):
     if event.key == "q" or event.key == "escape":
         global break_flag
         break_flag = True
+
 
 for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
     if break_flag:
         break
 
     time_list.append(data_manager.get_single_data(DataKey.TIME, time_idx))
-    action_list.append(data_manager.get_single_data(DataKey.COMMAND_JOINT_POS, time_idx))
-    joint_pos_list.append(data_manager.get_single_data(DataKey.MEASURED_JOINT_POS, time_idx))
-    joint_vel_list.append(data_manager.get_single_data(DataKey.MEASURED_JOINT_VEL, time_idx))
-    wrench_list.append(data_manager.get_single_data(DataKey.MEASURED_EEF_WRENCH, time_idx))
-    command_eef_list.append(data_manager.get_single_data(DataKey.COMMAND_EEF_POSE, time_idx))
-    measured_eef_list.append(data_manager.get_single_data(DataKey.MEASURED_EEF_POSE, time_idx))
+    action_list.append(
+        data_manager.get_single_data(DataKey.COMMAND_JOINT_POS, time_idx)
+    )
+    joint_pos_list.append(
+        data_manager.get_single_data(DataKey.MEASURED_JOINT_POS, time_idx)
+    )
+    joint_vel_list.append(
+        data_manager.get_single_data(DataKey.MEASURED_JOINT_VEL, time_idx)
+    )
+    wrench_list.append(
+        data_manager.get_single_data(DataKey.MEASURED_EEF_WRENCH, time_idx)
+    )
+    command_eef_list.append(
+        data_manager.get_single_data(DataKey.COMMAND_EEF_POSE, time_idx)
+    )
+    measured_eef_list.append(
+        data_manager.get_single_data(DataKey.MEASURED_EEF_POSE, time_idx)
+    )
 
     ax[0, 0].cla()
     ax00_twin.cla()
     ax[0, 0].plot(time_list, np.array(action_list)[:, :-1], linestyle="--", linewidth=3)
     ax[0, 0].set_prop_cycle(None)
     ax[0, 0].plot(time_list, np.array(joint_pos_list)[:, :-1])
-    ax00_twin.plot(time_list, np.array(action_list)[:, [-1]], linestyle="--", linewidth=3)
+    ax00_twin.plot(
+        time_list, np.array(action_list)[:, [-1]], linestyle="--", linewidth=3
+    )
     ax00_twin.set_prop_cycle(None)
     ax00_twin.plot(time_list, np.array(joint_pos_list)[:, [-1]])
     ax[0, 1].cla()
@@ -83,14 +107,18 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
     ax[0, 2].plot(time_list, wrench_list)
     ax[0, 3].cla()
     ax03_twin.cla()
-    ax[0, 3].plot(time_list, np.array(command_eef_list)[:, :3], linestyle="--", linewidth=3)
+    ax[0, 3].plot(
+        time_list, np.array(command_eef_list)[:, :3], linestyle="--", linewidth=3
+    )
     ax[0, 3].set_prop_cycle(None)
     ax[0, 3].plot(time_list, np.array(measured_eef_list)[:, :3])
-    ax03_twin.plot(time_list, np.array(command_eef_list)[:, 3:], linestyle="--", linewidth=3)
+    ax03_twin.plot(
+        time_list, np.array(command_eef_list)[:, 3:], linestyle="--", linewidth=3
+    )
     ax03_twin.set_prop_cycle(None)
     ax03_twin.plot(time_list, np.array(measured_eef_list)[:, 3:])
 
-    dist_thre_list = (3.0, 3.0, 0.8) # [m]
+    dist_thre_list = (3.0, 3.0, 0.8)  # [m]
     camera_names = ("front", "side", "hand")
     for ax_idx, camera_name in enumerate(camera_names, start=1):
         rgb_key = DataKey.get_rgb_image_key(camera_name)
@@ -111,19 +139,33 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
         small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
         fovy = data_manager.get_data(f"{depth_key}_fovy").tolist()
         xyz_array, rgb_array = convertDepthImageToPointCloud(
-            small_depth_image, fovy=fovy, rgb_image=small_rgb_image, dist_thre=dist_thre_list[ax_idx - 1])
+            small_depth_image,
+            fovy=fovy,
+            rgb_image=small_rgb_image,
+            dist_thre=dist_thre_list[ax_idx - 1],
+        )
         if scatter_list[ax_idx - 1] is None:
-            get_min_max = lambda v_min, v_max: (0.75 * v_min + 0.25 * v_max, 0.25 * v_min + 0.75 * v_max)
+            get_min_max = lambda v_min, v_max: (
+                0.75 * v_min + 0.25 * v_max,
+                0.25 * v_min + 0.75 * v_max,
+            )
             ax[ax_idx, 2].view_init(elev=-90, azim=-90)
-            ax[ax_idx, 2].set_xlim(*get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max()))
-            ax[ax_idx, 2].set_ylim(*get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max()))
-            ax[ax_idx, 2].set_zlim(*get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max()))
+            ax[ax_idx, 2].set_xlim(
+                *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
+            )
+            ax[ax_idx, 2].set_ylim(
+                *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
+            )
+            ax[ax_idx, 2].set_zlim(
+                *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+            )
         else:
             scatter_list[ax_idx - 1].remove()
         ax[ax_idx, 2].axis("off")
         ax[ax_idx, 2].set_box_aspect(xyz_array.ptp(axis=0))
         scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
-            xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array)
+            xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
+        )
 
     plt.draw()
     plt.pause(0.001)

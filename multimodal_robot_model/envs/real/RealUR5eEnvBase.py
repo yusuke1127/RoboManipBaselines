@@ -10,6 +10,7 @@ import rtde_receive
 from gello.robots.robotiq_gripper import RobotiqGripper
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
+
 class RealUR5eEnvBase(gym.Env):
     metadata = {
         "render_modes": [],
@@ -24,31 +25,61 @@ class RealUR5eEnvBase(gym.Env):
     ):
         # Setup environment parameters
         self.init_time = time.time()
-        self.dt = 0.02 # [s]
+        self.dt = 0.02  # [s]
         if kwargs.get("scale_dt") is not None:
             self.dt *= kwargs["scale_dt"]
 
         self.action_space = Box(
-            low=np.array([-2*np.pi, -2*np.pi, -1*np.pi, -2*np.pi, -2*np.pi, -2*np.pi, 0.0], dtype=np.float32),
-            high=np.array([2*np.pi, 2*np.pi, 1*np.pi, 2*np.pi, 2*np.pi, 2*np.pi, 255.0], dtype=np.float32),
-            dtype=np.float32
+            low=np.array(
+                [
+                    -2 * np.pi,
+                    -2 * np.pi,
+                    -1 * np.pi,
+                    -2 * np.pi,
+                    -2 * np.pi,
+                    -2 * np.pi,
+                    0.0,
+                ],
+                dtype=np.float32,
+            ),
+            high=np.array(
+                [
+                    2 * np.pi,
+                    2 * np.pi,
+                    1 * np.pi,
+                    2 * np.pi,
+                    2 * np.pi,
+                    2 * np.pi,
+                    255.0,
+                ],
+                dtype=np.float32,
+            ),
+            dtype=np.float32,
         )
-        self.observation_space = Dict({
-            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
-        })
+        self.observation_space = Dict(
+            {
+                "joint_pos": Box(
+                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+                ),
+                "joint_vel": Box(
+                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+                ),
+                "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+            }
+        )
 
         self.gripper_action_idx = 6
         self.arm_action_idxes = slice(0, 6)
 
         # Setup robot
-        self.arm_urdf_path = path.join(path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf")
+        self.arm_urdf_path = path.join(
+            path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
+        )
         self.arm_root_pose = None
         self.ik_eef_joint_id = 6
         self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos = init_qpos
-        self.qvel_limit = np.deg2rad(191) # [rad/s]
+        self.qvel_limit = np.deg2rad(191)  # [rad/s]
 
         # Connect to UR5e
         print("[RealUR5eEnvBase] Start connecting the UR5e.")
@@ -77,14 +108,23 @@ class RealUR5eEnvBase(gym.Env):
 
             if camera_id not in detected_camera_ids:
                 raise ValueError(
-                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}")
+                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
+                )
 
             camera = RealSenseCamera(device_id=camera_id, flip=False)
             frames = camera._pipeline.wait_for_frames()
-            color_intrinsics = frames.get_color_frame().profile.as_video_stream_profile().intrinsics
-            camera.color_fovy = np.rad2deg(2 * np.arctan(color_intrinsics.height / (2 * color_intrinsics.fy)))
-            depth_intrinsics = frames.get_depth_frame().profile.as_video_stream_profile().intrinsics
-            camera.depth_fovy = np.rad2deg(2 * np.arctan(depth_intrinsics.height / (2 * depth_intrinsics.fy)))
+            color_intrinsics = (
+                frames.get_color_frame().profile.as_video_stream_profile().intrinsics
+            )
+            camera.color_fovy = np.rad2deg(
+                2 * np.arctan(color_intrinsics.height / (2 * color_intrinsics.fy))
+            )
+            depth_intrinsics = (
+                frames.get_depth_frame().profile.as_video_stream_profile().intrinsics
+            )
+            camera.depth_fovy = np.rad2deg(
+                2 * np.arctan(depth_intrinsics.height / (2 * depth_intrinsics.fy))
+            )
 
             self.cameras[camera_name] = camera
 
@@ -129,15 +169,20 @@ class RealUR5eEnvBase(gym.Env):
         arm_qpos_command = action[self.arm_action_idxes]
         scaled_qvel_limit = np.clip(qvel_limit_scale, 0.01, 10.0) * self.qvel_limit
         if duration is None:
-            duration_min, duration_max = 0.1, 10.0 # [s]
-            duration = np.clip(np.max(np.abs(arm_qpos_command - self.arm_qpos_actual) / scaled_qvel_limit),
-                               duration_min,
-                               duration_max)
+            duration_min, duration_max = 0.1, 10.0  # [s]
+            duration = np.clip(
+                np.max(
+                    np.abs(arm_qpos_command - self.arm_qpos_actual) / scaled_qvel_limit
+                ),
+                duration_min,
+                duration_max,
+            )
         else:
             arm_qpos_command_overwritten = self.arm_qpos_actual + np.clip(
                 arm_qpos_command - self.arm_qpos_actual,
                 -1 * scaled_qvel_limit * duration,
-                scaled_qvel_limit * duration)
+                scaled_qvel_limit * duration,
+            )
             # if np.linalg.norm(arm_qpos_command_overwritten - arm_qpos_command) > 1e-10:
             #     print("[RealUR5eEnvBase] Overwrite joint command for safety.")
             arm_qpos_command = arm_qpos_command_overwritten
@@ -145,10 +190,12 @@ class RealUR5eEnvBase(gym.Env):
         # Send command to UR5e
         velocity = 0.5
         acceleration = 0.5
-        lookahead_time = 0.2 # [s]
+        lookahead_time = 0.2  # [s]
         gain = 100
         period = self.rtde_c.initPeriod()
-        self.rtde_c.servoJ(arm_qpos_command, velocity, acceleration, duration, lookahead_time, gain)
+        self.rtde_c.servoJ(
+            arm_qpos_command, velocity, acceleration, duration, lookahead_time, gain
+        )
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
@@ -194,13 +241,17 @@ class RealUR5eEnvBase(gym.Env):
         info["depth_images"] = {}
         for camera_name, camera in self.cameras.items():
             if camera is None:
-                info["rgb_images"][camera_name] = np.zeros((480, 640, 3), dtype=np.uint8)
-                info["depth_images"][camera_name] = np.zeros((480, 640), dtype=np.float32)
+                info["rgb_images"][camera_name] = np.zeros(
+                    (480, 640, 3), dtype=np.uint8
+                )
+                info["depth_images"][camera_name] = np.zeros(
+                    (480, 640), dtype=np.float32
+                )
                 continue
 
             rgb_image, depth_image = camera.read((640, 480))
             info["rgb_images"][camera_name] = rgb_image
-            info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0] # [m]
+            info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
 
         return info
 
@@ -235,7 +286,7 @@ class RealUR5eEnvBase(gym.Env):
         """Get vertical field-of-view of the camera."""
         camera = self.cameras[camera_name]
         if camera is None:
-            return 45.0 # dummy
+            return 45.0  # dummy
         return camera.depth_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):

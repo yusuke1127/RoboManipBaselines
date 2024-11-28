@@ -9,8 +9,12 @@ import random
 import tqdm
 import numpy as np
 import shutil
-from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import TrainDiffusionUnetHybridWorkspace
-from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import DiffusionUnetHybridImagePolicy
+from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import (
+    TrainDiffusionUnetHybridWorkspace,
+)
+from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
+    DiffusionUnetHybridImagePolicy,
+)
 from diffusion_policy.dataset.base_dataset import BaseImageDataset
 from diffusion_policy.common.checkpoint_util import TopKCheckpointManager
 from diffusion_policy.common.json_logger import JsonLogger
@@ -19,6 +23,7 @@ from diffusion_policy.model.diffusion.ema_model import EMAModel
 from diffusion_policy.model.common.lr_scheduler import get_scheduler
 
 OmegaConf.register_new_resolver("eval", eval, replace=True)
+
 
 class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
     include_keys = ["global_step", "epoch"]
@@ -56,28 +61,26 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
             cfg.training.lr_scheduler,
             optimizer=self.optimizer,
             num_warmup_steps=cfg.training.lr_warmup_steps,
-            num_training_steps=(
-                len(train_dataloader) * cfg.training.num_epochs) \
-                    // cfg.training.gradient_accumulate_every,
+            num_training_steps=(len(train_dataloader) * cfg.training.num_epochs)
+            // cfg.training.gradient_accumulate_every,
             # pytorch assumes stepping LRScheduler every epoch
             # however huggingface diffusers steps it every batch
-            last_epoch=self.global_step-1
+            last_epoch=self.global_step - 1,
         )
 
         # configure ema
         ema: EMAModel = None
         if cfg.training.use_ema:
-            ema = hydra.utils.instantiate(
-                cfg.ema,
-                model=self.ema_model)
+            ema = hydra.utils.instantiate(cfg.ema, model=self.ema_model)
 
         # configure logging
         if cfg.enable_wandb:
             import wandb
+
             wandb_run = wandb.init(
                 dir=str(self.output_dir),
                 config=OmegaConf.to_container(cfg, resolve=True),
-                **cfg.logging
+                **cfg.logging,
             )
             wandb.config.update(
                 {
@@ -87,8 +90,7 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
 
         # configure checkpoint
         topk_manager = TopKCheckpointManager(
-            save_dir=os.path.join(self.output_dir, "checkpoints"),
-            **cfg.checkpoint.topk
+            save_dir=os.path.join(self.output_dir, "checkpoints"), **cfg.checkpoint.topk
         )
 
         # device transfer
@@ -117,11 +119,17 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                 step_log = dict()
                 # ========= train for this epoch ==========
                 train_losses = list()
-                with tqdm.tqdm(train_dataloader, desc=f"Training epoch {self.epoch}",
-                        leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
+                with tqdm.tqdm(
+                    train_dataloader,
+                    desc=f"Training epoch {self.epoch}",
+                    leave=False,
+                    mininterval=cfg.training.tqdm_interval_sec,
+                ) as tepoch:
                     for batch_idx, batch in enumerate(tepoch):
                         # device transfer
-                        batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                        batch = dict_apply(
+                            batch, lambda x: x.to(device, non_blocking=True)
+                        )
                         if train_sampling_batch is None:
                             train_sampling_batch = batch
 
@@ -131,7 +139,10 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                         loss.backward()
 
                         # step optimizer
-                        if self.global_step % cfg.training.gradient_accumulate_every == 0:
+                        if (
+                            self.global_step % cfg.training.gradient_accumulate_every
+                            == 0
+                        ):
                             self.optimizer.step()
                             self.optimizer.zero_grad()
                             lr_scheduler.step()
@@ -148,10 +159,10 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                             "train_loss": raw_loss_cpu,
                             "global_step": self.global_step,
                             "epoch": self.epoch,
-                            "lr": lr_scheduler.get_last_lr()[0]
+                            "lr": lr_scheduler.get_last_lr()[0],
                         }
 
-                        is_last_batch = (batch_idx == (len(train_dataloader)-1))
+                        is_last_batch = batch_idx == (len(train_dataloader) - 1)
                         if not is_last_batch:
                             # log of last step is combined with validation and rollout
                             if cfg.enable_wandb:
@@ -159,8 +170,9 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                             json_logger.log(step_log)
                             self.global_step += 1
 
-                        if (cfg.training.max_train_steps is not None) \
-                            and batch_idx >= (cfg.training.max_train_steps-1):
+                        if (cfg.training.max_train_steps is not None) and batch_idx >= (
+                            cfg.training.max_train_steps - 1
+                        ):
                             break
 
                 # at the end of each epoch
@@ -178,14 +190,21 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                 if (self.epoch % cfg.training.val_every) == 0:
                     with torch.no_grad():
                         val_losses = list()
-                        with tqdm.tqdm(val_dataloader, desc=f"Validation epoch {self.epoch}",
-                                leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
+                        with tqdm.tqdm(
+                            val_dataloader,
+                            desc=f"Validation epoch {self.epoch}",
+                            leave=False,
+                            mininterval=cfg.training.tqdm_interval_sec,
+                        ) as tepoch:
                             for batch_idx, batch in enumerate(tepoch):
-                                batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                                batch = dict_apply(
+                                    batch, lambda x: x.to(device, non_blocking=True)
+                                )
                                 loss = self.model.compute_loss(batch)
                                 val_losses.append(loss)
-                                if (cfg.training.max_val_steps is not None) \
-                                    and batch_idx >= (cfg.training.max_val_steps-1):
+                                if (
+                                    cfg.training.max_val_steps is not None
+                                ) and batch_idx >= (cfg.training.max_val_steps - 1):
                                     break
                         if len(val_losses) > 0:
                             val_loss = torch.mean(torch.tensor(val_losses)).item()
@@ -196,7 +215,10 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                 if (self.epoch % cfg.training.sample_every) == 0:
                     with torch.no_grad():
                         # sample trajectory from training set, and evaluate difference
-                        batch = dict_apply(train_sampling_batch, lambda x: x.to(device, non_blocking=True))
+                        batch = dict_apply(
+                            train_sampling_batch,
+                            lambda x: x.to(device, non_blocking=True),
+                        )
                         obs_dict = batch["obs"]
                         gt_action = batch["action"]
 
@@ -229,10 +251,9 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
                 self.global_step += 1
                 self.epoch += 1
 
+
 @hydra.main(
-    version_base=None,
-    config_path=str(pathlib.Path("..").joinpath(
-        "lib","config"))
+    version_base=None, config_path=str(pathlib.Path("..").joinpath("lib", "config"))
 )
 def main(cfg: OmegaConf):
     # resolve immediately so all the ${now:} resolvers will use the same time.
@@ -240,6 +261,7 @@ def main(cfg: OmegaConf):
 
     workspace = TrainDiffusionPolicy(cfg)
     workspace.run()
+
 
 if __name__ == "__main__":
     main()

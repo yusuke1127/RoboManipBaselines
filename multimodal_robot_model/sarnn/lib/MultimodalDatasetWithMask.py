@@ -1,6 +1,7 @@
 import torch
 from eipl.data import MultimodalDataset
 
+
 class MultimodalDatasetWithMask(MultimodalDataset):
     """
     This class is used to train models that deal with multimodal data (e.g., images, joints), such as CNNRNN/SARNN.

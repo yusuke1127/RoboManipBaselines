@@ -6,6 +6,7 @@ from pathlib import Path
 from torch.utils.data import TensorDataset, DataLoader
 
 import IPython
+
 e = IPython.embed
 
 
@@ -23,13 +24,13 @@ class EpisodicDataset(torch.utils.data.Dataset):
         self.camera_names = camera_names
         self.norm_stats = norm_stats
         self.is_sim = is_sim
-        self.__getitem__(0) # initialize self.is_sim
+        self.__getitem__(0)  # initialize self.is_sim
 
     def __len__(self):
         return len(load_array(self.dataset_dir, "**/joints.npy"))
 
     def __getitem__(self, episode_id):
-        sample_full_episode = False # hardcode
+        sample_full_episode = False  # hardcode
 
         original_action = load_array(self.dataset_dir, "**/actions.npy")[episode_id]
         original_action_shape = original_action.shape
@@ -43,23 +44,31 @@ class EpisodicDataset(torch.utils.data.Dataset):
         image_dict = dict()
         for cam_name in self.camera_names:
             try:
-                original_image = load_array(self.dataset_dir, f"**/{cam_name}_images.npy")
+                original_image = load_array(
+                    self.dataset_dir, f"**/{cam_name}_images.npy"
+                )
             except IndexError:
                 print(f"self.dataset_dir:\t{self.dataset_dir}")
                 print(f"cam_name:\t{cam_name}")
                 raise
             image_dict[cam_name] = original_image[episode_id][start_ts]
         # get mask
-        original_mask = load_array(self.dataset_dir, "**/masks.npy")[episode_id].astype(bool)
+        original_mask = load_array(self.dataset_dir, "**/masks.npy")[episode_id].astype(
+            bool
+        )
         # get all actions after and including start_ts
         if self.is_sim:
             action = original_action[start_ts:]
             action_len = episode_len - start_ts
             mask = original_mask[start_ts:]
         else:
-            action = original_action[max(0, start_ts - 1):] # hack, to make timesteps more aligned
-            action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
-            mask = original_mask[max(0, start_ts - 1):]
+            action = original_action[
+                max(0, start_ts - 1) :
+            ]  # hack, to make timesteps more aligned
+            action_len = episode_len - max(
+                0, start_ts - 1
+            )  # hack, to make timesteps more aligned
+            mask = original_mask[max(0, start_ts - 1) :]
 
         padded_action = np.zeros(original_action_shape, dtype=np.float32)
         padded_action[:action_len] = action
@@ -80,12 +89,16 @@ class EpisodicDataset(torch.utils.data.Dataset):
         is_pad = torch.from_numpy(is_pad).bool()
 
         # channel last
-        image_data = torch.einsum('k h w c -> k c h w', image_data)
+        image_data = torch.einsum("k h w c -> k c h w", image_data)
 
         # normalize image and change dtype to float
         image_data = image_data / 255.0
-        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
-        joint_data = (joint_data - self.norm_stats["joint_mean"]) / self.norm_stats["joint_std"]
+        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats[
+            "action_std"
+        ]
+        joint_data = (joint_data - self.norm_stats["joint_mean"]) / self.norm_stats[
+            "joint_std"
+        ]
 
         return image_data, joint_data, action_data, is_pad
 
@@ -108,22 +121,26 @@ def get_norm_stats(train_dataset_dir, val_dataset_dir):
     # normalize action data
     action_mean = all_action_data.mean(dim=[0, 1], keepdim=True)
     action_std = all_action_data.std(dim=[0, 1], keepdim=True)
-    action_std = torch.clip(action_std, 1e-2, np.inf) # clipping
+    action_std = torch.clip(action_std, 1e-2, np.inf)  # clipping
 
     # normalize joint data
     joint_mean = all_joint_data.mean(dim=[0, 1], keepdim=True)
     joint_std = all_joint_data.std(dim=[0, 1], keepdim=True)
-    joint_std = torch.clip(joint_std, 1e-2, np.inf) # clipping
+    joint_std = torch.clip(joint_std, 1e-2, np.inf)  # clipping
 
-    stats = {"action_mean": action_mean.numpy().squeeze(), "action_std": action_std.numpy().squeeze(),
-             "joint_mean": joint_mean.numpy().squeeze(), "joint_std": joint_std.numpy().squeeze(),
-             "example_joint": joint}
+    stats = {
+        "action_mean": action_mean.numpy().squeeze(),
+        "action_std": action_std.numpy().squeeze(),
+        "joint_mean": joint_mean.numpy().squeeze(),
+        "joint_std": joint_std.numpy().squeeze(),
+        "example_joint": joint,
+    }
 
     return stats
 
 
 def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val):
-    print(f'\nData from: {dataset_dir}\n')
+    print(f"\nData from: {dataset_dir}\n")
     dataset_dir = Path(dataset_dir)
     # obtain train test dataset dir
     train_dataset_dir = dataset_dir / "train"
@@ -135,7 +152,21 @@ def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_va
     # construct dataset and dataloader
     train_dataset = EpisodicDataset(train_dataset_dir, is_sim, camera_names, norm_stats)
     val_dataset = EpisodicDataset(val_dataset_dir, is_sim, camera_names, norm_stats)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size_train,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=1,
+        prefetch_factor=1,
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size_val,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=1,
+        prefetch_factor=1,
+    )
 
     return train_dataloader, val_dataloader, norm_stats, train_dataset.is_sim

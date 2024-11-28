@@ -14,7 +14,9 @@ from multimodal_robot_model.mt_act import CAMERA_NAMES, TEXT_EMBEDDINGS, TASKS
 @lru_cache(maxsize=128)
 def load_array(dir_path, glob_pattern):
     globbed_list = list(dir_path.glob(glob_pattern))
-    assert len(globbed_list) == 1, f"{(dir_path, glob_pattern, globbed_list, len(globbed_list))=}"
+    assert (
+        len(globbed_list) == 1
+    ), f"{(dir_path, glob_pattern, globbed_list, len(globbed_list))=}"
     return np.load(globbed_list[0])
 
 
@@ -41,14 +43,12 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         self.task_emb_per_trial += list(
             map(
                 lambda x: TEXT_EMBEDDINGS[
-                    {
-                        t: i for i, t in enumerate(TASKS)
-                    }.get(
+                    {t: i for i, t in enumerate(TASKS)}.get(
                         x,
-                        0  # SINGLE TASK embedding wont be used
+                        0,  # SINGLE TASK embedding wont be used
                     )
                 ],
-                tasks
+                tasks,
             )
         )
 
@@ -56,7 +56,9 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         self.trials.original_joints = load_array(self.dataset_dir, "**/joints.npy")
         for cam_name in CAMERA_NAMES:
             try:
-                self.trials.original_images = load_array(self.dataset_dir, f"**/{cam_name}_images.npy")
+                self.trials.original_images = load_array(
+                    self.dataset_dir, f"**/{cam_name}_images.npy"
+                )
             except IndexError:
                 print(f"self.dataset_dir:\t{self.dataset_dir}")
                 print(f"cam_name:\t{cam_name}")
@@ -66,19 +68,18 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         print("TOTAL TRIALS", len(self.trials.original_joints))
         self.__getitem__(0)
 
-
     def __len__(self):
         return len(load_array(self.dataset_dir, "**/joints.npy"))
 
     def __getitem__(self, episode_id):
-        sample_full_episode = False # hardcode
+        sample_full_episode = False  # hardcode
         task_emb = self.task_emb_per_trial[episode_id]
 
         original_action = self.trials.original_actions[episode_id]
         original_joint = self.trials.original_joints[episode_id]
         original_action_shape = original_action.shape
-        cutoff = 2 #10#5
-        episode_len = original_action_shape[0] -cutoff ## cutoff last few
+        cutoff = 2  # 10#5
+        episode_len = original_action_shape[0] - cutoff  ## cutoff last few
 
         if sample_full_episode:
             start_ts = 0
@@ -92,9 +93,13 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         # get mask
         original_mask = self.trials.original_masks[episode_id].astype(bool)
         # get all actions after and including start_ts
-        action = original_action[max(0, start_ts - 1):].astype(np.float32) # hack, to make timesteps more aligned
-        action_len = episode_len - max(0, start_ts - 1) # hack, to make timesteps more aligned
-        mask = original_mask[max(0, start_ts - 1):]
+        action = original_action[max(0, start_ts - 1) :].astype(
+            np.float32
+        )  # hack, to make timesteps more aligned
+        action_len = episode_len - max(
+            0, start_ts - 1
+        )  # hack, to make timesteps more aligned
+        mask = original_mask[max(0, start_ts - 1) :]
 
         padded_action = np.zeros(original_action_shape, dtype=np.float32)
         padded_action[:action_len] = action[:-cutoff]
@@ -116,12 +121,16 @@ class EpisodicDatasetRobopen(torch.utils.data.Dataset):
         is_pad = torch.from_numpy(is_pad).bool()
 
         # channel last
-        image_data = torch.einsum('k h w c -> k c h w', image_data)
+        image_data = torch.einsum("k h w c -> k c h w", image_data)
 
         # normalize image and change dtype to float
         image_data = image_data / 255.0
-        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats["action_std"]
-        joint_data = (joint_data - self.norm_stats["joint_mean"]) / self.norm_stats["joint_std"]
+        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats[
+            "action_std"
+        ]
+        joint_data = (joint_data - self.norm_stats["joint_mean"]) / self.norm_stats[
+            "joint_std"
+        ]
 
         task_emb = torch.from_numpy(np.asarray(task_emb)).float()
 
@@ -146,22 +155,26 @@ def get_norm_stats_robopen(train_dataset_dir, val_dataset_dir):
     # normalize action data
     action_mean = all_action_data.mean(dim=[0, 1], keepdim=True)
     action_std = all_action_data.std(dim=[0, 1], keepdim=True)
-    action_std = torch.clip(action_std, 1e-2, 10) # clipping
+    action_std = torch.clip(action_std, 1e-2, 10)  # clipping
 
     # normalize joint data
     joint_mean = all_joint_data.mean(dim=[0, 1], keepdim=True)
     joint_std = all_joint_data.std(dim=[0, 1], keepdim=True)
-    joint_std = torch.clip(joint_std, 1e-2, 10) # clipping
+    joint_std = torch.clip(joint_std, 1e-2, 10)  # clipping
 
-    stats = {"action_mean": action_mean.numpy().squeeze(), "action_std": action_std.numpy().squeeze(),
-             "joint_mean": joint_mean.numpy().squeeze(), "joint_std": joint_std.numpy().squeeze(),
-             "example_joint": joint}
+    stats = {
+        "action_mean": action_mean.numpy().squeeze(),
+        "action_std": action_std.numpy().squeeze(),
+        "joint_mean": joint_mean.numpy().squeeze(),
+        "joint_std": joint_std.numpy().squeeze(),
+        "example_joint": joint,
+    }
 
     return stats
 
 
 def load_data(dataset_dir, batch_size_train, batch_size_val):
-    print(f'\nData from: {dataset_dir}\n')
+    print(f"\nData from: {dataset_dir}\n")
     dataset_dir = Path(dataset_dir)
     # obtain train test dataset dir
     train_dataset_dir = dataset_dir / "train"
@@ -173,7 +186,21 @@ def load_data(dataset_dir, batch_size_train, batch_size_val):
     # construct dataset and dataloader
     train_dataset = EpisodicDatasetRobopen(train_dataset_dir, norm_stats)
     val_dataset = EpisodicDatasetRobopen(val_dataset_dir, norm_stats)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size_train, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size_val, shuffle=True, pin_memory=True, num_workers=1, prefetch_factor=1)
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size_train,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=1,
+        prefetch_factor=1,
+    )
+    val_dataloader = DataLoader(
+        val_dataset,
+        batch_size=batch_size_val,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=1,
+        prefetch_factor=1,
+    )
 
     return train_dataloader, val_dataloader, norm_stats, train_dataset.is_sim
