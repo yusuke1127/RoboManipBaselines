@@ -10,7 +10,6 @@ import torch
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from policy import ACTPolicy
 from detr.models.detr_vae import DETRVAE
-from eipl.utils import tensor2numpy
 from multimodal_robot_model.common.rollout import RolloutBase
 
 
@@ -167,7 +166,7 @@ class RolloutAct(RolloutBase):
 
         # Infer
         all_actions = self.policy(joint_input, front_image_input)[0]
-        self.all_actions_history.append(tensor2numpy(all_actions))
+        self.all_actions_history.append(all_actions.cpu().detach().numpy())
         if len(self.all_actions_history) > self.args.chunk_size:
             self.all_actions_history.pop(0)
 

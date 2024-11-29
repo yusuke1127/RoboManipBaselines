@@ -11,7 +11,6 @@ sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
 from policy import ACTPolicy
-from eipl.utils import tensor2numpy
 from multimodal_robot_model.mt_act import TASKS, TEXT_EMBEDDINGS
 from multimodal_robot_model.common.rollout import RolloutBase
 
@@ -163,7 +162,7 @@ class RolloutMtAct(RolloutBase):
         all_actions = self.policy(
             joint_input, front_image_input, task_emb=self.task_emb
         )[0]
-        self.all_actions_history.append(tensor2numpy(all_actions))
+        self.all_actions_history.append(all_actions.cpu().detach().numpy())
         if len(self.all_actions_history) > self.args.chunk_size:
             self.all_actions_history.pop(0)
 
