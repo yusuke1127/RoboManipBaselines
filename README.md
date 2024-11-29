@@ -2,7 +2,7 @@
 Imitation Learning of Robot Manipulation Based on Multimodal Sensing
 
 ## Quick start
-[This quick start](./doc/QuickStart.md) allows you to collect data in the simulation and train and rollout the ACT.
+[This quick start](./doc/quick_start.md) allows you to collect data in the simulation and train and rollout the ACT.
 
 ## Install
 Install Pinocchio according to [here](https://stack-of-tasks.github.io/pinocchio/download.html#Install_4).
@@ -30,7 +30,7 @@ Multi-Task Action Chunking Transformer
 See [teleop](./multimodal_robot_model/teleop).
 
 ## Environments for robot manipulation
-See [the environment catalog](doc/EnvironmentCatalog.md) for a full list of environments.
+See [the environment catalog](doc/environment_catalog.md) for a full list of environments.
 
 See [envs](./multimodal_robot_model/envs) for installation procedures for each environment.
 

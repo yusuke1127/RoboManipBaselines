@@ -1,6 +1,6 @@
 # Environments for robot manipulation
 
-A full list of teleoperation environments can be found in [the environment catalog](../../doc/EnvironmentCatalog.md).
+A full list of teleoperation environments can be found in [the environment catalog](../../doc/environment_catalog.md).
 
 ## Install
 ### [Real UR5e environments](./real)
@@ -23,6 +23,8 @@ $ pip install -r requirements.txt
 $ pip install -e .
 ```
 Since only interface classes accessing Robotiq gripper and RealSense camera are used from gello_software, errors in other parts can be ignored.
+
+See [here](../../doc/real_robot_experiments.md) for instructions on how to operate real robot.
 
 ### [MuJoCo environments](./mujoco)
 Follow the installation procedure [here](../../README.md#Install).

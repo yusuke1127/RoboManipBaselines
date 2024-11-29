@@ -1,6 +1,6 @@
 # Data collection by teleoperation
 
-A full list of teleoperation environments can be found in [the environment catalog](../../doc/EnvironmentCatalog.md).
+A full list of teleoperation environments can be found in [the environment catalog](../../doc/environment_catalog.md).
 
 Sample data can be downloaded [here](https://www.dropbox.com/scl/fi/15r33msj4vd1potaosirh/teleop_data_20240414.zip?rlkey=2vt1h5gde7l42vrwz4axj10da&dl=0).
 **This data is in an old format and will be replaced with a new format soon.**
