@@ -6,7 +6,8 @@ import numpy as np
 from multiprocessing import Pool
 from pathlib import Path
 import random
-from eipl.utils import resize_img, calc_minmax, list_to_numpy
+import cv2
+from array_utils import calc_minmax, stack_arrays_with_padding
 from multimodal_robot_model.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()
@@ -67,11 +68,17 @@ def load_skip_resize_data(file_info):
             _front_images = _front_images[:, fro_lef:fro_rig, fro_top:fro_bot, :]
             _side_images = _side_images[:, sid_lef:sid_rig, sid_top:sid_bot, :]
         if resized_img_size is not None:
-            _front_images = resize_img(
-                _front_images, (resized_img_size, resized_img_size)
+            _front_images = np.array(
+                [
+                    cv2.resize(image, (resized_img_size, resized_img_size))
+                    for image in _front_images
+                ]
             )
-            _side_images = resize_img(
-                _side_images, (resized_img_size, resized_img_size)
+            _side_images = np.array(
+                [
+                    cv2.resize(image, (resized_img_size, resized_img_size))
+                    for image in _side_images
+                ]
             )
         _wrenches = data_manager.get_data(DataKey.MEASURED_EEF_WRENCH)[::skip]
         _joints = data_manager.get_data(DataKey.MEASURED_JOINT_POS)[::skip]
@@ -147,11 +154,11 @@ def load_data(in_dir, task_names, skip, resized_img_size, nproc):
             np.concatenate((np.ones(len(_joints)), np.zeros(max_seq - len(_joints))))
         )
 
-    front_images = list_to_numpy(front_images, max_seq)
-    side_images = list_to_numpy(side_images, max_seq)
-    wrenches = list_to_numpy(wrenches, max_seq)
-    joints = list_to_numpy(joints, max_seq)
-    actions = list_to_numpy(actions, max_seq)
+    front_images = stack_arrays_with_padding(front_images, max_seq)
+    side_images = stack_arrays_with_padding(side_images, max_seq)
+    wrenches = stack_arrays_with_padding(wrenches, max_seq)
+    joints = stack_arrays_with_padding(joints, max_seq)
+    actions = stack_arrays_with_padding(actions, max_seq)
     tasks = np.stack(tasks)
     masks = np.stack(masks)
 
