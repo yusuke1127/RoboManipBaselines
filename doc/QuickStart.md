@@ -7,13 +7,6 @@ Install according to [here](../multimodal_robot_model/act/README.md#Install) by 
 # Clone this repository
 $ git clone git@github.com:isri-aist/MultimodalRobotModel.git --recursive
 
-# Install EIPL
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/eipl
-$ pip install -r requirements.txt
-$ pip install -e .
-
 # Install this package
 $ # Go to the top directory of this repository
 $ pip install -e .
