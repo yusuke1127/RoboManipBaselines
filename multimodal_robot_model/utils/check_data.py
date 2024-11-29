@@ -11,7 +11,13 @@ import argparse
 import numpy as np
 import matplotlib.pylab as plt
 import matplotlib.animation as anim
-from eipl.utils import normalization
+
+
+def normalization(data, indata_range, outdata_range):
+    eps = 1e-6
+    data = (data - indata_range[0]) / (indata_range[1] - indata_range[0] + eps)
+    data = data * (outdata_range[1] - outdata_range[0]) + outdata_range[0]
+    return data
 
 
 parser = argparse.ArgumentParser()
