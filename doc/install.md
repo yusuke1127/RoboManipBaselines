@@ -1,6 +1,6 @@
 # Install
 
-## Common installation for all policies
+## Common installation
 Install RoboManipBaselines:
 ```console
 $ git clone git@github.com:isri-aist/RoboManipBaselines.git --recursive
@@ -13,7 +13,7 @@ $ pip install -e .
 This common installation enables data collection by teleoperation in the MuJoCo environments.
 
 ## Installation of each policy
-Complete [the common installation](#common-installation-for-all-policies) first.
+Complete [the common installation](#common-installation) first.
 
 ### [SARNN](../robo_manip_baselines/sarnn)
 Install dependent libraries including [EIPL](https://github.com/ogata-lab/eipl):
@@ -59,10 +59,10 @@ $ pip install -e .
 pip._vendor.packaging.requirements.InvalidRequirement: Expected end or semicolon (after version specifier)
     opencv-python>=3.
 ```
-replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
+replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv_directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
 
 ## Installation of each environment
-Complete [the common installation](#common-installation-for-all-policies) first.
+Complete [the common installation](#common-installation) first.
 
 ### [MuJoCo environments](../robo_manip_baselines/envs/mujoco)
 The MuJoCo environment can be used with only a common installation.

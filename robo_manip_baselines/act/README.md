@@ -4,70 +4,37 @@
 See [here](../../doc/install.md#ACT) for installation.
 
 ## Dataset preparation
+Collect demonstration data by [teleoperation](../teleop).
 
-Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
-
+Generate a `npy` format dataset for learning from teleoperation data:
 ```console
-$ tree data/teleop_data_sample/
-data/teleop_data_sample/
-├── env0
-│   ├── UR5eCableEnv_env0_000.npz
-│   └── UR5eCableEnv_env0_006.npz
-├── env1
-│   ├── UR5eCableEnv_env1_001.npz
-│   └── UR5eCableEnv_env1_007.npz
-├── env2
-│   ├── UR5eCableEnv_env2_002.npz
-│   └── UR5eCableEnv_env2_008.npz
-├── env3
-│   ├── UR5eCableEnv_env3_003.npz
-│   └── UR5eCableEnv_env3_009.npz
-├── env4
-│   ├── UR5eCableEnv_env4_004.npz
-│   └── UR5eCableEnv_env4_010.npz
-└── env5
-    ├── UR5eCableEnv_env5_005.npz
-    └── UR5eCableEnv_env5_011.npz
+$ python ../utils/make_dataset.py \
+--in_dir ../teleop/teleop_data/<demo_name> --out_dir ./data/<demo_name> \
+--train_ratio 0.8 --nproc `nproc` --skip 3
 ```
 
-Make numpy files in each of `train` (for training) and `test` directories (for validation).
-
+Visualize the generated data (optional):
 ```console
-$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_keywords env0 env1 env4 env5 --test_keywords env2 env3 --nproc `nproc` --skip 3
+$ python ../utils/check_data.py --in_dir ./data/<demo_name> --idx 0
 ```
 
-Visualize the generated data (optional).
-
+## Model training
+Train a model:
 ```console
-$ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
+$ python ./bin/TrainAct.py --dataset_dir ./data/<demo_name> --log_dir ./log/<demo_name>
 ```
+The checkpoint file `SARNN.pth` is saved in the directory specified by the `--log_dir` option.
 
-## Model Training
-
-Train the model. The trained weights are saved in the `log` folder.
-
-```console
-$ python ./bin/TrainAct.py --dataset_dir ./data/learning_data_sample --log_dir ./log/YEAR_DAY_TIME
-```
-Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
+**Note**: The following error will occur if the chunk_size is larger than the time series length of the training data.
 In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `TrainAct.py` to a small value.
 ```console
 RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at non-singleton dimension 0
 ```
 
 ## Policy rollout
-
-Run a trained policy in the simulator.
-
+Run a trained policy:
 ```console
 $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
---checkpoint ./log/YEAR_DAY_TIME/policy_last.ckpt \
+--checkpoint ./log/<demo_name>>/policy_last.ckpt \
 --skip 3 --world_idx 0
-```
-The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
-
-Repeatedly run a trained policy in different environments in the simulator.
-
-```console
-$ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt MujocoUR5eCable 3
 ```

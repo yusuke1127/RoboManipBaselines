@@ -101,7 +101,7 @@ $ python ../utils/make_multi_dataset.py \
 --nproc `nproc`
 ```
 
-## Model Training
+## Model training
 
 Train the model. The trained weights are saved in the `log` folder.
 The training hyperparameters here (such as chunk_size) are the same as those in [act#training-models](https://github.com/isri-aist/RoboManipBaselines/tree/master/robo_manip_baselines/act#model-training).

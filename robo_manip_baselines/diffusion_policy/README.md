@@ -4,55 +4,27 @@
 See [here](../../doc/install.md#Diffusion-policy) for installation.
 
 ## Dataset preparation
+Collect demonstration data by [teleoperation](../teleop).
 
-Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
-
+Generate a `zarr` format dataset for learning from teleoperation data:
 ```console
-$ tree data/teleop_data_sample/
-data/teleop_data_sample/
-├── env0
-│   ├── UR5eCableEnv_env0_000.npz
-│   └── UR5eCableEnv_env0_006.npz
-├── env1
-│   ├── UR5eCableEnv_env1_001.npz
-│   └── UR5eCableEnv_env1_007.npz
-├── env2
-│   ├── UR5eCableEnv_env2_002.npz
-│   └── UR5eCableEnv_env2_008.npz
-├── env3
-│   ├── UR5eCableEnv_env3_003.npz
-│   └── UR5eCableEnv_env3_009.npz
-├── env4
-│   ├── UR5eCableEnv_env4_004.npz
-│   └── UR5eCableEnv_env4_010.npz
-└── env5
-    ├── UR5eCableEnv_env5_005.npz
-    └── UR5eCableEnv_env5_011.npz
+$ python ../utils/convert_npz_to_zarr.py ../teleop/teleop_data/<demo_name> --nproc `nproc`
 ```
 
-Make zarr file (for training).
-
-```console
-$ python ../utils/convert_npz_to_zarr.py ./data/teleop_data_sample --train_keywords env0 env5 --nproc `nproc`
-```
-
-If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  
+**Note**: If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  
 https://stackoverflow.com/a/71457141
 
-## Model Training
-
-Train the model. The trained weights are saved in the `log` folder.
-
+## Model training
+Train a model:
 ```console
 $ python ./bin/TrainDiffusionPolicy.py \
 --config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
-task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
+task.dataset.zarr_path=data/<demo_name>.zarr task.name=<demo_name>
 ```
-To disable logging by wandb, add the option `enable_wandb=False`.
+To disable logging by wandb, add the option `--enable_wandb=False`.
+The checkpoint files are saved in the `log` directory.
 
-### Trouble-shooting
-
-If you encounter the following error,
+**Note**: If you encounter the following error,
 ```console
 ImportError: cannot import name 'cached_download' from 'huggingface_hub'
 ```
@@ -62,18 +34,9 @@ $ pip install huggingface_hub==0.21.4
 ```
 
 ## Policy rollout
-
-Run a trained policy in the simulator.
-
+Run a trained policy:
 ```console
 $ python ./bin/rollout/RolloutDiffusionPolicyMujocoUR5eCable.py \
---checkpoint ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt \
---skip 3 --world_idx 1
-```
-The Python script is named `RolloutDiffusionPolicy<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
-
-Repeatedly run a trained policy in different environments in the simulator.
-
-```console
-$ ./scripts/iterate_rollout.sh ./log/YYYY.MM.DD/HH.MM.SS_train_diffusion_unet_hybrid_MujocoUR5eCable/checkpoints/200.ckpt MujocoUR5eCable 3
+--checkpoint ./log/<demo_name>/checkpoints/200.ckpt \
+--skip 3 --world_idx 0
 ```
