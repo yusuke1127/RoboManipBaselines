@@ -2,27 +2,18 @@
 This quick start allows you to collect data in the simulation and train and rollout the ACT.
 
 ## Install
-Install according to [here](../robo_manip_baselines/act/README.md#Install) by the following commands.
+Install RoboManipBaselines:
 ```console
-# Clone this repository
 $ git clone git@github.com:isri-aist/RoboManipBaselines.git --recursive
-
-# Install this package
-$ # Go to the top directory of this repository
-$ pip install -e .
-
-# Install ACT
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/act
-$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==3.1.6 \
- dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
-$ cd detr
-$ pip install -e .
+$ cd RoboManipBaselines
+$ pip install -e .[act]
 ```
 
-Install Pinocchio according to [here](https://stack-of-tasks.github.io/pinocchio/download.html#Install_4).
-In Ubuntu 20.04, install it from robotpkg apt repository; in Ubuntu 22.04, install it with pip.
+Install ACT from a third party:
+```console
+$ cd third_party/act/detr
+$ pip install -e .
+```
 
 ## Data collection by teleoperation
 Operate the robot in the simulation and save the data by the following commands.
