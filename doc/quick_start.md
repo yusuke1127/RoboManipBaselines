@@ -5,7 +5,7 @@ This quick start allows you to collect data in the simulation and train and roll
 Install according to [here](../multimodal_robot_model/act/README.md#Install) by the following commands.
 ```console
 # Clone this repository
-$ git clone git@github.com:isri-aist/MultimodalRobotModel.git --recursive
+$ git clone git@github.com:isri-aist/RoboManipBaselines.git --recursive
 
 # Install this package
 $ # Go to the top directory of this repository

@@ -1,4 +1,4 @@
-# [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel)
+# [RoboManipBaselines](https://github.com/isri-aist/RoboManipBaselines)
 Software that integrates various imitation learning methods and benchmark task environments to provide baselines for robot manipulation
 
 ## Quick start

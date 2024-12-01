@@ -102,7 +102,7 @@ $ python ../utils/make_multi_dataset.py \
 ## Model Training
 
 Train the model. The trained weights are saved in the `log` folder.
-The training hyperparameters here (such as chunk_size) are the same as those in [act#training-models](https://github.com/isri-aist/MultimodalRobotModel/tree/master/multimodal_robot_model/act#model-training).
+The training hyperparameters here (such as chunk_size) are the same as those in [act#training-models](https://github.com/isri-aist/RoboManipBaselines/tree/master/multimodal_robot_model/act#model-training).
 
 ```console
 $ python ./bin/train.py \

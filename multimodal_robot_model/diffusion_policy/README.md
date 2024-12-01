@@ -24,7 +24,7 @@ $ cd third_party/diffusion_policy
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) according to [here](../../README.md#Install).
+Install [RoboManipBaselines](https://github.com/isri-aist/RoboManipBaselines) according to [here](../../README.md#Install).
 
 ### Trouble-shooting
 
@@ -86,7 +86,7 @@ To disable logging by wandb, add the option `enable_wandb=False`.
 
 If you encounter the following error,
 ```console
-ImportError: cannot import name 'cached_download' from 'huggingface_hub' (/home/kimura/workspace/MultimodalRobotModel-origin-master/multimodal_robot_model/diffusion_policy/venv_diffusion_policy/lib/python3.8/site-packages/huggingface_hub/__init__.py)
+ImportError: cannot import name 'cached_download' from 'huggingface_hub'
 ```
 downgrade `huggingface_hub` by the following command.
 ```console

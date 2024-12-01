@@ -11,7 +11,7 @@ $ pip install -r requirements.txt
 $ pip install -e .
 ```
 
-Install [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel) according to [here](../../README.md#Install).
+Install [RoboManipBaselines](https://github.com/isri-aist/RoboManipBaselines) according to [here](../../README.md#Install).
 
 ## Dataset preparation
 
