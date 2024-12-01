@@ -25,7 +25,7 @@ $ # Connect a SpaceMouse 3D mouse to your PC
 $ python bin/TeleopMujocoUR5eCable.py --world_idx_list 0 5
 ```
 
-## Model Training
+## Model training
 Train the ACT by the following commands.
 ```console
 $ cd robo_manip_baselines/act

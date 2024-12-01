@@ -1,5 +1,7 @@
 # Multi-Task Action Chunking Transformer (MT-ACT)
 
+**Caveats**: In this repository, this policy is less maintained than other policies.
+
 ## Install
 
 Install [SARNN](../sarnn) according to [here](../sarnn/README.md#Install).
