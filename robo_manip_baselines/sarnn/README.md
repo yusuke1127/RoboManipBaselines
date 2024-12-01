@@ -54,7 +54,7 @@ $ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py --data_dir ./data/learning_data_sample --no_side_image --no_wrench --with_mask
+$ python ./bin/TrainSarnn.py --data_dir ./data/learning_data_sample --no_side_image --no_wrench --with_mask
 ```
 
 ## Test

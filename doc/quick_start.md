@@ -30,10 +30,10 @@ Train the ACT by the following commands.
 ```console
 $ cd robo_manip_baselines/act
 $ python ../utils/make_dataset.py --in_dir ../teleop/teleop_data/MujocoUR5eCable --out_dir ./data/MujocoUR5eCable --train_ratio 0.8 --nproc `nproc` --skip 3
-$ python ./bin/train.py --dataset_dir ./data/MujocoUR5eCable --ckpt_dir ./log/MujocoUR5eCable
+$ python ./bin/TrainAct.py --dataset_dir ./data/MujocoUR5eCable --ckpt_dir ./log/MujocoUR5eCable
 ```
 Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
-In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `train.py` to a small value.
+In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `TrainAct.py` to a small value.
 ```console
 RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at non-singleton dimension 0
 ```

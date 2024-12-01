@@ -53,7 +53,7 @@ https://stackoverflow.com/a/71457141
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py \
+$ python ./bin/TrainDiffusionPolicy.py \
 --config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
 task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
 ```

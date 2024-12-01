@@ -44,14 +44,10 @@ $ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/train.py \
---dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME \
---kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
---num_epochs 1000 --lr 1e-5 \
---seed 0
+$ python ./bin/TrainAct.py --dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME
 ```
 Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
-In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `train.py` to a small value.
+In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `TrainAct.py` to a small value.
 ```console
 RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at non-singleton dimension 0
 ```
