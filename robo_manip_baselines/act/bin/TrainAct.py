@@ -28,19 +28,15 @@ class TrainAct(object):
 
         parser.add_argument(
             "--dataset_dir",
-            action="store",
+            default="./data/",
             type=str,
             help="dataset_dir",
-            required=False,
-            default="./data/",
         )
         parser.add_argument(
-            "--ckpt_dir",
-            action="store",
-            type=str,
-            help="ckpt_dir",
-            required=False,
+            "--log_dir",
             default="./log/",
+            type=str,
+            help="log_dir",
         )
         parser.add_argument(
             "--camera_names",
@@ -51,30 +47,29 @@ class TrainAct(object):
             default=["front"],
         )
         parser.add_argument(
-            "--batch_size", action="store", type=int, help="batch_size", default=8
+            "--batch_size", default=8, type=int, help="batch_size"
         )
-        parser.add_argument("--seed", action="store", type=int, help="seed", default=0)
+        parser.add_argument("--seed", default=0, type=int, help="seed")
         parser.add_argument(
-            "--num_epochs", action="store", type=int, help="num_epochs", default=1000
+            "--num_epochs", default=1000, type=int, help="num_epochs"
         )
-        parser.add_argument("--lr", action="store", type=float, help="lr", default=1e-5)
+        parser.add_argument("--lr", default=1e-5, type=float, help="lr")
 
         # for ACT
         parser.add_argument(
-            "--kl_weight", action="store", type=int, help="KL Weight", default=10
+            "--kl_weight", default=10, type=int, help="KL weight"
         )
         parser.add_argument(
-            "--chunk_size", action="store", type=int, help="chunk_size", default=100
+            "--chunk_size", default=100, type=int, help="action chunking size"
         )
         parser.add_argument(
-            "--hidden_dim", action="store", type=int, help="hidden_dim", default=512
+            "--hidden_dim", default=512, type=int, help="hidden dimension of ACT policy"
         )
         parser.add_argument(
             "--dim_feedforward",
-            action="store",
-            type=int,
-            help="dim_feedforward",
             default=3200,
+            type=int,
+            help="feedforward dimension of ACT policy",
         )
 
         self.args = parser.parse_args()
@@ -127,9 +122,9 @@ class TrainAct(object):
 
     def run(self):
         # save dataset stats
-        if not os.path.isdir(self.args.ckpt_dir):
-            os.makedirs(self.args.ckpt_dir)
-        stats_path = os.path.join(self.args.ckpt_dir, "dataset_stats.pkl")
+        if not os.path.isdir(self.args.log_dir):
+            os.makedirs(self.args.log_dir)
+        stats_path = os.path.join(self.args.log_dir, "dataset_stats.pkl")
         with open(stats_path, "wb") as f:
             pickle.dump(self.stats, f)
         print(f"[TrainAct] Save dataset stats: {stats_path}")
@@ -139,7 +134,7 @@ class TrainAct(object):
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
 
         # save best checkpoint
-        ckpt_path = os.path.join(self.args.ckpt_dir, "policy_best.ckpt")
+        ckpt_path = os.path.join(self.args.log_dir, "policy_best.ckpt")
         torch.save(best_state_dict, ckpt_path)
         print(f"[TrainAct] Best ckpt, val loss {min_val_loss:.3f} @ epoch{best_epoch}")
 
@@ -194,18 +189,18 @@ class TrainAct(object):
 
             if epoch % 100 == 0:
                 ckpt_path = os.path.join(
-                    self.args.ckpt_dir,
+                    self.args.log_dir,
                     f"policy_epoch_{epoch}_seed_{self.args.seed}.ckpt",
                 )
                 torch.save(self.policy.state_dict(), ckpt_path)
                 self.plot_history(train_history, validation_history, epoch)
 
-        ckpt_path = os.path.join(self.args.ckpt_dir, "policy_last.ckpt")
+        ckpt_path = os.path.join(self.args.log_dir, "policy_last.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
 
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
         ckpt_path = os.path.join(
-            self.args.ckpt_dir, f"policy_epoch_{best_epoch}_seed_{self.args.seed}.ckpt"
+            self.args.log_dir, f"policy_epoch_{best_epoch}_seed_{self.args.seed}.ckpt"
         )
         torch.save(best_state_dict, ckpt_path)
         print(
@@ -233,7 +228,7 @@ class TrainAct(object):
         # save training curves
         for key in train_history[0]:
             plot_path = os.path.join(
-                self.args.ckpt_dir, f"train_val_{key}_seed_{self.args.seed}.png"
+                self.args.log_dir, f"train_val_{key}_seed_{self.args.seed}.png"
             )
             plt.figure()
             train_values = [summary[key].item() for summary in train_history]
@@ -253,7 +248,7 @@ class TrainAct(object):
             plt.legend()
             plt.title(key)
             plt.savefig(plot_path)
-        print(f"[TrainAct] Saved plots to {self.args.ckpt_dir}")
+        print(f"[TrainAct] Saved plots to {self.args.log_dir}")
 
 
 if __name__ == "__main__":

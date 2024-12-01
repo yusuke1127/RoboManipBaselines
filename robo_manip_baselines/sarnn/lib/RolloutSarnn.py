@@ -23,11 +23,11 @@ class RolloutSarnn(RolloutBase):
         parser.add_argument(
             "--checkpoint",
             type=str,
-            default=None,
-            help="SARNN policy checkpoint file (*.pth)",
+            help="checkpoint file of SARNN (*.pth)",
+            required=True
         )
         parser.add_argument(
-            "--cropped_img_size", type=int, default=280, help="size to crop the image"
+            "--cropped_img_size", default=280, type=int, help="size to crop the image"
         )
 
         super().setup_args(parser)

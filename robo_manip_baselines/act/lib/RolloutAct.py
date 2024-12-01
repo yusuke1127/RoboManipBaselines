@@ -19,17 +19,10 @@ class RolloutAct(RolloutBase):
             parser = argparse.ArgumentParser()
 
         parser.add_argument(
-            "--ckpt_dir",
-            action="store",
+            "--checkpoint",
             type=str,
-            help="checkpoint directory",
+            help="checkpoint file of ACT (*.ckpt)",
             required=True,
-        )
-        parser.add_argument(
-            "--ckpt_name",
-            default="policy_last.ckpt",
-            type=str,
-            help="ACT policy checkpoint file name (*.ckpt)",
         )
         parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
         parser.add_argument(
@@ -45,39 +38,7 @@ class RolloutAct(RolloutBase):
             help="feedforward dimension of ACT policy",
         )
 
-        # Add dummy arguments
-        parser.add_argument(
-            "--task_name",
-            choices=["sim_dummy"],
-            type=str,
-            help="Do not set this manually as it is a dummy argument.",
-            required=True,
-        )
-        parser.add_argument(
-            "--policy_class",
-            choices=["ACT"],
-            type=str,
-            help="Do not set this manually as it is a dummy argument.",
-            required=True,
-        )
-        parser.add_argument(
-            "--num_epochs",
-            choices=[-1],
-            type=int,
-            help="Do not set this manually as it is a dummy argument.",
-            required=True,
-        )
-
-        argv = sys.argv
-        argv += [
-            "--task_name",
-            "sim_dummy",
-            "--policy_class",
-            "ACT",
-            "--num_epochs",
-            "-1",
-        ]
-        super().setup_args(parser, argv)
+        super().setup_args(parser)
 
         if self.args.skip is None:
             self.args.skip = 3
@@ -86,7 +47,8 @@ class RolloutAct(RolloutBase):
 
     def setup_policy(self):
         # Load data statistics
-        stats_path = os.path.join(self.args.ckpt_dir, "dataset_stats.pkl")
+        checkpoint_dir = os.path.split(self.args.checkpoint)[0]
+        stats_path = os.path.join(checkpoint_dir, "dataset_stats.pkl")
         with open(stats_path, "rb") as f:
             self.stats = pickle.load(f)
 
@@ -121,16 +83,8 @@ class RolloutAct(RolloutBase):
             layer.self_attn.register_forward_hook(forward_fook)
 
         # Load weight
-        ckpt_path = os.path.join(self.args.ckpt_dir, self.args.ckpt_name)
-        try:
-            print(f"[RolloutAct] Load {ckpt_path}")
-            self.policy.load_state_dict(torch.load(ckpt_path))
-        except RuntimeError as e:
-            if "size mismatch" in str(e.self.args):
-                sys.stderr.write(
-                    f"\n{sys.stderr.name} chunk_size: {self.args.chunk_size}\n\n"
-                )
-            raise
+        print(f"[RolloutAct] Load {self.args.checkpoint}")
+        self.policy.load_state_dict(torch.load(self.args.checkpoint))
         self.policy.cuda()
         self.policy.eval()
 

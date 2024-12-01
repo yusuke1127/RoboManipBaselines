@@ -20,8 +20,8 @@ class RolloutDiffusionPolicy(RolloutBase):
         parser.add_argument(
             "--checkpoint",
             type=str,
-            default=None,
-            help="diffusion policy checkpoint file (*.ckpt)",
+            help="checkpoint file of diffusion policy (*.ckpt)",
+            required=True
         )
 
         super().setup_args(parser)

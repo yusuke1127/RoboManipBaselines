@@ -44,7 +44,7 @@ $ python ../utils/check_data.py --in_dir ./data/learning_data_sample --idx 0
 Train the model. The trained weights are saved in the `log` folder.
 
 ```console
-$ python ./bin/TrainAct.py --dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME
+$ python ./bin/TrainAct.py --dataset_dir ./data/learning_data_sample --log_dir ./log/YEAR_DAY_TIME
 ```
 Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
 In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `TrainAct.py` to a small value.
@@ -58,8 +58,8 @@ Run a trained policy in the simulator.
 
 ```console
 $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
---ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_last.ckpt \
---chunk_size 100 --seed 42 --skip 3 --world_idx 0
+--checkpoint ./log/YEAR_DAY_TIME/policy_last.ckpt \
+--skip 3 --world_idx 0
 ```
 The Python script is named `RolloutAct<task_name>.py`. The followings are supported as task_name: `MujocoUR5eCable`, `MujocoUR5eRing`, `MujocoUR5eParticle`, `MujocoUR5eCloth`.
 
