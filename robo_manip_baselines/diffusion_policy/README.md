@@ -23,7 +23,8 @@ $ python ./bin/TrainDiffusionPolicy.py \
 --config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
 task.dataset.zarr_path=./data/<demo_name>.zarr task.name=<demo_name>
 ```
-To disable logging by wandb, add the option `--enable_wandb=False`.
+To disable logging by WandB, add the option `--enable_wandb=False`.
+You can override the `yaml` configuration file by adding the following command line arguments, for example: `task.shape_meta.obs.joint.shape=\[8\] task.shape_meta.action.shape=\[8\]`.
 The checkpoint files are saved in the `log` directory.
 
 **Note**: If you encounter the following error,
