@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import argparse
 import time
+import datetime
 import numpy as np
 import cv2
 import matplotlib.pylab as plt
@@ -59,6 +60,7 @@ class TeleopBase(metaclass=ABCMeta):
         DataManagerClass = getattr(self, "DataManagerClass", DataManager)
         self.data_manager = DataManagerClass(self.env)
         self.data_manager.setup_camera_info()
+        self.datetime_now = datetime.datetime.now()
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -385,8 +387,9 @@ class TeleopBase(metaclass=ABCMeta):
             self.quit_flag = True
 
     def save_data(self):
-        filename = "teleop_data/{}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
+        filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
             self.demo_name,
+            self.datetime_now,
             self.data_manager.world_idx,
             self.demo_name,
             self.data_manager.world_idx,

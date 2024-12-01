@@ -175,8 +175,9 @@ class TeleopBaseVec(TeleopBase):
             else:
                 extra_label = f"augmented{aug_idx:0>3}"
                 aug_idx += 1
-            filename = "teleop_data/{}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.npz".format(
+            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.npz".format(
                 self.demo_name,
+                self.datetime_now,
                 self.data_manager.world_idx,
                 self.demo_name,
                 self.data_manager.world_idx,
