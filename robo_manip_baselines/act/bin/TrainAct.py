@@ -46,19 +46,13 @@ class TrainAct(object):
             required=False,
             default=["front"],
         )
-        parser.add_argument(
-            "--batch_size", default=8, type=int, help="batch_size"
-        )
+        parser.add_argument("--batch_size", default=8, type=int, help="batch_size")
         parser.add_argument("--seed", default=0, type=int, help="seed")
-        parser.add_argument(
-            "--num_epochs", default=1000, type=int, help="num_epochs"
-        )
+        parser.add_argument("--num_epochs", default=1000, type=int, help="num_epochs")
         parser.add_argument("--lr", default=1e-5, type=float, help="lr")
 
         # for ACT
-        parser.add_argument(
-            "--kl_weight", default=10, type=int, help="KL weight"
-        )
+        parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
         parser.add_argument(
             "--chunk_size", default=100, type=int, help="action chunking size"
         )

@@ -21,7 +21,7 @@ class RolloutDiffusionPolicy(RolloutBase):
             "--checkpoint",
             type=str,
             help="checkpoint file of diffusion policy (*.ckpt)",
-            required=True
+            required=True,
         )
 
         super().setup_args(parser)
