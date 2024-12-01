@@ -54,7 +54,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         self.pred_action_list = np.empty((0, self.joint_dim))
 
     def setup_plot(self):
-        fig_ax = plt.subplots(1, 2, figsize=(13.5, 5.0), dpi=60, squeeze=False)
+        fig_ax = plt.subplots(1, 2, figsize=(13.5, 6.0), dpi=60, squeeze=False)
         super().setup_plot(fig_ax=fig_ax)
 
     def infer_policy(self):

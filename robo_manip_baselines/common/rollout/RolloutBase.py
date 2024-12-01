@@ -158,7 +158,7 @@ class RolloutBase(metaclass=ABCMeta):
         matplotlib.use("agg")
         if fig_ax is None:
             self.fig, self.ax = plt.subplots(
-                1, 1, figsize=(10.0, 5.0), dpi=60, squeeze=False
+                1, 1, figsize=(13.5, 6.0), dpi=60, squeeze=False
             )
         else:
             self.fig, self.ax = fig_ax

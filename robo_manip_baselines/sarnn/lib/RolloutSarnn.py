@@ -70,7 +70,7 @@ class RolloutSarnn(RolloutBase):
         self.policy.eval()
 
     def setup_plot(self):
-        fig_ax = plt.subplots(1, 3, figsize=(13.5, 5.0), dpi=60, squeeze=False)
+        fig_ax = plt.subplots(1, 3, figsize=(13.5, 6.0), dpi=60, squeeze=False)
         super().setup_plot(fig_ax=fig_ax)
 
     def infer_policy(self):
