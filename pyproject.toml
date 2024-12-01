@@ -8,26 +8,66 @@ description = "Software that integrates various imitation learning methods and b
 readme = "README.md"
 requires-python = ">= 3.8"
 dependencies = [
-"ipython",
-"gymnasium==1.0.0",
-"mujoco==3.1.6",
-"matplotlib>=3.3.4",
-"imageio >=2.14.1",
-"tqdm",
-"opencv-python",
-"pin",
-"pyspacemouse",
+  "ipdb",
+  "ipython",
+  "gymnasium==1.0.0",
+  "mujoco==3.1.6",
+  "matplotlib>=3.3.4",
+  "imageio >=2.14.1",
+  "tqdm",
+  "numba",
+  "numpy",
+  "scipy",
+  "opencv-python",
+  "pin",
+  "pyspacemouse",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
+sarnn = [
+  "torch",
+  "torchvision",
+  "scikit-learn",
+  "tensorboard",
+  "torchinfo",
+  "gdown",
+]
 act = [
-"torch",
-"torchvision",
-"pyquaternion",
-"pyyaml",
-"packaging",
-"h5py",
+  "torch",
+  "torchvision",
+  "pyyaml",
+  "packaging",
+  "h5py",
+  "pyquaternion",
+]
+diffusion-policy = [
+  "torch",
+  "torchvision",
+  "cffi",
+  "zarr",
+  "numcodecs",
+  "h5py",
+  "hydra-core",
+  "einops",
+  "dill",
+  "scikit-video",
+  "scikit-image",
+  "pymunk",
+  "wandb",
+  "threadpoolctl",
+  "cython",
+  "imageio-ffmpeg",
+  "termcolor",
+  "tensorboard",
+  "tensorboardx",
+  "psutil",
+  "click",
+  "pandas",
+  "diffusers==0.11.1",
+  "robomimic==0.2.0",
+  "huggingface_hub==0.21.4",
+  "urllib3<2",
 ]
 
 [tool.setuptools.packages.find]

@@ -6,9 +6,6 @@ Install [EIPL](https://github.com/ogata-lab/eipl) by the following commands.
 ```console
 $ # Go to the top directory of this repository
 $ git submodule update --init --recursive
-$ cd third_party/eipl
-$ pip install -r requirements.txt
-$ pip install -e .
 ```
 
 Install [RoboManipBaselines](https://github.com/isri-aist/RoboManipBaselines) according to [here](../../README.md#Install).

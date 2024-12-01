@@ -10,7 +10,7 @@ from robo_manip_baselines.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("in_dir", type=str)
-parser.add_argument("--out_path", type=str)
+parser.add_argument("--out_dir", type=str, default="./data/")
 parser.add_argument("--skip", type=int, default=3)
 parser.add_argument("--train_keywords", nargs="*", required=False)
 parser.add_argument("-j", "--nproc", type=int, default=1)
@@ -61,10 +61,9 @@ for idx, (_actions, _joints, _images) in enumerate(tqdm(data)):
 # https://github.com/real-stanford/diffusion_policy/blob/548a52bbb105518058e27bf34dcf90bf6f73681a/diffusion_policy/config/task/real_pusht_image.yaml#L3
 images = np.array([cv2.resize(image, (320, 240)) for image in images])
 
-if args.out_path is None:
-    out_path = os.path.join(args.in_dir, "learning_data.zarr")
-else:
-    out_path = args.out_path
+if args.out_dir is None:
+    args.out_dir = args.in_dir
+out_path = os.path.join(args.out_dir, "learning_data.zarr")
 print(f"[convert_npz_to_zarr] Save a zarr file: {out_path}")
 zarr_root = zarr.open(out_path, mode="w")
 zarr_root.create_group("meta")

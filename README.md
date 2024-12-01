@@ -2,16 +2,10 @@
 Software that integrates various imitation learning methods and benchmark task environments to provide baselines for robot manipulation
 
 ## Quick start
-[This quick start](./doc/quick_start.md) allows you to collect data in the simulation and train and rollout the ACT.
+[This quick start](./doc/quick_start.md) allows you to collect data in the MuJoCo simulation and train and rollout the ACT policy.
 
 ## Install
-Install Pinocchio according to [here](https://stack-of-tasks.github.io/pinocchio/download.html#Install_4).
-In Ubuntu 20.04, install it from robotpkg apt repository; in Ubuntu 22.04, install it with pip.
-
-Install this package via pip by the following commands.
-```console
-$ pip install -e .
-```
+See [the installation documentation](./doc/install.md).
 
 ## Models
 ### [SARNN](./robo_manip_baselines/sarnn)

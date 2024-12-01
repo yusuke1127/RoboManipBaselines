@@ -1,18 +1,5 @@
 # Action Chunking with Transformers (ACT)
 
-## Install
-
-Install [ACT](https://github.com/tonyzhaozh/act) by the following commands.
-``` console
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-$ cd third_party/act
-$ pip install torchvision torch pyquaternion pyyaml rospkg pexpect mujoco==3.1.6 \
- dm_control==1.0.14 opencv-python matplotlib einops packaging h5py ipython
-$ cd detr
-$ pip install -e .
-```
-
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.
