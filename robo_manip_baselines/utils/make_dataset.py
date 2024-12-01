@@ -11,8 +11,8 @@ from array_utils import calc_minmax, stack_arrays_with_padding
 from robo_manip_baselines.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--in_dir", type=str, default="./data/")
-parser.add_argument("--out_dir", type=str, default="./data/")
+parser.add_argument("--in_dir", type=str, required=True)
+parser.add_argument("--out_dir", type=str, required=True)
 parser.add_argument("--train_ratio", type=float, required=False)
 parser.add_argument("--test_ratio", type=float, required=False)
 parser.add_argument("--train_keywords", nargs="*", required=False)

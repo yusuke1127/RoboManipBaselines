@@ -8,7 +8,9 @@ Collect demonstration data by [teleoperation](../teleop).
 
 Generate a `zarr` format dataset for learning from teleoperation data:
 ```console
-$ python ../utils/convert_npz_to_zarr.py ../teleop/teleop_data/<demo_name> --nproc `nproc`
+$ python ../utils/convert_npz_to_zarr.py \
+--in_dir ../teleop/teleop_data/<demo_name> --out_dir ./data/<demo_name>.zarr \
+--nproc `nproc` --skip 3
 ```
 
 **Note**: If you are using `pyenv` and encounter the error `No module named '_bz2'`, apply the following solution.  
@@ -19,7 +21,7 @@ Train a model:
 ```console
 $ python ./bin/TrainDiffusionPolicy.py \
 --config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
-task.dataset.zarr_path=data/<demo_name>.zarr task.name=<demo_name>
+task.dataset.zarr_path=./data/<demo_name>.zarr task.name=<demo_name>
 ```
 To disable logging by wandb, add the option `--enable_wandb=False`.
 The checkpoint files are saved in the `log` directory.
