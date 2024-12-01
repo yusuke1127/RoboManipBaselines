@@ -1,5 +1,5 @@
 # [MultimodalRobotModel](https://github.com/isri-aist/MultimodalRobotModel)
-Imitation Learning of Robot Manipulation Based on Multimodal Sensing
+Software that integrates various imitation learning methods and benchmark task environments to provide baselines for robot manipulation
 
 ## Quick start
 [This quick start](./doc/quick_start.md) allows you to collect data in the simulation and train and rollout the ACT.
