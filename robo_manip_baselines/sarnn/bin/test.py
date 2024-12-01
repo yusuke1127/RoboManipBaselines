@@ -56,9 +56,9 @@ joints = joints_raw[idx]
 # define model
 joint_dim = joints.shape[-1]
 if (not args.no_side_image) and (not args.no_wrench):
-    from robo_manip_baselines.sarnn import SARNNwithSideimageAndWrench
+    from robo_manip_baselines.sarnn import SarnnWithSideImageAndWrench
 
-    model = SARNNwithSideimageAndWrench(
+    model = SarnnWithSideImageAndWrench(
         rec_dim=params["rec_dim"],
         joint_dim=joint_dim,
         wrench_dim=6,

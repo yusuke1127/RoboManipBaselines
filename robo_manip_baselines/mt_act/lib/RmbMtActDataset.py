@@ -24,9 +24,9 @@ class Trials:
     original_masks: np.ndarray = None
 
 
-class EpisodicDatasetRobopen(torch.utils.data.Dataset):
+class RmbMtActDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_dir, norm_stats):
-        super(EpisodicDatasetRobopen).__init__()
+        super(RmbMtActDataset).__init__()
         self.dataset_dir = dataset_dir
         self.norm_stats = norm_stats
         self.is_sim = None
@@ -179,8 +179,8 @@ def load_data(dataset_dir, batch_size_train, batch_size_val):
     norm_stats = get_norm_stats_robopen(train_dataset_dir, val_dataset_dir)
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDatasetRobopen(train_dataset_dir, norm_stats)
-    val_dataset = EpisodicDatasetRobopen(val_dataset_dir, norm_stats)
+    train_dataset = RmbMtActDataset(train_dataset_dir, norm_stats)
+    val_dataset = RmbMtActDataset(val_dataset_dir, norm_stats)
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size_train,

@@ -15,7 +15,7 @@ except ImportError:
     from torchvision import transforms
 
 
-class MultimodalDatasetWithSideimageAndWrench(Dataset):
+class RmbSarnnDatasetWithSideImageAndWrench(Dataset):
     """
     This class is used to train models that deal with multimodal data (e.g., front_images, side_images, joints, wrenches), such as CNNRNN/SARNN.
 

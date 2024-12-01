@@ -1,11 +1,11 @@
-from .lib.SARNNwithSideimageAndWrench import SARNNwithSideimageAndWrench
-from .lib.MultimodalDatasetWithMask import MultimodalDatasetWithMask
-from .lib.MultimodalDatasetWithSideimageAndWrench import (
-    MultimodalDatasetWithSideimageAndWrench,
+from .lib.SarnnWithSideImageAndWrench import SarnnWithSideImageAndWrench
+from .lib.RmbSarnnDatasetWithMask import RmbSarnnDatasetWithMask
+from .lib.RmbSarnnDatasetWithSideImageAndWrench import (
+    RmbSarnnDatasetWithSideImageAndWrench,
 )
-from .lib.fullBPTTtrainerWithMask import fullBPTTtrainerWithMask
-from .lib.fullBPTTtrainerWithSideimageAndWrench import (
-    fullBPTTtrainerWithSideimageAndWrench,
+from .lib.FullBpttTrainerWithMask import FullBpttTrainerWithMask
+from .lib.FullBpttTrainerWithSideImageAndWrench import (
+    FullBpttTrainerWithSideImageAndWrench,
     Loss,
 )
 from .lib.RolloutSarnn import RolloutSarnn

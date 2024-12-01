@@ -4,7 +4,7 @@ from eipl.utils import tensor2numpy
 from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
 
 
-class fullBPTTtrainerWithMask(fullBPTTtrainer):
+class FullBpttTrainerWithMask(fullBPTTtrainer):
     def process_epoch(self, data, training=True):
         if not training:
             self.model.eval()

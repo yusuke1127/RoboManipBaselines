@@ -77,7 +77,7 @@ Train the model. The trained weights are saved in the `log` folder.
 
 ```console
 $ python ./bin/train.py \
---config-dir=./lib/config/ --config-name=mujoco_diffusion_policy_cnn.yaml \
+--config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
 task.dataset.zarr_path=data/teleop_data_sample/learning_data.zarr
 ```
 To disable logging by wandb, add the option `enable_wandb=False`.

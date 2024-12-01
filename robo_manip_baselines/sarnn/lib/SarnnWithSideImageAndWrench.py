@@ -10,8 +10,8 @@ import torch.nn as nn
 from eipl.layer import SpatialSoftmax, InverseSpatialSoftmax
 
 
-class SARNNwithSideimageAndWrench(nn.Module):
-    #:: SARNNwithSideimageAndWrench
+class SarnnWithSideImageAndWrench(nn.Module):
+    #:: SarnnWithSideImageAndWrench
     """SARNN: Spatial Attention with Recurrent Neural Network.
     This model "explicitly" extracts positions from the image that are important to the task, such as the work object or arm position,
     and learns the time-series relationship between these positions and the robot's joint angles and wrench angles.

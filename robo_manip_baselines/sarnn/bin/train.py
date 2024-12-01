@@ -116,10 +116,10 @@ class TrainSarnn(object):
         if (not self.args.no_side_image) and (not self.args.no_wrench):
             assert not self.args.with_mask, "with_mask option is not supported for the model with side_image and wrench."
             from robo_manip_baselines.sarnn import (
-                MultimodalDatasetWithSideimageAndWrench,
+                RmbSarnnDatasetWithSideImageAndWrench,
             )
 
-            train_dataset = MultimodalDatasetWithSideimageAndWrench(
+            train_dataset = RmbSarnnDatasetWithSideImageAndWrench(
                 front_images,
                 side_images,
                 joints,
@@ -129,9 +129,9 @@ class TrainSarnn(object):
             )
         elif self.args.no_side_image and self.args.no_wrench:
             if self.args.with_mask:
-                from robo_manip_baselines.sarnn import MultimodalDatasetWithMask
+                from robo_manip_baselines.sarnn import RmbSarnnDatasetWithMask
 
-                train_dataset = MultimodalDatasetWithMask(
+                train_dataset = RmbSarnnDatasetWithMask(
                     front_images, joints, masks, device=self.device, stdev=stdev
                 )
             else:
@@ -172,7 +172,7 @@ class TrainSarnn(object):
         masks = np.load(sorted(test_data_dir.glob("**/masks.npy"))[0])
 
         if (not self.args.no_side_image) and (not self.args.no_wrench):
-            test_dataset = MultimodalDatasetWithSideimageAndWrench(
+            test_dataset = RmbSarnnDatasetWithSideImageAndWrench(
                 front_images,
                 side_images,
                 joints,
@@ -182,9 +182,9 @@ class TrainSarnn(object):
             )
         elif self.args.no_side_image and self.args.no_wrench:
             if self.args.with_mask:
-                from robo_manip_baselines.sarnn import MultimodalDatasetWithMask
+                from robo_manip_baselines.sarnn import RmbSarnnDatasetWithMask
 
-                test_dataset = MultimodalDatasetWithMask(
+                test_dataset = RmbSarnnDatasetWithMask(
                     front_images, joints, masks, device=self.device, stdev=stdev
                 )
             else:
@@ -209,9 +209,9 @@ class TrainSarnn(object):
 
         # define model
         if (not self.args.no_side_image) and (not self.args.no_wrench):
-            from robo_manip_baselines.sarnn import SARNNwithSideimageAndWrench
+            from robo_manip_baselines.sarnn import SarnnWithSideImageAndWrench
 
-            self.model = SARNNwithSideimageAndWrench(
+            self.model = SarnnWithSideImageAndWrench(
                 rec_dim=self.args.rec_dim,
                 joint_dim=joint_dim,
                 wrench_dim=6,
@@ -247,7 +247,7 @@ class TrainSarnn(object):
         # load trainer/tester class
         if (not self.args.no_side_image) and (not self.args.no_wrench):
             from robo_manip_baselines.sarnn import (
-                fullBPTTtrainerWithSideimageAndWrench,
+                FullBpttTrainerWithSideImageAndWrench,
                 Loss,
             )
 
@@ -262,7 +262,7 @@ class TrainSarnn(object):
                 }[loss]
                 for loss in Loss
             ]
-            self.trainer = fullBPTTtrainerWithSideimageAndWrench(
+            self.trainer = FullBpttTrainerWithSideImageAndWrench(
                 self.model,
                 self.optimizer,
                 loss_weights=loss_weights,
@@ -275,9 +275,9 @@ class TrainSarnn(object):
                 self.args.front_pt_loss,
             ]
             if self.args.with_mask:
-                from robo_manip_baselines.sarnn import fullBPTTtrainerWithMask
+                from robo_manip_baselines.sarnn import FullBpttTrainerWithMask
 
-                self.trainer = fullBPTTtrainerWithMask(
+                self.trainer = FullBpttTrainerWithMask(
                     self.model,
                     self.optimizer,
                     loss_weights=loss_weights,

@@ -16,7 +16,7 @@ def load_array(dir_path, glob_pattern):
     return np.load(globbed_list[0])
 
 
-class EpisodicDataset(torch.utils.data.Dataset):
+class RmbActDataset(torch.utils.data.Dataset):
     def __init__(self, dataset_dir, is_sim, camera_names, norm_stats):
         super().__init__()
         self.dataset_dir = dataset_dir
@@ -149,8 +149,8 @@ def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_va
     norm_stats = get_norm_stats(train_dataset_dir, val_dataset_dir)
 
     # construct dataset and dataloader
-    train_dataset = EpisodicDataset(train_dataset_dir, is_sim, camera_names, norm_stats)
-    val_dataset = EpisodicDataset(val_dataset_dir, is_sim, camera_names, norm_stats)
+    train_dataset = RmbActDataset(train_dataset_dir, is_sim, camera_names, norm_stats)
+    val_dataset = RmbActDataset(val_dataset_dir, is_sim, camera_names, norm_stats)
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size_train,

@@ -14,7 +14,7 @@ from diffusion_policy.dataset.base_dataset import BaseImageDataset
 from diffusion_policy.common.normalize_util import get_image_range_normalizer
 
 
-class MujocoDataset(BaseImageDataset):
+class RmbDiffusionPolicyDataset(BaseImageDataset):
     def __init__(
         self,
         zarr_path,

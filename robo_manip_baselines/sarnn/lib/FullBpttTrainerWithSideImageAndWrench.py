@@ -20,7 +20,7 @@ class Loss(IntEnum):
     SIDE_PT = 5
 
 
-class fullBPTTtrainerWithSideimageAndWrench:
+class FullBpttTrainerWithSideImageAndWrench:
     """
     Helper class to train recurrent neural networks with numpy sequences
 

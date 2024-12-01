@@ -1,2 +1,2 @@
-from .lib.dataset.MujocoDataset import MujocoDataset
+from .lib.RmbDiffusionPolicyDataset import RmbDiffusionPolicyDataset
 from .lib.RolloutDiffusionPolicy import RolloutDiffusionPolicy
