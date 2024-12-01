@@ -1,5 +1,5 @@
 # Quick start
-This quick start allows you to collect data in the simulation and train and rollout the ACT.
+This quick start allows you to collect data in the MuJoCo simulation and train and rollout the ACT policy.
 
 ## Install
 Install RoboManipBaselines:
@@ -29,13 +29,8 @@ $ python bin/TeleopMujocoUR5eCable.py --world_idx_list 0 5
 Train the ACT by the following commands.
 ```console
 $ cd robo_manip_baselines/act
-$ ln -sf `realpath ../teleop/teleop_data/MujocoUR5eCable` data/teleop_data_sample
-$ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_ratio 0.8 --nproc `nproc` --skip 3
-$ python ./bin/train.py \
---dataset_dir ./data/learning_data_sample --ckpt_dir ./log/YEAR_DAY_TIME --task_name sim_ur5ecable \
---policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 \
---num_epochs 1000 --lr 1e-5 \
---seed 0
+$ python ../utils/make_dataset.py --in_dir ../teleop/teleop_data/MujocoUR5eCable --out_dir ./data/MujocoUR5eCable --train_ratio 0.8 --nproc `nproc` --skip 3
+$ python ./bin/train.py --dataset_dir ./data/MujocoUR5eCable --ckpt_dir ./log/MujocoUR5eCable
 ```
 Note that the following error will occur if the chunk_size is larger than the time series length of the training data.
 In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `train.py` to a small value.
@@ -49,5 +44,5 @@ Rollout the ACT in the simulation by the following commands.
 $ cd robo_manip_baselines/act
 $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_last.ckpt \
---chunk_size 100 --seed 42 --skip 3 --world_idx 0
+--skip 3 --world_idx 0
 ```

@@ -51,34 +51,30 @@ class TrainAct(object):
             default=["front"],
         )
         parser.add_argument(
-            "--batch_size", action="store", type=int, help="batch_size", required=True
+            "--batch_size", action="store", type=int, help="batch_size", default=8
         )
+        parser.add_argument("--seed", action="store", type=int, help="seed", default=0)
         parser.add_argument(
-            "--seed", action="store", type=int, help="seed", required=True
+            "--num_epochs", action="store", type=int, help="num_epochs", default=1000
         )
-        parser.add_argument(
-            "--num_epochs", action="store", type=int, help="num_epochs", required=True
-        )
-        parser.add_argument(
-            "--lr", action="store", type=float, help="lr", required=True
-        )
+        parser.add_argument("--lr", action="store", type=float, help="lr", default=1e-5)
 
         # for ACT
         parser.add_argument(
-            "--kl_weight", action="store", type=int, help="KL Weight", required=False
+            "--kl_weight", action="store", type=int, help="KL Weight", default=10
         )
         parser.add_argument(
-            "--chunk_size", action="store", type=int, help="chunk_size", required=False
+            "--chunk_size", action="store", type=int, help="chunk_size", default=100
         )
         parser.add_argument(
-            "--hidden_dim", action="store", type=int, help="hidden_dim", required=False
+            "--hidden_dim", action="store", type=int, help="hidden_dim", default=512
         )
         parser.add_argument(
             "--dim_feedforward",
             action="store",
             type=int,
             help="dim_feedforward",
-            required=False,
+            default=3200,
         )
 
         self.args = parser.parse_args()
