@@ -84,10 +84,15 @@ class DataKey(object):
 class DataManager(object):
     """Data manager."""
 
-    def __init__(self, env):
+    def __init__(self, env, demo_name=""):
         self.env = env
 
-        self.general_info = {"version": __version__}
+        self.general_info = {
+            "format": "RoboManipBaselines-TeleopData",
+            "env": self.env.spec.name,
+            "demo": demo_name,
+            "version": __version__,
+        }
 
         self.data_idx = 0
         self.world_idx = 0

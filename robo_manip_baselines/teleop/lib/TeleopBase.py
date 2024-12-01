@@ -58,7 +58,7 @@ class TeleopBase(metaclass=ABCMeta):
 
         # Setup data manager
         DataManagerClass = getattr(self, "DataManagerClass", DataManager)
-        self.data_manager = DataManagerClass(self.env)
+        self.data_manager = DataManagerClass(self.env, demo_name=self.demo_name)
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
 
