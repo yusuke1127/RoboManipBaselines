@@ -2,7 +2,7 @@
 This quick start allows you to collect data in the simulation and train and rollout the ACT.
 
 ## Install
-Install according to [here](../multimodal_robot_model/act/README.md#Install) by the following commands.
+Install according to [here](../robo_manip_baselines/act/README.md#Install) by the following commands.
 ```console
 # Clone this repository
 $ git clone git@github.com:isri-aist/RoboManipBaselines.git --recursive
@@ -27,9 +27,9 @@ In Ubuntu 20.04, install it from robotpkg apt repository; in Ubuntu 22.04, insta
 ## Data collection by teleoperation
 Operate the robot in the simulation and save the data by the following commands.
 In our experience, models can be trained stably with roughly 30 data sets.
-The teleoperation data is saved in the `multimodal_robot_model/teleop/teleop_data/MujocoUR5eCable` directory in npz format.
+The teleoperation data is saved in the `robo_manip_baselines/teleop/teleop_data/MujocoUR5eCable` directory in npz format.
 ```console
-$ cd multimodal_robot_model/teleop
+$ cd robo_manip_baselines/teleop
 $ # Connect a SpaceMouse 3D mouse to your PC
 $ python bin/TeleopMujocoUR5eCable.py --world_idx_list 0 5
 ```
@@ -37,7 +37,7 @@ $ python bin/TeleopMujocoUR5eCable.py --world_idx_list 0 5
 ## Model Training
 Train the ACT by the following commands.
 ```console
-$ cd multimodal_robot_model/act
+$ cd robo_manip_baselines/act
 $ ln -sf `realpath ../teleop/teleop_data/MujocoUR5eCable` data/teleop_data_sample
 $ python ../utils/make_dataset.py --in_dir ./data/teleop_data_sample --out_dir ./data/learning_data_sample --train_ratio 0.8 --nproc `nproc` --skip 3
 $ python ./bin/train.py \
@@ -55,7 +55,7 @@ RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at
 ## Policy rollout
 Rollout the ACT in the simulation by the following commands.
 ```console
-$ cd multimodal_robot_model/act
+$ cd robo_manip_baselines/act
 $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
 --ckpt_dir ./log/YEAR_DAY_TIME --ckpt_name policy_last.ckpt \
 --chunk_size 100 --seed 42 --skip 3 --world_idx 0

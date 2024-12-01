@@ -14,28 +14,28 @@ $ pip install -e .
 ```
 
 ## Models
-### [SARNN](./multimodal_robot_model/sarnn)
+### [SARNN](./robo_manip_baselines/sarnn)
 Spatial attention recurrent neural network
 
-### [ACT](./multimodal_robot_model/act)
+### [ACT](./robo_manip_baselines/act)
 Action Chunking with Transformers
 
-### [DiffusionPolicy](./multimodal_robot_model/diffusion_policy)
+### [DiffusionPolicy](./robo_manip_baselines/diffusion_policy)
 Diffusion Policy
 
-### [MT-ACT](./multimodal_robot_model/mt_act)
+### [MT-ACT](./robo_manip_baselines/mt_act)
 Multi-Task Action Chunking Transformer
 
 ## Data collection by teleoperation
-See [teleop](./multimodal_robot_model/teleop).
+See [teleop](./robo_manip_baselines/teleop).
 
 ## Environments for robot manipulation
 See [the environment catalog](doc/environment_catalog.md) for a full list of environments.
 
-See [envs](./multimodal_robot_model/envs) for installation procedures for each environment.
+See [envs](./robo_manip_baselines/envs) for installation procedures for each environment.
 
 ## Utilities
-See [utils](./multimodal_robot_model/utils).
+See [utils](./robo_manip_baselines/utils).
 
 ## License
 Files that originate from this repository are subject to the BSD 2-Clause License. If a file explicitly states a different license, or if there are different license files in a directory, those licenses will take precedence. For files in third-party directories, please follow the respective licenses.

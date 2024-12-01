@@ -4,7 +4,7 @@
 venv*
 .python-version*
 
-multimodal_robot_model.egg-info
+robo_manip_baselines.egg-info
 
 MUJOCO_LOG.TXT
 
