@@ -36,3 +36,6 @@ See [envs](./multimodal_robot_model/envs) for installation procedures for each e
 
 ## Utilities
 See [utils](./multimodal_robot_model/utils).
+
+## License
+Files that originate from this repository are subject to the BSD 2-Clause License. If a file explicitly states a different license, or if there are different license files in a directory, those licenses will take precedence. For files in third-party directories, please follow the respective licenses.
