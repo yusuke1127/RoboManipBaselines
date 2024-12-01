@@ -1,16 +1,7 @@
 # Diffusion Policy
 
 ## Install
-
-Install [r3m](https://github.com/facebookresearch/r3m) by the following commands.
-Install [diffusion policy](https://github.com/real-stanford/diffusion_policy) by the following commands.
-
-If you encounter the following error,
-```python
-pip._vendor.packaging.requirements.InvalidRequirement: Expected end or semicolon (after version specifier)
-    opencv-python>=3.
-```
-replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
+See [here](../../doc/install.md#Diffusion-policy) for installation.
 
 ## Dataset preparation
 

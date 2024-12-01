@@ -1,5 +1,8 @@
 # Action Chunking with Transformers (ACT)
 
+## Install
+See [here](../../doc/install.md#ACT) for installation.
+
 ## Dataset preparation
 
 Put your data collected under `data` directory. Here, we assume the name of your dataset directory as `teleop_data_sample`.

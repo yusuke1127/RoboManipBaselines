@@ -1,14 +1,7 @@
 # Spatial attention recurrent neural network (SARNN)
 
 ## Install
-
-Install [EIPL](https://github.com/ogata-lab/eipl) by the following commands.
-```console
-$ # Go to the top directory of this repository
-$ git submodule update --init --recursive
-```
-
-Install [RoboManipBaselines](https://github.com/isri-aist/RoboManipBaselines) according to [here](../../README.md#Install).
+See [here](../../doc/install.md#SARNN) for installation.
 
 ## Dataset preparation
 
