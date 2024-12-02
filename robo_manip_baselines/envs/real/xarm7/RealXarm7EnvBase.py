@@ -5,13 +5,11 @@ import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Box, Dict
 
-import rtde_control
-import rtde_receive
-from gello.robots.robotiq_gripper import RobotiqGripper
+from xarm.wrapper import XArmAPI
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
 
-class RealUR5eEnvBase(gym.Env):
+class RealXarm7EnvBase(gym.Env):
     metadata = {
         "render_modes": [],
     }
@@ -30,13 +28,14 @@ class RealUR5eEnvBase(gym.Env):
             self.dt *= kwargs["scale_dt"]
 
         self.action_space = Box(
-            low=np.array(
+            low=np.deg2rad(
                 [
                     -2 * np.pi,
+                    np.deg2rad(-118),
                     -2 * np.pi,
-                    -1 * np.pi,
+                    np.deg2rad(-11),
                     -2 * np.pi,
-                    -2 * np.pi,
+                    np.deg2rad(-97),
                     -2 * np.pi,
                     0.0,
                 ],
@@ -45,12 +44,13 @@ class RealUR5eEnvBase(gym.Env):
             high=np.array(
                 [
                     2 * np.pi,
+                    np.deg2rad(120),
                     2 * np.pi,
-                    1 * np.pi,
+                    np.deg2rad(225),
                     2 * np.pi,
+                    np.pi,
                     2 * np.pi,
-                    2 * np.pi,
-                    255.0,
+                    840.0,
                 ],
                 dtype=np.float32,
             ),
@@ -59,44 +59,44 @@ class RealUR5eEnvBase(gym.Env):
         self.observation_space = Dict(
             {
                 "joint_pos": Box(
-                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+                    low=-np.inf, high=np.inf, shape=(8,), dtype=np.float64
                 ),
                 "joint_vel": Box(
-                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
+                    low=-np.inf, high=np.inf, shape=(8,), dtype=np.float64
                 ),
                 "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
             }
         )
 
-        self.gripper_action_idx = 6
-        self.arm_action_idxes = slice(0, 6)
+        self.gripper_action_idx = 7
+        self.arm_action_idxes = slice(0, 7)
 
         # Setup robot
         self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
+            path.dirname(__file__), "../../assets/common/robots/xarm7/xarm7.urdf"
         )
         self.arm_root_pose = None
-        self.ik_eef_joint_id = 6
-        self.ik_arm_joint_ids = slice(0, 6)
+        self.ik_eef_joint_id = 7
+        self.ik_arm_joint_ids = slice(0, 7)
         self.init_qpos = init_qpos
-        self.qvel_limit = np.deg2rad(191)  # [rad/s]
+        self.qvel_limit = np.deg2rad(180)  # [rad/s]
 
-        # Connect to UR5e
-        print("[RealUR5eEnvBase] Start connecting the UR5e.")
+        # Connect to xArm7
+        print("[RealXarm7EnvBase] Start connecting the xArm7.")
         self.robot_ip = robot_ip
-        self.rtde_c = rtde_control.RTDEControlInterface(self.robot_ip)
-        self.rtde_r = rtde_receive.RTDEReceiveInterface(self.robot_ip)
-        self.rtde_c.endFreedriveMode()
-        self.arm_qpos_actual = np.array(self.rtde_r.getActualQ())
-        print("[RealUR5eEnvBase] Finish connecting the UR5e.")
-
-        # Connect to Robotiq gripper
-        print("[RealUR5eEnvBase] Start connecting the Robotiq gripper.")
-        self.gripper_port = 63352
-        self.gripper = RobotiqGripper()
-        self.gripper.connect(hostname=self.robot_ip, port=self.gripper_port)
-        self._gripper_activated = False
-        print("[RealUR5eEnvBase] Finish connecting the Robotiq gripper.")
+        self.xarm_api = XArmAPI(self.robot_ip)
+        self.xarm_api.connect()
+        self.xarm_api.motion_enable(enable=True)
+        self.xarm_api.set_mode(0)
+        self.xarm_api.set_state(0)
+        self.xarm_api.clean_gripper_error()
+        self.xarm_api.set_gripper_mode(0)
+        self.xarm_api.set_gripper_enable(True)
+        xarm_code, joint_states = self.xarm_api.get_joint_states(is_radian=True)
+        if xarm_code != 0:
+            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
+        self.arm_qpos_actual = joint_states[0]
+        print("[RealXarm7EnvBase] Finish connecting the xArm7.")
 
         # Connect to RealSense
         self.cameras = {}
@@ -133,15 +133,9 @@ class RealUR5eEnvBase(gym.Env):
 
         super().reset(seed=seed)
 
-        print("[RealUR5eEnvBase] Start moving the robot to the reset position.")
-        self._set_action(self.init_qpos, duration=None, qvel_limit_scale=0.3, wait=True)
-        print("[RealUR5eEnvBase] Finish moving the robot to the reset position.")
-
-        if not self._gripper_activated:
-            self._gripper_activated = True
-            print("[RealUR5eEnvBase] Start activating the Robotiq gripper.")
-            self.gripper.activate()
-            print("[RealUR5eEnvBase] Finish activating the Robotiq gripper.")
+        print("[RealXarm7EnvBase] Start moving the robot to the reset position.")
+        self._set_action(self.init_qpos, duration=None, qvel_limit_scale=0.1, wait=True)
+        print("[RealXarm7EnvBase] Finish moving the robot to the reset position.")
 
         observation = self._get_obs()
         info = self._get_info()
@@ -149,7 +143,7 @@ class RealUR5eEnvBase(gym.Env):
         return observation, info
 
     def step(self, action):
-        self._set_action(action, duration=self.dt, qvel_limit_scale=2.0, wait=True)
+        self._set_action(action, duration=self.dt, qvel_limit_scale=1.0, wait=True)
 
         observation = self._get_obs()
         reward = 0.0
@@ -163,7 +157,7 @@ class RealUR5eEnvBase(gym.Env):
         pass
 
     def _set_action(self, action, duration=None, qvel_limit_scale=0.5, wait=False):
-        start_time = time.time()
+        # start_time = time.time()
 
         # Overwrite duration or qpos for safety
         arm_qpos_command = action[self.arm_action_idxes]
@@ -184,45 +178,47 @@ class RealUR5eEnvBase(gym.Env):
                 scaled_qvel_limit * duration,
             )
             # if np.linalg.norm(arm_qpos_command_overwritten - arm_qpos_command) > 1e-10:
-            #     print("[RealUR5eEnvBase] Overwrite joint command for safety.")
+            #     print("[RealXarm7EnvBase] Overwrite joint command for safety.")
             arm_qpos_command = arm_qpos_command_overwritten
 
-        # Send command to UR5e
-        velocity = 0.5
-        acceleration = 0.5
-        lookahead_time = 0.2  # [s]
-        gain = 100
-        period = self.rtde_c.initPeriod()
-        self.rtde_c.servoJ(
-            arm_qpos_command, velocity, acceleration, duration, lookahead_time, gain
+        # Send command to xArm7
+        xarm_code = self.xarm_api.set_servo_angle(
+            angle=arm_qpos_command, speed=scaled_qvel_limit, is_radian=True, wait=False
         )
-        self.rtde_c.waitPeriod(period)
+        if xarm_code != 0:
+            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 
-        # Send command to Robotiq gripper
+        # Send command to xArm gripper
         gripper_pos = action[self.gripper_action_idx]
-        speed = 50
-        force = 10
-        self.gripper.move(int(gripper_pos), speed, force)
+        xarm_code = self.xarm_api.set_gripper_position(gripper_pos)
+        if xarm_code != 0:
+            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 
         # Wait
-        elapsed_duration = time.time() - start_time
-        if wait and elapsed_duration < duration:
-            time.sleep(duration - elapsed_duration)
+        # elapsed_duration = time.time() - start_time
+        # if wait and elapsed_duration < duration:
+        #     time.sleep(duration - elapsed_duration)
 
     def _get_obs(self):
-        # Get state from UR5e
-        arm_qpos = np.array(self.rtde_r.getActualQ())
-        arm_qvel = np.array(self.rtde_r.getActualQd())
+        # Get state from xArm7
+        xarm_code, joint_states = self.xarm_api.get_joint_states(is_radian=True)
+        if xarm_code != 0:
+            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
+        arm_qpos = joint_states[0]
+        arm_qvel = joint_states[1]
         self.arm_qpos_actual = arm_qpos.copy()
 
         # Get state from Robotiq gripper
-        gripper_pos = np.array([self.gripper.get_current_position()], dtype=np.float64)
+        xarm_code, gripper_pos = self.xarm_api.get_gripper_position()
+        if xarm_code != 0:
+            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
+        gripper_pos = np.array([gripper_pos], dtype=np.float64)
         gripper_vel = np.zeros(1)
 
         # Get wrench from force sensor
-        # Set zero because UR5e does not have a wrist force sensor
-        force = np.zeros(3)
-        torque = np.zeros(3)
+        wrench = np.array(self.xarm_api.get_ft_sensor_data()[1], dtype=np.float64)
+        force = wrench[0:3]
+        torque = wrench[3:6]
 
         return {
             "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
@@ -291,7 +287,7 @@ class RealUR5eEnvBase(gym.Env):
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[RealUR5eEnvBase] modify_world is not implemented.")
+        raise NotImplementedError("[RealXarm7EnvBase] modify_world is not implemented.")
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""

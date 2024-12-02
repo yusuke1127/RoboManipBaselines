@@ -81,6 +81,10 @@ real-ur5e = [
   "ur_rtde",
   "pyrealsense2",
 ]
+real-xarm7 = [
+  "xArm-Python-SDK",
+  "pyrealsense2",
+]
 
 [tool.setuptools.packages.find]
 include = ["robo_manip_baselines", "robo_manip_baselines.*"]

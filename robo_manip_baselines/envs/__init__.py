@@ -47,7 +47,14 @@ register(
 )
 
 # Real
+## UR5e
 register(
     id="robo_manip_baselines/RealUR5eDemoEnv-v0",
-    entry_point="robo_manip_baselines.envs.real:RealUR5eDemoEnv",
+    entry_point="robo_manip_baselines.envs.real.ur5e:RealUR5eDemoEnv",
+)
+
+## Xarm7
+register(
+    id="robo_manip_baselines/RealXarm7DemoEnv-v0",
+    entry_point="robo_manip_baselines.envs.real.xarm7:RealXarm7DemoEnv",
 )

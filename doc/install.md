@@ -91,7 +91,7 @@ Downgrade MuJoCo:
 $ pip install mujoco==2.3.7
 ```
 
-### [Real UR5e environments](../robo_manip_baselines/envs/real)
+### [Real UR5e environments](../robo_manip_baselines/envs/real/ur5e)
 Install dependent libraries including [gello_software](https://github.com/wuphilipp/gello_software):
 ```console
 # Go to the top directory of this repository
@@ -101,6 +101,16 @@ $ pip install -e .[real-ur5e]
 $ cd third_party/gello_software
 $ pip install -e .
 ```
-Since only interface classes accessing Robotiq gripper and RealSense camera are used from gello_software, errors in other parts can be ignored.
 
 See [here](./real_ur5e.md) for instructions on how to operate real robot.
+
+### [Real xArm7 environments](../robo_manip_baselines/envs/real/xarm7)
+Install dependent libraries including [gello_software](https://github.com/wuphilipp/gello_software):
+```console
+# Go to the top directory of this repository
+$ pip install -e .[real-xarm7]
+
+# Go to the top directory of this repository
+$ cd third_party/gello_software
+$ pip install -e .
+```
