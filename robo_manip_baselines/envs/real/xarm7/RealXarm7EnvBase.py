@@ -87,8 +87,10 @@ class RealXarm7EnvBase(gym.Env):
         self.xarm_api = XArmAPI(self.robot_ip)
         self.xarm_api.connect()
         self.xarm_api.motion_enable(enable=True)
-        self.xarm_api.set_mode(0)
+        self.xarm_api.clean_error()
+        self.xarm_api.set_mode(6)
         self.xarm_api.set_state(0)
+        self.xarm_api.set_collision_sensitivity(1)
         self.xarm_api.clean_gripper_error()
         self.xarm_api.set_gripper_mode(0)
         self.xarm_api.set_gripper_enable(True)
@@ -96,6 +98,7 @@ class RealXarm7EnvBase(gym.Env):
         if xarm_code != 0:
             raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
         self.arm_qpos_actual = joint_states[0]
+        time.sleep(0.2)
         print("[RealXarm7EnvBase] Finish connecting the xArm7.")
 
         # Connect to RealSense
@@ -143,7 +146,7 @@ class RealXarm7EnvBase(gym.Env):
         return observation, info
 
     def step(self, action):
-        self._set_action(action, duration=self.dt, qvel_limit_scale=1.0, wait=True)
+        self._set_action(action, duration=self.dt, qvel_limit_scale=2.0, wait=True)
 
         observation = self._get_obs()
         reward = 0.0
@@ -154,10 +157,10 @@ class RealXarm7EnvBase(gym.Env):
         return observation, reward, terminated, False, info
 
     def close(self):
-        pass
+        self.xarm_api.disconnect()
 
     def _set_action(self, action, duration=None, qvel_limit_scale=0.5, wait=False):
-        # start_time = time.time()
+        start_time = time.time()
 
         # Overwrite duration or qpos for safety
         arm_qpos_command = action[self.arm_action_idxes]
@@ -183,21 +186,25 @@ class RealXarm7EnvBase(gym.Env):
 
         # Send command to xArm7
         xarm_code = self.xarm_api.set_servo_angle(
-            angle=arm_qpos_command, speed=scaled_qvel_limit, is_radian=True, wait=False
+            angle=arm_qpos_command,
+            speed=scaled_qvel_limit,
+            mvtime=duration,
+            is_radian=True,
+            wait=False,
         )
         if xarm_code != 0:
             raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 
         # Send command to xArm gripper
         gripper_pos = action[self.gripper_action_idx]
-        xarm_code = self.xarm_api.set_gripper_position(gripper_pos)
+        xarm_code = self.xarm_api.set_gripper_position(gripper_pos, wait=False)
         if xarm_code != 0:
             raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 
         # Wait
-        # elapsed_duration = time.time() - start_time
-        # if wait and elapsed_duration < duration:
-        #     time.sleep(duration - elapsed_duration)
+        elapsed_duration = time.time() - start_time
+        if wait and elapsed_duration < duration:
+            time.sleep(duration - elapsed_duration)
 
     def _get_obs(self):
         # Get state from xArm7

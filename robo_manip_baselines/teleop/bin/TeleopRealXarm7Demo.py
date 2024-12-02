@@ -10,7 +10,7 @@ class TeleopRealXarm7Demo(TeleopBase):
         super().__init__()
 
         # Command configuration
-        self.gripper_scale = 50.0
+        self.gripper_scale = 10.0
 
     def setup_env(self):
         self.env = gym.make(
@@ -36,6 +36,6 @@ class TeleopRealXarm7Demo(TeleopBase):
 
 if __name__ == "__main__":
     robot_ip = "192.168.1.244"
-    camera_ids = {"front": None, "side": None, "hand": "332522077926"}
+    camera_ids = {"front": "314422070401", "side": None, "hand": "332522077926"}
     teleop = TeleopRealXarm7Demo(robot_ip, camera_ids)
     teleop.run()

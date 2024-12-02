@@ -14,7 +14,9 @@ class RealXarm7DemoEnv(RealXarm7EnvBase):
             self,
             robot_ip,
             camera_ids,
-            init_qpos=np.deg2rad([0.0, -30.0, 0.0, 45.0, 0.0, 75.0, 0.0, 800.0]),
+            init_qpos=np.concatenate(
+                [np.deg2rad([0.0, -30.0, 0.0, 45.0, 0.0, 75.0, 0.0]), np.array([800.0])]
+            ),
             **kwargs,
         )
 
