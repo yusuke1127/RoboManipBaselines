@@ -86,3 +86,4 @@ Various manipulation tasks with xArm7 in the real world
 ```console
 $ python bin/TeleopRealXarm7Demo.py
 ```
+https://github.com/user-attachments/assets/ab0c9830-5b33-48e8-9dac-272460a51a39
