@@ -242,7 +242,9 @@ class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
 
 
 @hydra.main(
-    version_base=None, config_path=str(pathlib.Path("..").joinpath("lib", "config"))
+    version_base=None,
+    config_path=str(pathlib.Path("..").joinpath("lib")),
+    config_name="RmbDiffusionPolicy.yaml",
 )
 def main(cfg: OmegaConf):
     # resolve immediately so all the ${now:} resolvers will use the same time.

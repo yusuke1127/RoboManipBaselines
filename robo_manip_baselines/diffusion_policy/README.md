@@ -20,7 +20,6 @@ https://stackoverflow.com/a/71457141
 Train a model:
 ```console
 $ python ./bin/TrainDiffusionPolicy.py \
---config-dir=./lib --config-name=RmbDiffusionPolicy.yaml \
 task.dataset.zarr_path=./data/<demo_name>.zarr task.name=<demo_name>
 ```
 To disable logging by WandB, add the option `--enable_wandb=False`.
