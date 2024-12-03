@@ -89,10 +89,11 @@ class DataManager(object):
 
         self.general_info = {
             "format": "RoboManipBaselines-TeleopData",
-            "env": self.env.spec.name,
             "demo": demo_name,
             "version": __version__,
         }
+        if self.env is not None:
+            self.general_info["env"] = self.env.spec.name
 
         self.data_idx = 0
         self.world_idx = 0
