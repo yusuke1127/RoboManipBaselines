@@ -181,12 +181,12 @@ class DataManager(object):
                 self.all_data_seq[key] = np.array(self.all_data_seq[key], dtype=object)
 
         os.makedirs(os.path.dirname(filename), exist_ok=True)
+        self.all_data_seq.update(self.general_info)
+        self.all_data_seq.update(self.world_info)
+        self.all_data_seq.update(self.camera_info)
         np.savez(
             filename,
             **self.all_data_seq,
-            **self.general_info,
-            **self.world_info,
-            **self.camera_info,
         )
         self.data_idx += 1
 
