@@ -42,3 +42,16 @@ $ python ./bin/rollout/RolloutDiffusionPolicyMujocoUR5eCable.py \
 --checkpoint ./log/<demo_name>/checkpoints/200.ckpt \
 --skip 3 --world_idx 0
 ```
+
+## Technical Details
+For more information on the technical details, please see the following paper:
+``bib
+@INPROCEEDINGS{DiffusionPolicy_RSS23,,
+  author = {Chi, Cheng and Feng, Siyuan and Du, Yilun and Xu, Zhenjia and Cousineau, Eric and Burchfiel, Benjamin and Song, Shuran},
+  title = {Diffusion Policy: Visuomotor Policy Learning via Action Diffusion},
+  booktitle = {Proceedings of Robotics: Science and Systems},
+  year = {2023},
+  month = {July},
+  doi = {10.15607/RSS.2023.XIX.026}
+}
+```

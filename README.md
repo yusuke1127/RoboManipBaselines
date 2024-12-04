@@ -44,7 +44,7 @@ Files that originate from this repository are subject to the BSD 2-Clause Licens
 ## Citation
 You can cite this work with:
 ```bib
-@software{RoboManipBaselines_2024,
+@software{RoboManipBaselines_GitHub2024,
 author = {Murooka, Masaki and Motoda, Tomohiro and Nakajo, Ryoichi},
 title = {{RoboManipBaselines}},
 url = {https://github.com/isri-aist/RoboManipBaselines},

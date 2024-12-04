@@ -38,3 +38,16 @@ $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
 --checkpoint ./log/<demo_name>>/policy_last.ckpt \
 --skip 3 --world_idx 0
 ```
+
+## Technical Details
+For more information on the technical details, please see the following paper:
+``bib
+@INPROCEEDINGS{ACT_RSS23,
+  author = {Tony Z. Zhao and Vikash Kumar and Sergey Levine and Chelsea Finn},
+  title = {Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},
+  booktitle = {Proceedings of Robotics: Science and Systems},
+  year = {2023},
+  month = {July},
+  doi = {10.15607/RSS.2023.XIX.016}
+}
+```

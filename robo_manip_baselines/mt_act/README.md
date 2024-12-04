@@ -138,3 +138,16 @@ Repeatedly run a trained policy in different environments in the simulator.
 ```console
 $ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt MujocoUR5eCable 3
 ```
+
+## Technical Details
+For more information on the technical details, please see the following paper:
+``bib
+@INPROCEEDINGS{MTACT_ICRA2024,
+  author = {Bharadhwaj, Homanga and Vakil, Jay and Sharma, Mohit and Gupta, Abhinav and Tulsiani, Shubham and Kumar, Vikash},
+  title = {RoboAgent: Generalization and Efficiency in Robot Manipulation via Semantic Augmentations and Action Chunking},
+  booktitle = {International Conference on Robotics and Automation},
+  year = {2024},
+  pages = {4788-4795},
+  doi = {10.1109/ICRA57147.2024.10611293}
+}
+```
