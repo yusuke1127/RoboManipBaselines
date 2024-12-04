@@ -1,20 +1,22 @@
 # Dataset list
 
 ## Demonstrations in MuJoCo environments
-| Task  | Link |
-| --- | --- |
-| [TeleopMujocoUR5eCable](./environment_catalog.md#MujocoUR5eCableEnv) | [Download (9GB)]() |
-| [TeleopMujocoUR5eRing](./environment_catalog.md#MujocoUR5eRingEnv) | [Download (8GB)](https://www.dropbox.com/scl/fi/cg3qd7k5scmpxnj0t4qa5/TeleopMujocoUR5eRing_Dataset30_20241031.zip?rlkey=jgbwglrqi7svvrggpawrazg5r&dl=1) |
-| [TeleopMujocoUR5eParticle](./environment_catalog.md#MujocoUR5eParticleEnv) | [Download (13GB)]() |
-| [TeleopMujocoUR5eCloth](./environment_catalog.md#MujocoUR5eClothEnv) | [Download (8GB)](https://www.dropbox.com/scl/fi/ums7qz2rom9focuf91j87/TeleopMujocoUR5eCloth_Dataset30_20241031.zip?rlkey=qq10s4y5gi8stbondnsoso31l&dl=1) |
+| Task | # Demonstration | Link |
+| --- | --- | --- |
+| [TeleopMujocoUR5eCable](./environment_catalog.md#MujocoUR5eCableEnv) | 30 | [Download (9GB)](RGB images are compressed in JPEG using cv2.imencode.) |
+| [TeleopMujocoUR5eRing](./environment_catalog.md#MujocoUR5eRingEnv) | 30 | [Download (8GB)](https://www.dropbox.com/scl/fi/cg3qd7k5scmpxnj0t4qa5/TeleopMujocoUR5eRing_Dataset30_20241031.zip?rlkey=jgbwglrqi7svvrggpawrazg5r&dl=1) |
+| [TeleopMujocoUR5eParticle](./environment_catalog.md#MujocoUR5eParticleEnv) | 30 | [Download (13GB)]() |
+| [TeleopMujocoUR5eCloth](./environment_catalog.md#MujocoUR5eClothEnv) | 30 | [Download (8GB)](https://www.dropbox.com/scl/fi/ums7qz2rom9focuf91j87/TeleopMujocoUR5eCloth_Dataset30_20241031.zip?rlkey=qq10s4y5gi8stbondnsoso31l&dl=1) |
 
 ## Demonstrations in real-world environments
 Coming soon.
 
 ## Dataset format
+Each demonstration data is saved as an npz file. The npz file contains the following entries.
+
 | Entry  | Description | Shape | Dtype |
 | --- | --- | --- | --- |
-| `time` | time | `(T,)` | `float64` |
+| `time` | Time | `(T,)` | `float64` |
 | `measured_joint_pos` | Measured joint position [rad] | `(T, JointDim)` | `float64` |
 | `command_joint_pos` | Command joint position [rad] | `(T, JointDim)` | `float64` |
 | `measured_joint_vel` | Measured joint velocity [rad/s] | `(T, JointDim)` | `float64` |
@@ -27,7 +29,7 @@ Coming soon.
 | `command_eef_vel` | Not set |  |  |
 | `measured_eef_wrench` | Measured force and torque of end-effector [N], [Nm] | `(T, WrenchDim)` | `float64` |
 | `command_eef_wrench` | Not set |  |  |
-| `<camera_name>_rgb_image` | RGB image | `(T,)` | `object` |
+| `<camera_name>_rgb_image` | RGB image (*1) | `(T,)` | `object` |
 | `<camera_name>_depth_image` | Depth image | `(T, Height, Width)` | `float32` |
 | `<camera_name>_depth_image_fovy` | Field of view of depth image height | `()` | `float64` |
 | `format` | Data format (fixed with `"RoboManipBaselines-TeleopData"`) | `()` | `str` |
@@ -35,4 +37,5 @@ Coming soon.
 | `demo` | Demonstration name | `()` | `str` |
 | `world_idx` | World index | `()` | `int64` |
 
-`T` is the length of the time sequence, `JointDim` is the number of joints, `PoseDim = 7` is pose (tx, ty, tz, qw, qx, qy, qz), `WrenchDim = 6` is wrench (fx, fy, fz, nx, ny, nz), respectively.
+- `T` is the length of the time sequence, `JointDim` is the number of joints, `PoseDim = 7` is pose (tx, ty, tz, qw, qx, qy, qz), `WrenchDim = 6` is wrench (fx, fy, fz, nx, ny, nz), respectively.
+- *1: RGB images are compressed in JPEG using `cv2.imencode`.
