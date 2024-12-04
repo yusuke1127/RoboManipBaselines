@@ -11,7 +11,7 @@ Software that integrates various imitation learning methods and benchmark task e
 ## Install
 See [the installation documentation](./doc/install.md).
 
-## Models
+## Policies
 ### [SARNN](./robo_manip_baselines/sarnn)
 Spatial attention recurrent neural network
 
@@ -24,7 +24,11 @@ Diffusion Policy
 ### [MT-ACT](./robo_manip_baselines/mt_act)
 Multi-Task Action Chunking Transformer
 
-## Data collection by teleoperation
+## Data
+### Publicly available datasets
+See [the dataset list](./doc/public_datasets.md).
+
+### Data collection by teleoperation
 See [teleop](./robo_manip_baselines/teleop).
 
 ## Environments for robot manipulation
