@@ -35,5 +35,8 @@ See [envs](./robo_manip_baselines/envs) for installation procedures for each env
 ## Utilities
 See [utils](./robo_manip_baselines/utils).
 
+## Contribute
+If you would like to contribute to this repository, please check out [the contribution guide](./CONTRIBUTING.md).
+
 ## License
 Files that originate from this repository are subject to the BSD 2-Clause License. If a file explicitly states a different license, or if there are different license files in a directory, those licenses will take precedence. For files in third-party directories, please follow the respective licenses.
