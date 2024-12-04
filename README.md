@@ -26,7 +26,7 @@ Multi-Task Action Chunking Transformer
 
 ## Data
 ### Publicly available datasets
-See [the dataset list](./doc/public_datasets.md).
+See [the dataset list](./doc/dataset_list.md).
 
 ### Data collection by teleoperation
 See [teleop](./robo_manip_baselines/teleop).
