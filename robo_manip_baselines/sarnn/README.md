@@ -49,7 +49,7 @@ The `--cropped_img_size` option must be the same as for dataset generation.
 
 ## Technical Details
 For more information on the technical details, please see the following paper:
-``bib
+```bib
 @INPROCEEDINGS{SARNN_ICRA2022,
   author = {Ichiwara, Hideyuki and Ito, Hiroshi and Yamamoto, Kenjiro and Mori, Hiroki and Ogata, Tetsuya},
   title = {Contact-Rich Manipulation of a Flexible Object based on Deep Predictive Learning using Vision and Tactility},

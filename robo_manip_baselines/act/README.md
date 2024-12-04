@@ -41,7 +41,7 @@ $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
 
 ## Technical Details
 For more information on the technical details, please see the following paper:
-``bib
+```bib
 @INPROCEEDINGS{ACT_RSS23,
   author = {Tony Z. Zhao and Vikash Kumar and Sergey Levine and Chelsea Finn},
   title = {Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware},

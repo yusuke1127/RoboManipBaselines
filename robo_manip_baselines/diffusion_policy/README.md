@@ -45,7 +45,7 @@ $ python ./bin/rollout/RolloutDiffusionPolicyMujocoUR5eCable.py \
 
 ## Technical Details
 For more information on the technical details, please see the following paper:
-``bib
+```bib
 @INPROCEEDINGS{DiffusionPolicy_RSS23,,
   author = {Chi, Cheng and Feng, Siyuan and Du, Yilun and Xu, Zhenjia and Cousineau, Eric and Burchfiel, Benjamin and Song, Shuran},
   title = {Diffusion Policy: Visuomotor Policy Learning via Action Diffusion},

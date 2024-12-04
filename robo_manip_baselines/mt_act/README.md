@@ -141,7 +141,7 @@ $ ./scripts/iterate_rollout.sh ./log/YEAR_DAY_TIME/ policy_last.ckpt MujocoUR5eC
 
 ## Technical Details
 For more information on the technical details, please see the following paper:
-``bib
+```bib
 @INPROCEEDINGS{MTACT_ICRA2024,
   author = {Bharadhwaj, Homanga and Vakil, Jay and Sharma, Mohit and Gupta, Abhinav and Tulsiani, Shubham and Kumar, Vikash},
   title = {RoboAgent: Generalization and Efficiency in Robot Manipulation via Semantic Augmentations and Action Chunking},
