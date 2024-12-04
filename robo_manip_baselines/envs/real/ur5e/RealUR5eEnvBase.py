@@ -1,20 +1,50 @@
 from os import path
 import time
 import numpy as np
-
-import gymnasium as gym
 from gymnasium.spaces import Box, Dict
+
+from ..RealEnvBase import RealEnvBase
 
 import rtde_control
 import rtde_receive
 from gello.robots.robotiq_gripper import RobotiqGripper
-from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
 
-class RealUR5eEnvBase(gym.Env):
-    metadata = {
-        "render_modes": [],
-    }
+class RealUR5eEnvBase(RealEnvBase):
+    action_space = Box(
+        low=np.array(
+            [
+                -2 * np.pi,
+                -2 * np.pi,
+                -1 * np.pi,
+                -2 * np.pi,
+                -2 * np.pi,
+                -2 * np.pi,
+                0.0,
+            ],
+            dtype=np.float32,
+        ),
+        high=np.array(
+            [
+                2 * np.pi,
+                2 * np.pi,
+                1 * np.pi,
+                2 * np.pi,
+                2 * np.pi,
+                2 * np.pi,
+                255.0,
+            ],
+            dtype=np.float32,
+        ),
+        dtype=np.float32,
+    )
+    observation_space = Dict(
+        {
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+        }
+    )
 
     def __init__(
         self,
@@ -23,55 +53,11 @@ class RealUR5eEnvBase(gym.Env):
         init_qpos,
         **kwargs,
     ):
-        # Setup environment parameters
-        self.init_time = time.time()
-        self.dt = 0.02  # [s]
-        if kwargs.get("scale_dt") is not None:
-            self.dt *= kwargs["scale_dt"]
-
-        self.action_space = Box(
-            low=np.array(
-                [
-                    -2 * np.pi,
-                    -2 * np.pi,
-                    -1 * np.pi,
-                    -2 * np.pi,
-                    -2 * np.pi,
-                    -2 * np.pi,
-                    0.0,
-                ],
-                dtype=np.float32,
-            ),
-            high=np.array(
-                [
-                    2 * np.pi,
-                    2 * np.pi,
-                    1 * np.pi,
-                    2 * np.pi,
-                    2 * np.pi,
-                    2 * np.pi,
-                    255.0,
-                ],
-                dtype=np.float32,
-            ),
-            dtype=np.float32,
-        )
-        self.observation_space = Dict(
-            {
-                "joint_pos": Box(
-                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-                ),
-                "joint_vel": Box(
-                    low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-                ),
-                "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
-            }
-        )
-
-        self.gripper_action_idx = 6
-        self.arm_action_idxes = slice(0, 6)
+        super().__init__(**kwargs)
 
         # Setup robot
+        self.gripper_action_idx = 6
+        self.arm_action_idxes = slice(0, 6)
         self.arm_urdf_path = path.join(
             path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
         )
@@ -99,40 +85,9 @@ class RealUR5eEnvBase(gym.Env):
         print("[RealUR5eEnvBase] Finish connecting the Robotiq gripper.")
 
         # Connect to RealSense
-        self.cameras = {}
-        detected_camera_ids = get_device_ids()
-        for camera_name, camera_id in camera_ids.items():
-            if camera_id is None:
-                self.cameras[camera_name] = None
-                continue
+        self.setup_realsense(camera_ids)
 
-            if camera_id not in detected_camera_ids:
-                raise ValueError(
-                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
-                )
-
-            camera = RealSenseCamera(device_id=camera_id, flip=False)
-            frames = camera._pipeline.wait_for_frames()
-            color_intrinsics = (
-                frames.get_color_frame().profile.as_video_stream_profile().intrinsics
-            )
-            camera.color_fovy = np.rad2deg(
-                2 * np.arctan(color_intrinsics.height / (2 * color_intrinsics.fy))
-            )
-            depth_intrinsics = (
-                frames.get_depth_frame().profile.as_video_stream_profile().intrinsics
-            )
-            camera.depth_fovy = np.rad2deg(
-                2 * np.arctan(depth_intrinsics.height / (2 * depth_intrinsics.fy))
-            )
-
-            self.cameras[camera_name] = camera
-
-    def reset(self, *, seed=None, options=None):
-        self.init_time = time.time()
-
-        super().reset(seed=seed)
-
+    def _reset_robot(self):
         print("[RealUR5eEnvBase] Start moving the robot to the reset position.")
         self._set_action(self.init_qpos, duration=None, qvel_limit_scale=0.3, wait=True)
         print("[RealUR5eEnvBase] Finish moving the robot to the reset position.")
@@ -142,25 +97,6 @@ class RealUR5eEnvBase(gym.Env):
             print("[RealUR5eEnvBase] Start activating the Robotiq gripper.")
             self.gripper.activate()
             print("[RealUR5eEnvBase] Finish activating the Robotiq gripper.")
-
-        observation = self._get_obs()
-        info = self._get_info()
-
-        return observation, info
-
-    def step(self, action):
-        self._set_action(action, duration=self.dt, qvel_limit_scale=2.0, wait=True)
-
-        observation = self._get_obs()
-        reward = 0.0
-        terminated = False
-        info = self._get_info()
-
-        # truncation=False as the time limit is handled by the `TimeLimit` wrapper added during `make`
-        return observation, reward, terminated, False, info
-
-    def close(self):
-        pass
 
     def _set_action(self, action, duration=None, qvel_limit_scale=0.5, wait=False):
         start_time = time.time()
@@ -229,71 +165,3 @@ class RealUR5eEnvBase(gym.Env):
             "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }
-
-    def _get_info(self):
-        info = {}
-
-        if len(self.camera_names) == 0:
-            return info
-
-        # Get camera images
-        info["rgb_images"] = {}
-        info["depth_images"] = {}
-        for camera_name, camera in self.cameras.items():
-            if camera is None:
-                info["rgb_images"][camera_name] = np.zeros(
-                    (480, 640, 3), dtype=np.uint8
-                )
-                info["depth_images"][camera_name] = np.zeros(
-                    (480, 640), dtype=np.float32
-                )
-                continue
-
-            rgb_image, depth_image = camera.read((640, 480))
-            info["rgb_images"][camera_name] = rgb_image
-            info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
-
-        return info
-
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
-        """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
-        else:
-            return obs["joint_pos"]
-
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
-        """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
-        else:
-            return obs["joint_vel"]
-
-    def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
-        return obs["wrench"]
-
-    def get_sim_time(self):
-        """Get simulation time. [s]"""
-        return time.time() - self.init_time
-
-    @property
-    def camera_names(self):
-        """Camera names being measured."""
-        return self.cameras.keys()
-
-    def get_camera_fovy(self, camera_name):
-        """Get vertical field-of-view of the camera."""
-        camera = self.cameras[camera_name]
-        if camera is None:
-            return 45.0  # dummy
-        return camera.depth_fovy
-
-    def modify_world(self, world_idx=None, cumulative_idx=None):
-        """Modify simulation world depending on world index."""
-        raise NotImplementedError("[RealUR5eEnvBase] modify_world is not implemented.")
-
-    def draw_box_marker(self, pos, mat, size, rgba):
-        """Draw box marker."""
-        # In a real-world environment, it is not possible to programmatically draw markers
-        pass
