@@ -2,7 +2,7 @@
 
 ## Demonstrations in MuJoCo environments
 | Task | Version | # Demonstration | Link |
-| --- | --- | --- |
+| --- | --- | --- | --- |
 | [TeleopMujocoUR5eCable_Dataset30](./environment_catalog.md#MujocoUR5eCableEnv) | 1.0.0 | 30 | [Download (9GB)](https://www.dropbox.com/scl/fi/2e2on6pl26x0m2l4c0qr6/TeleopMujocoUR5eCable_Dataset30_20241028.zip?rlkey=ua659cleqn2ncqd5ik9zri4h7&st=bbnduu2w&dl=1) |
 | [TeleopMujocoUR5eRing_Dataset30](./environment_catalog.md#MujocoUR5eRingEnv) | 1.0.0 | 30 | [Download (8GB)](https://www.dropbox.com/scl/fi/cg3qd7k5scmpxnj0t4qa5/TeleopMujocoUR5eRing_Dataset30_20241031.zip?rlkey=jgbwglrqi7svvrggpawrazg5r&dl=1) |
 | [TeleopMujocoUR5eParticle_Dataset30](./environment_catalog.md#MujocoUR5eParticleEnv) | 1.0.0 | 30 | [Download (13GB)]() |

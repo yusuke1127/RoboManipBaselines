@@ -16,7 +16,7 @@ $ pip install -e .
 ```
 
 ## Data collection by teleoperation
-**Note**: Instead of collecting data by teleoperation, you can download the available dataset `TeleopMujocoUR5eCable_Dataset30` from [here](./dataset_list.md#Demonstrations-in-MuJoCo-environments).
+**Note**: Instead of collecting data by teleoperation, you can download the public dataset `TeleopMujocoUR5eCable_Dataset30` from [here](./dataset_list.md#Demonstrations-in-MuJoCo-environments).
 
 Operate the robot in the simulation and save the data:
 ```console
