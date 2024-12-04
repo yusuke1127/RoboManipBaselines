@@ -40,3 +40,16 @@ If you would like to contribute to this repository, please check out [the contri
 
 ## License
 Files that originate from this repository are subject to the BSD 2-Clause License. If a file explicitly states a different license, or if there are different license files in a directory, those licenses will take precedence. For files in third-party directories, please follow the respective licenses.
+
+## Citation
+You can cite this work with:
+```bib
+@software{RoboManipBaselines_2024,
+author = {Murooka, Masaki and Motoda, Tomohiro and Nakajo, Ryoichi},
+title = {{RoboManipBaselines}},
+url = {https://github.com/isri-aist/RoboManipBaselines},
+version = {1.0.0},
+year = {2024}
+month = dec,
+}
+```
