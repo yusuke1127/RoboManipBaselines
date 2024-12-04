@@ -34,4 +34,5 @@ Coming soon.
 | `version` | Version of RoboManipBaselines | `()` | `str` |
 | `demo` | Demonstration name | `()` | `str` |
 | `world_idx` | World index | `()` | `int64` |
+
 `T` is the length of the time sequence, `JointDim` is the number of joints, `PoseDim = 7` is pose (tx, ty, tz, qw, qx, qy, qz), `WrenchDim = 6` is wrench (fx, fy, fz, nx, ny, nz), respectively.
