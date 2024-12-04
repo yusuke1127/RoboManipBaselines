@@ -1,5 +1,7 @@
 # Environment catalog
 
+All the following Python commands can be executed in the [teleop](../robo_manip_baselines/teleop/) directory.
+
 ## MuJoCo environments
 ### UR5e
 #### MujocoUR5eCableEnv
@@ -77,3 +79,11 @@ Various manipulation tasks with UR5e in the real world
 $ python bin/TeleopRealUR5eDemo.py
 ```
 https://github.com/user-attachments/assets/1b894ea0-6b5a-4bf8-abaa-8cd3ec2c4f85
+
+### xArm7
+#### RealXarm7DemoEnv
+Various manipulation tasks with xArm7 in the real world
+```console
+$ python bin/TeleopRealXarm7Demo.py
+```
+https://github.com/user-attachments/assets/ab0c9830-5b33-48e8-9dac-272460a51a39

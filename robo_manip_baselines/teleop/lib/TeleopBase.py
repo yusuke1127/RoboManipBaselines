@@ -79,6 +79,7 @@ class TeleopBase(metaclass=ABCMeta):
         self._spacemouse_connected = False
         self.command_pos_scale = 1e-2
         self.command_rpy_scale = 5e-3
+        self.gripper_scale = 5.0
 
     def run(self):
         self.reset_flag = True
@@ -237,17 +238,16 @@ class TeleopBase(metaclass=ABCMeta):
                 self.env.unwrapped.gripper_action_idx
             ]
         elif self.data_manager.status == MotionStatus.TELEOP:
-            gripper_scale = 5.0
             if (
                 self.spacemouse_state.buttons[0] > 0
                 and self.spacemouse_state.buttons[-1] <= 0
             ):
-                self.motion_manager.gripper_pos += gripper_scale
+                self.motion_manager.gripper_pos += self.gripper_scale
             elif (
                 self.spacemouse_state.buttons[-1] > 0
                 and self.spacemouse_state.buttons[0] <= 0
             ):
-                self.motion_manager.gripper_pos -= gripper_scale
+                self.motion_manager.gripper_pos -= self.gripper_scale
 
     def drawImage(self, info):
         status_image = self.data_manager.get_status_image()

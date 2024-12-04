@@ -36,7 +36,9 @@ class MotionManager(object):
         self.target_se3 = self._original_target_se3.copy()
 
         # Setup gripper
-        self._gripper_pos = 0.0
+        self._gripper_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.gripper_action_idx
+        ]
 
     def reset(self):
         """Reset states of arm and gripper."""
@@ -44,7 +46,9 @@ class MotionManager(object):
             self.env.unwrapped.ik_arm_joint_ids
         ].copy()
         self.target_se3 = self._original_target_se3.copy()
-        self.gripper_pos = 0.0
+        self.gripper_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.gripper_action_idx
+        ]
 
     def inverse_kinematics(self):
         """Solve inverse kinematics."""

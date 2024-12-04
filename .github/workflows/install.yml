@@ -25,6 +25,8 @@ jobs:
             optional-key: "[diffusion-policy]"
           - python-version: "3.10"
             optional-key: "[real-ur5e]"
+          - python-version: "3.10"
+            optional-key: "[real-xarm7]"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,6 +58,11 @@ jobs:
           pip install -e .
       - name: Install Real UR5e
         if: matrix.optional-key == '[real-ur5e]'
+        run: |
+          cd third_party/gello_software
+          pip install -e .
+      - name: Install Real xArm7
+        if: matrix.optional-key == '[real-xarm7]'
         run: |
           cd third_party/gello_software
           pip install -e .
