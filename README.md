@@ -5,6 +5,8 @@ Software that integrates various imitation learning methods and benchmark task e
 [![CI-pre-commit](https://github.com/isri-aist/RoboManipBaselines/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/isri-aist/RoboManipBaselines/actions/workflows/pre-commit.yml)
 [![LICENSE](https://img.shields.io/github/license/isri-aist/RoboManipBaselines)](https://github.com/isri-aist/RoboManipBaselines/blob/master/LICENSE)
 
+https://github.com/user-attachments/assets/ba4a772f-0de5-47da-a4ec-bdcbf13d7d58
+
 ## Quick start
 [This quick start](./doc/quick_start.md) allows you to collect data in the MuJoCo simulation and train and rollout the ACT policy.
 
