@@ -39,6 +39,9 @@ See [envs](./robo_manip_baselines/envs) for installation procedures for each env
 ## Utilities
 See [utils](./robo_manip_baselines/utils).
 
+## Evaluation results
+See [the evaluation results](doc/evaluation_results.md).
+
 ## Contribute
 If you would like to contribute to this repository, please check out [the contribution guide](./CONTRIBUTING.md).
 
