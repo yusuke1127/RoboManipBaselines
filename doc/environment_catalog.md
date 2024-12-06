@@ -9,28 +9,28 @@ Task to pass the cable between two poles.
 ```console
 $ python bin/TeleopMujocoUR5eCable.py
 ```
-https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
+https://github.com/user-attachments/assets/e01a411f-00eb-4579-b0e8-ab301f10e02b
 
 #### MujocoUR5eRingEnv
 Task to pick a ring and put it around the pole.
 ```console
 $ python bin/TeleopMujocoUR5eRing.py
 ```
-https://github.com/user-attachments/assets/0eb76bbc-6b9d-43f6-95b1-8600e12a47cf
+https://github.com/user-attachments/assets/fb922a0f-e292-493a-9856-e73bbc119fc8
 
 #### MujocoUR5eParticleEnv
 Task to scoop up particles.
 ```console
 $ python bin/TeleopMujocoUR5eParticle.py
 ```
-https://github.com/user-attachments/assets/305300bd-6685-46ab-9704-5a15d901ed7a
+https://github.com/user-attachments/assets/3dd17b4f-8781-4945-bf86-8c433c822b87
 
 #### MujocoUR5eClothEnv
 Task to roll up the cloth.
 ```console
 $ python bin/TeleopMujocoUR5eCloth.py
 ```
-https://github.com/user-attachments/assets/88bb9d84-7ca9-4d45-b457-cb9931cfb9a1
+https://github.com/user-attachments/assets/4c78f4ff-8b77-4f2d-be7b-755a09227f5f
 
 ### xArm7
 #### MujocoXarm7CableEnv
