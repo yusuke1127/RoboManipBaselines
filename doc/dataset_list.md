@@ -1,17 +1,17 @@
 # Dataset list
 
 ## Demonstrations in MuJoCo environments
-| Task | Date | # Demonstration | Link |
-| --- | --- | --- | --- |
-| [TeleopMujocoUR5eCable_Dataset30](./environment_catalog.md#MujocoUR5eCableEnv) | 10/31/2024 | 30 | [Download (9GB)](https://www.dropbox.com/scl/fi/2e2on6pl26x0m2l4c0qr6/TeleopMujocoUR5eCable_Dataset30_20241028.zip?rlkey=ua659cleqn2ncqd5ik9zri4h7&st=bbnduu2w&dl=1) |
-| [TeleopMujocoUR5eRing_Dataset30](./environment_catalog.md#MujocoUR5eRingEnv) | 10/31/2024 | 30 | [Download (8GB)](https://www.dropbox.com/scl/fi/cg3qd7k5scmpxnj0t4qa5/TeleopMujocoUR5eRing_Dataset30_20241031.zip?rlkey=jgbwglrqi7svvrggpawrazg5r&dl=1) |
-| [TeleopMujocoUR5eParticle_Dataset30](./environment_catalog.md#MujocoUR5eParticleEnv) | 10/31/2024 | 30 | [Download (13GB)](https://www.dropbox.com/scl/fi/y5aocgzpc85fx2tjtdcqs/TeleopMujocoUR5eParticle_Dataset30_20241031.zip?rlkey=3lwul2am7tlxjoayluf9j3yjy&dl=1) |
-| [TeleopMujocoUR5eCloth_Dataset30](./environment_catalog.md#MujocoUR5eClothEnv) | 10/31/2024 | 30 | [Download (8GB)](https://www.dropbox.com/scl/fi/ums7qz2rom9focuf91j87/TeleopMujocoUR5eCloth_Dataset30_20241031.zip?rlkey=qq10s4y5gi8stbondnsoso31l&dl=1) |
+| Dataset | Environment | Collection method | # Demonstration | Date | Link |
+| --- | --- | --- | --- | --- | --- |
+| **TeleopMujocoUR5eCable_Dataset30** | [MujocoUR5eCable](./environment_catalog.md#MujocoUR5eCableEnv) | 3D mouse | 30 | 10/31/2024 | [Download (9GB)](https://www.dropbox.com/scl/fi/2e2on6pl26x0m2l4c0qr6/TeleopMujocoUR5eCable_Dataset30_20241028.zip?rlkey=ua659cleqn2ncqd5ik9zri4h7&st=bbnduu2w&dl=1) |
+| **TeleopMujocoUR5eRing_Dataset30** | [MujocoUR5eRing](./environment_catalog.md#MujocoUR5eRingEnv) | 3D mouse | 30 | 10/31/2024 | [Download (8GB)](https://www.dropbox.com/scl/fi/cg3qd7k5scmpxnj0t4qa5/TeleopMujocoUR5eRing_Dataset30_20241031.zip?rlkey=jgbwglrqi7svvrggpawrazg5r&dl=1) |
+| **TeleopMujocoUR5eParticle_Dataset30** | [MujocoUR5eParticle](./environment_catalog.md#MujocoUR5eParticleEnv) | 3D mouse | 30 | 10/31/2024 | [Download (13GB)](https://www.dropbox.com/scl/fi/y5aocgzpc85fx2tjtdcqs/TeleopMujocoUR5eParticle_Dataset30_20241031.zip?rlkey=3lwul2am7tlxjoayluf9j3yjy&dl=1) |
+| **TeleopMujocoUR5eCloth_Dataset30** | [MujocoUR5eCloth](./environment_catalog.md#MujocoUR5eClothEnv) | 3D mouse | 30 | 10/31/2024 | [Download (8GB)](https://www.dropbox.com/scl/fi/ums7qz2rom9focuf91j87/TeleopMujocoUR5eCloth_Dataset30_20241031.zip?rlkey=qq10s4y5gi8stbondnsoso31l&dl=1) |
 
 ## Demonstrations in real-world environments
-| Task | Date | # Demonstration | Link |
-| --- | --- | --- | --- |
-| [RealUR5eFoldBlueHandkerchief_Dataset30](./environment_catalog.md#RealUR5eDemoEnv) | 11/15/2024 | 30 | [Download (3.1GB)](https://www.dropbox.com/scl/fi/878r1olspwtgclfyi3hwy/RealUR5eFoldBlueHandkerchief_20241115.zip?rlkey=rkv6iwv0t3xzqtn8ufkc0g4gk&dl=1) |
+| Dataset | Environment | Collection method | # Demonstration | Date | Link |
+| --- | --- | --- | --- | --- | --- |
+| **TeleopRealUR5eFoldBlueHandkerchief_Dataset30** | [RealUR5eDemo](./environment_catalog.md#RealUR5eDemoEnv) | 3D mouse | 30 | 11/15/2024 | [Download (3.1GB)](https://www.dropbox.com/scl/fi/878r1olspwtgclfyi3hwy/RealUR5eFoldBlueHandkerchief_20241115.zip?rlkey=rkv6iwv0t3xzqtn8ufkc0g4gk&dl=1) |
 
 ## Dataset format
 Each demonstration data is saved as an npz file. The npz file contains the following entries.
