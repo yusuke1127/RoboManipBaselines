@@ -209,7 +209,7 @@ class TeleopBaseVec(TeleopBase):
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:
             print(
-                "- Teleoperation succeeded: Save the {} data such as {}, etc.".format(
+                "[TeleopBaseVec] Teleoperation succeeded: Save the {} data such as {}, etc.".format(
                     sum(filename is not None for filename in filename_list),
                     next(
                         filename for filename in filename_list if filename is not None
@@ -218,5 +218,5 @@ class TeleopBaseVec(TeleopBase):
             )
         else:
             print(
-                "- Teleoperation succeeded: Save no data because there is no successful data."
+                "[TeleopBaseVec] Teleoperation succeeded: Save no data because there is no successful data."
             )

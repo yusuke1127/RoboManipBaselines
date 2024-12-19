@@ -356,7 +356,7 @@ class TeleopBase(metaclass=ABCMeta):
             reach_duration = 0.3  # [s]
             if self.data_manager.status_elapsed_duration > reach_duration:
                 print(
-                    "- Press the 'n' key to start teleoperation after the gripper is closed."
+                    "[TeleopBase] Press the 'n' key to start teleoperation after the gripper is closed."
                 )
                 self.data_manager.go_to_next_status()
         elif self.data_manager.status == MotionStatus.GRASP:
@@ -376,7 +376,7 @@ class TeleopBase(metaclass=ABCMeta):
             if self.args.replay_log is None:
                 if key == ord("n"):
                     print(
-                        "- Press the 's' key if the teleoperation succeeded,"
+                        "[TeleopBase] Press the 's' key if the teleoperation succeeded,"
                         " or the 'f' key if it failed. (duration: {:.1f} [s])".format(
                             self.data_manager.status_elapsed_duration
                         )
@@ -386,7 +386,7 @@ class TeleopBase(metaclass=ABCMeta):
                 if self.teleop_time_idx == len(self.data_manager.get_data("time")):
                     self.teleop_time_idx -= 1
                     print(
-                        "- The log motion has finished replaying. Press the 'n' key to exit."
+                        "[TeleopBase] The log motion has finished replaying. Press the 'n' key to exit."
                     )
                     self.data_manager.go_to_next_status()
         elif self.data_manager.status == MotionStatus.END:
