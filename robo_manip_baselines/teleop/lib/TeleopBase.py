@@ -121,7 +121,7 @@ class TeleopBase(metaclass=ABCMeta):
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
-        print("- Statistics on teleoperation")
+        print("[TeleopBase] Statistics on teleoperation")
         if len(iteration_duration_list) > 0:
             iteration_duration_list = np.array(iteration_duration_list)
             print(
@@ -187,7 +187,9 @@ class TeleopBase(metaclass=ABCMeta):
                 ]
         else:
             self.data_manager.load_data(self.args.replay_log)
-            print("- Load teleoperation data: {}".format(self.args.replay_log))
+            print(
+                "[TeleopBase] Load teleoperation data: {}".format(self.args.replay_log)
+            )
             world_idx = self.data_manager.get_data("world_idx").tolist()
         self.data_manager.setup_sim_world(world_idx)
         obs, info = self.env.reset()
@@ -198,7 +200,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.world_idx,
             )
         )
-        print("- Press the 'n' key to start automatic grasping.")
+        print("[TeleopBase] Press the 'n' key to start automatic grasping.")
 
     def set_arm_command(self):
         if self.data_manager.status == MotionStatus.TELEOP:
@@ -365,9 +367,9 @@ class TeleopBase(metaclass=ABCMeta):
                     pyspacemouse.open()
                 self.teleop_time_idx = 0
                 if self.args.replay_log is None:
-                    print("- Press the 'n' key to finish teleoperation.")
+                    print("[TeleopBase] Press the 'n' key to finish teleoperation.")
                 else:
-                    print("- Start to replay the log motion.")
+                    print("[TeleopBase] Start to replay the log motion.")
                 self.data_manager.go_to_next_status()
         elif self.data_manager.status == MotionStatus.TELEOP:
             self.teleop_time_idx += 1
@@ -394,7 +396,7 @@ class TeleopBase(metaclass=ABCMeta):
                     self.save_data()
                     self.reset_flag = True
                 elif key == ord("f"):
-                    print("- Teleoperation failed: Reset without saving")
+                    print("[TeleopBase] Teleoperation failed: Reset without saving")
                     self.reset_flag = True
             else:
                 if key == ord("n"):
@@ -414,16 +416,18 @@ class TeleopBase(metaclass=ABCMeta):
             )
         )
         if self.args.compress_rgb:
-            print("- Compress rgb images")
+            print("[TeleopBase] Compress rgb images")
             for camera_name in self.env.unwrapped.camera_names:
                 self.data_manager.compress_data(
                     DataKey.get_rgb_image_key(camera_name), "jpg"
                 )
         if self.args.compress_depth:
-            print("- Compress depth images")
+            print("[TeleopBase] Compress depth images")
             for camera_name in self.env.unwrapped.camera_names:
                 self.data_manager.compress_data(
                     DataKey.get_depth_image_key(camera_name), "exr"
                 )
         self.data_manager.save_data(filename)
-        print("- Teleoperation succeeded: Save the data as {}".format(filename))
+        print(
+            "[TeleopBase] Teleoperation succeeded: Save the data as {}".format(filename)
+        )

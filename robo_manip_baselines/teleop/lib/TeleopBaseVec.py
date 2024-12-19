@@ -35,7 +35,11 @@ class TeleopBaseVec(TeleopBase):
                         '[TeleopBaseVec] The "replay_log" option is not supported.'
                     )
                     self.data_manager.load_data(self.args.replay_log)
-                    print("- Load teleoperation data: {}".format(self.args.replay_log))
+                    print(
+                        "[TeleopBaseVec] Load teleoperation data: {}".format(
+                            self.args.replay_log
+                        )
+                    )
                     world_idx = self.data_manager.get_data("world_idx").tolist()
                 self.data_manager.setup_sim_world(world_idx)
                 self.env.reset()
@@ -48,7 +52,7 @@ class TeleopBaseVec(TeleopBase):
                         self.data_manager.world_idx,
                     )
                 )
-                print("- Press the 'n' key to start automatic grasping.")
+                print("[TeleopBaseVec] Press the 'n' key to start automatic grasping.")
                 self.reset_flag = False
 
             # Read spacemouse
@@ -149,7 +153,7 @@ class TeleopBaseVec(TeleopBase):
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
-        print("- Statistics on teleoperation")
+        print("[TeleopBaseVec] Statistics on teleoperation")
         if len(iteration_duration_list) > 0:
             iteration_duration_list = np.array(iteration_duration_list)
             print(
@@ -186,7 +190,7 @@ class TeleopBaseVec(TeleopBase):
             )
             filename_list.append(filename)
         if self.args.compress_rgb:
-            print("- Compress rgb images")
+            print("[TeleopBaseVec] Compress rgb images")
             for camera_name in self.env.unwrapped.camera_names:
                 self.data_manager.compress_data(
                     DataKey.get_rgb_image_key(camera_name),
@@ -194,7 +198,7 @@ class TeleopBaseVec(TeleopBase):
                     filter_list=list(map(bool, filename_list)),
                 )
         if self.args.compress_depth:
-            print("- Compress depth images")
+            print("[TeleopBaseVec] Compress depth images")
             for camera_name in self.env.unwrapped.camera_names:
                 self.data_manager.compress_data(
                     DataKey.get_depth_image_key(camera_name),
