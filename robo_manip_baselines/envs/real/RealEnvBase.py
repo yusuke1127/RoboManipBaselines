@@ -133,8 +133,8 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return obs["wrench"]
 
-    def get_sim_time(self):
-        """Get simulation time. [s]"""
+    def get_time(self):
+        """Get real-world time. [s]"""
         return time.time() - self.init_time
 
     @property

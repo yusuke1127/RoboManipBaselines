@@ -141,7 +141,7 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
         return obs["wrench"]
 
-    def get_sim_time(self):
+    def get_time(self):
         """Get simulation time. [s]"""
         return self.data.time
 
