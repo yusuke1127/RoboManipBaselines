@@ -1,15 +1,21 @@
-import argparse
-import cv2
 import math
-import numpy as np
 import os
+import tempfile
 from datetime import datetime, timedelta
 from enum import Enum, auto
+
+import argparse
+import cv2
+import ffmpeg
+import numpy as np
 from tqdm import tqdm
 
 GREEN = (0, 128, 0)
 RED = (0, 0, 255)
 WHITE = (255, 255, 255)
+
+RESIZE_VIDEO_LOGLEVEL_DEFAULT = "info"
+RESIZE_VIDEO_LOGLEVEL_QUIET = "warning"
 
 
 def parse_arg():
@@ -24,8 +30,24 @@ def parse_arg():
         default="./output_" + os.path.splitext(os.path.basename(__file__))[0] + ".mp4",
     )
     parser.add_argument("--column_num", "-n", type=int, default=3)
-    parser.add_argument("--codec", "-c", type=str, default="MP4V")
+    parser.add_argument(
+        "--codec",
+        "-c",
+        type=str,
+        default="mp4v",
+        # OpenCV: FFMPEG: tag 0x5634504d/'MP4V' is not supported with codec
+        # id 12 and format 'mp4 / MP4 (MPEG-4 Part 14)'
+    )
     parser.add_argument("--border_size", "-b", type=int, default=15)
+    parser.add_argument(
+        "--max_video_width",
+        "-w",
+        type=int,
+        default=640,
+        help=(
+            "maximum width to which the video will be scaled down if it is " "too large"
+        ),
+    )
     parser.add_argument(
         "--shift_seconds",
         "-t",
@@ -73,14 +95,39 @@ def parse_arg():
     return args
 
 
-def get_video_properties(input_file_name):
-    video = cv2.VideoCapture(input_file_name)
-    frame_rate = video.get(cv2.CAP_PROP_FPS)
-    frame_w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    video.release()
-    return frame_rate, frame_w, frame_h, frame_count
+def get_video_properties(input_file):
+    def get_props(video):
+        frame_rate = video.get(cv2.CAP_PROP_FPS)
+        frame_w = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_h = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+        return frame_rate, frame_w, frame_h, frame_count
+
+    if isinstance(input_file, cv2.VideoCapture):
+        return get_props(input_file)
+    if isinstance(input_file, str):
+        video = cv2.VideoCapture(input_file)
+        props = get_props(video)
+        video.release()
+        return props
+    raise TypeError(f"The type is unexpected: {type(input_file)}")
+
+
+def resize_video_ifneeded(input_file_name, max_video_width, quiet):
+    _, curr_video_width, _, _ = get_video_properties(input_file_name)
+    if curr_video_width <= max_video_width:
+        return input_file_name
+    resize_file_name = os.path.join(
+        tempfile.mkdtemp(), f"resized_width_{max_video_width}.mp4"
+    )
+    ffmpeg.input(input_file_name).output(
+        resize_file_name,
+        vf=f"scale={max_video_width}:-2",
+        loglevel=(
+            RESIZE_VIDEO_LOGLEVEL_QUIET if quiet else RESIZE_VIDEO_LOGLEVEL_DEFAULT
+        ),
+    ).run()
+    return resize_file_name
 
 
 def time_str_to_seconds(time_str):
@@ -107,7 +154,7 @@ class TaskEventHandler:
         STARTED = auto()
         STOPPED = auto()
 
-    PRINT_INTERVAL_VIDEO_SEC = 5
+    PRINT_INTERVAL_VIDEO_SEC = 15
 
     def __init__(
         self, task_period_list, frame_rate, shift_seconds, satur_thresh, quiet
@@ -196,7 +243,7 @@ class TaskEventHandler:
                     region_satur_mean,
                 )
         elif self.state == self.Stat.STOPPED:
-            if not not is_satur_screen:
+            if is_satur_screen:
                 self.start_env(
                     i_frame_curr + self.shift_seconds * self.frame_rate,
                     region_satur_mean,
@@ -219,8 +266,8 @@ def is_saturated(frame, satur_thresh, lefttop_x, lefttop_y, size_x, size_y):
     region_hsv = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
     region_satur = region_hsv[..., 1]
     region_satur_mean = region_satur.mean()
-    is_saturated = region_satur_mean >= satur_thresh
-    return is_saturated, region_satur_mean
+    is_satur_screen = region_satur_mean >= satur_thresh
+    return is_satur_screen, region_satur_mean
 
 
 def update_task_period_list_ifneeded(
@@ -234,8 +281,8 @@ def update_task_period_list_ifneeded(
     if len(task_period_list) >= 1:
         return task_period_list
 
-    frame_rate, frame_w, frame_h, frame_count = get_video_properties(input_file_name)
     video = cv2.VideoCapture(input_file_name)
+    frame_rate, _, _, frame_count = get_video_properties(video)
     task_event_handler = TaskEventHandler(
         task_period_list, frame_rate, shift_seconds, satur_thresh, quiet
     )
@@ -252,7 +299,9 @@ def update_task_period_list_ifneeded(
 
         task_event_handler.handle(is_satur_screen, i_frame_curr, region_satur_mean)
     task_event_handler.handle(
-        is_satur_screen=False, i_frame_curr=frame_count, region_satur_mean=-float("inf")
+        is_satur_screen=False,
+        i_frame_curr=frame_count,
+        region_satur_mean=-float("inf"),
     )
 
     video.release()
@@ -266,9 +315,11 @@ def parse_frame_periods(
     satur_thresh,
     satur_detection_region_ratio,
 ):
-    return_frame_periods = list()
+    return_frame_periods = []
 
-    frame_rate, _, _, _ = get_video_properties(input_file_name)
+    video = cv2.VideoCapture(input_file_name)
+
+    frame_rate, _, _, _ = get_video_properties(video)
     parsed_values = [
         [
             time_str_to_seconds(time_str) * frame_rate
@@ -277,13 +328,11 @@ def parse_frame_periods(
         for start_end_time_str in task_period_list
     ]
 
-    video = cv2.VideoCapture(input_file_name)
-
     for i_frame_start, i_frame_end in parsed_values:
         video.set(cv2.CAP_PROP_POS_FRAMES, i_frame_start)
         ret, frame_start = video.read()
         assert ret
-        is_satur_screen, region_satur_mean = is_saturated(
+        is_satur_screen, _ = is_saturated(
             frame_start, satur_thresh, *satur_detection_region_ratio
         )
         shift_frame = (shift_seconds * frame_rate) if not is_satur_screen else 0.0
@@ -293,7 +342,7 @@ def parse_frame_periods(
     return return_frame_periods
 
 
-def init_final_frames(
+def init_frames(
     max_trim_len,
     task_success_list,
     frame_h,
@@ -304,9 +353,9 @@ def init_final_frames(
     quiet,
 ):
     if not quiet:
-        print(f"{init_final_frames.__name__}, create new array ...")
+        print(f"{init_frames.__name__}, create new array ...")
     if len(task_success_list) == 0:
-        final_frames = np.full(
+        initial_frames = np.full(
             (
                 max_trim_len,  # frame
                 (frame_h + 2 * border_size) * row_num,  # height
@@ -316,50 +365,44 @@ def init_final_frames(
             WHITE,
             dtype=np.uint8,
         )
-        return final_frames
-    final_frames = np.empty(
+        return initial_frames
+    initial_frames = np.full(
         (
             max_trim_len,  # frame
             (frame_h + 2 * border_size) * row_num,  # height
             (frame_w + 2 * border_size) * column_num,  # width
             3,  # channel
         ),
+        GREEN,
         dtype=np.uint8,
     )
 
     if not quiet:
-        print(f"{init_final_frames.__name__}, set elements ...")
+        print(f"{init_frames.__name__}, set elements ...")
     for i_subvideo, is_task_successful in enumerate(
-        tqdm(list([int(x) for x in task_success_list]))
+        tqdm(list(int(x) for x in task_success_list))
     ):
         assert is_task_successful in (0, 1)
+
+        if is_task_successful:
+            continue
 
         # outside frame
         x_draw = (frame_w + 2 * border_size) * (i_subvideo % column_num)
         y_draw = (frame_h + 2 * border_size) * (i_subvideo // column_num)
-        final_frames[
+        initial_frames[
             :,  # frame
             y_draw : y_draw + (frame_h + 2 * border_size),  # height
             x_draw : x_draw + (frame_w + 2 * border_size),  # width
             :,  # channel
-        ] = GREEN if is_task_successful else RED
+        ] = RED
 
-        # inside
-        x_draw = border_size + (frame_w + 2 * border_size) * (i_subvideo % column_num)
-        y_draw = border_size + (frame_h + 2 * border_size) * (i_subvideo // column_num)
-        final_frames[
-            :,  # frame
-            y_draw : y_draw + frame_h,  # height
-            x_draw : x_draw + frame_w,  # width
-            :,  # channel
-        ] = WHITE
-
-    return final_frames
+    return initial_frames
 
 
 def read_video(input_file_name, final_frames, frame_periods, column_num, border_size):
-    _, frame_w, frame_h, frame_count = get_video_properties(input_file_name)
     video = cv2.VideoCapture(input_file_name)
+    _, frame_w, frame_h, frame_count = get_video_properties(video)
 
     for i_frame_curr in tqdm(range(frame_count), desc=read_video.__name__):
         ret, frame = video.read()
@@ -420,20 +463,26 @@ def write_video(final_frames, output_file_name, frame_rate, codec):
 def main():
     args = parse_arg()
 
+    if not args.quiet:
+        print(f"{resize_video_ifneeded.__name__} ...")
+    input_file_name = resize_video_ifneeded(
+        args.input_file_name, args.max_video_width, args.quiet
+    )
+
     task_period_list = args.task_period_list
     if len(task_period_list) == 0:
         if not args.quiet:
             print(f"{update_task_period_list_ifneeded.__name__} ...")
         task_period_list = update_task_period_list_ifneeded(
             task_period_list,
-            args.input_file_name,
+            input_file_name,
             args.shift_seconds,
             args.satur_thresh,
             args.satur_detection_region_ratio,
             args.quiet,
         )
         if not args.quiet:
-            print(f"{task_period_list=}")
+            print(f"task_period_list {' '.join(task_period_list)}")
     assert len(task_period_list) >= 1, f"{len(task_period_list)=}"
     if len(args.task_success_list) >= 1:
         if len(args.task_success_list) != len(task_period_list):
@@ -452,20 +501,20 @@ def main():
         print(f"{parse_frame_periods.__name__} ...")
     frame_periods = parse_frame_periods(
         task_period_list,
-        args.input_file_name,
+        input_file_name,
         args.shift_seconds,
         args.satur_thresh,
         args.satur_detection_region_ratio,
     )
-    max_trim_len = int(math.ceil(max([e - s for s, e in frame_periods])))
+    max_trim_len = int(math.ceil(max(e - s for s, e in frame_periods)))
 
     if not args.quiet:
         print(f"{get_video_properties.__name__} ...")
-    frame_rate, frame_w, frame_h, _ = get_video_properties(args.input_file_name)
+    frame_rate, frame_w, frame_h, _ = get_video_properties(input_file_name)
 
     if not args.quiet:
-        print(f"{init_final_frames.__name__} ...")
-    final_frames = init_final_frames(
+        print(f"{init_frames.__name__} ...")
+    initial_frames = init_frames(
         max_trim_len,
         args.task_success_list,
         frame_h,
@@ -479,8 +528,8 @@ def main():
     if not args.quiet:
         print(f"{read_video.__name__} ...")
     final_frames = read_video(
-        args.input_file_name,
-        final_frames,
+        input_file_name,
+        initial_frames,
         frame_periods,
         args.column_num,
         args.border_size,
