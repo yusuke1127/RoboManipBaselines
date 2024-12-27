@@ -85,6 +85,13 @@ real-xarm7 = [
   "xArm-Python-SDK",
   "pyrealsense2",
 ]
+benchmarks = [
+  "ruamel.yaml",
+  "python-pptx",
+  "imageio[ffmpeg]",
+  "imageio[pyav]",
+  "ffmpeg-python",
+]
 
 [tool.setuptools.packages.find]
 include = ["robo_manip_baselines", "robo_manip_baselines.*"]
