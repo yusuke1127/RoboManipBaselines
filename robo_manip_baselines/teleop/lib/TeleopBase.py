@@ -404,9 +404,9 @@ class TeleopBase(metaclass=ABCMeta):
         if key == 27:  # escape key
             self.quit_flag = True
 
-    def save_data(self):
-        filename = (
-            "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
+    def save_data(self, filename=None):
+        if filename is None:
+            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
                 self.demo_name,
                 self.datetime_now,
                 self.data_manager.world_idx,
@@ -414,7 +414,6 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.world_idx,
                 self.data_manager.data_idx,
             )
-        )
         if self.args.compress_rgb:
             print("[TeleopBase] Compress rgb images")
             for camera_name in self.env.unwrapped.camera_names:
