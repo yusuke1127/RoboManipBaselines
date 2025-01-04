@@ -35,7 +35,7 @@ RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at
 Run a trained policy:
 ```console
 $ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
---checkpoint ./log/<demo_name>>/policy_last.ckpt \
+--checkpoint ./log/<demo_name>/policy_last.ckpt \
 --skip 3 --world_idx 0
 ```
 
