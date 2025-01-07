@@ -25,7 +25,7 @@ dependencies = [
   "tqdm",
   "numba",
   "numpy",
-  "scipy",
+  "scipy>=1.7.0",
   "opencv-python",
   "pin",
   "pyspacemouse",
