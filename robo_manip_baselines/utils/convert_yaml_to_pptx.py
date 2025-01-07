@@ -41,10 +41,7 @@ def parse_args():
         "-w",
         type=int,
         default=1920,
-        help=(
-            "maximum width to which the video will be scaled down if it is "
-            "too large"
-        ),
+        help="maximum width to which the video will be scaled down if it is too large",
     )
     parser.add_argument("--max_agenda_lines", type=int, default=13)
     parser.add_argument("--common_title_font_size_pt", type=float, default=24)
@@ -198,12 +195,16 @@ class SummarySlideinfo(AbstractPlotSlideinfo):
     def generate_description(self):
         """description: robot, env, task, validation"""
         desc_texts = []
-        robot_in_env = " in ".join([
-            s for s in [
-                self.text_content_dict.get("robot", ""),
-                self.text_content_dict.get("env", ""),
-            ] if s
-        ])
+        robot_in_env = " in ".join(
+            [
+                s
+                for s in [
+                    self.text_content_dict.get("robot", ""),
+                    self.text_content_dict.get("env", ""),
+                ]
+                if s
+            ]
+        )
         if robot_in_env:
             desc_texts.append(f"環境：{robot_in_env}")
         if "task" in self.text_content_dict:
@@ -252,8 +253,7 @@ def adjust_size(
 
 def read_start_end_frame(video_path):
     cap = cv2.VideoCapture(video_path)
-    assert check_value(cap.isOpened()), \
-        f"Could not open video. [{video_path=}]"
+    assert check_value(cap.isOpened()), f"Could not open video. [{video_path=}]"
     ret, start_frame = cap.read()
     assert check_value(ret), "Could not read frame."
     cap.set(  # go to the end frame
@@ -311,9 +311,7 @@ class PresentationHandler:
         self.presentation = Presentation()
         self.slideinfo_list = []
 
-    def save_plotted_bar(
-        self, xlabels, policy_names, successes, out_fig_filename
-    ):
+    def save_plotted_bar(self, xlabels, policy_names, successes, out_fig_filename):
         w_bar = BAR_CHART_TOTAL_WIDTH / len(policy_names)
         x_pos = np.arange(len(xlabels))
 
@@ -329,10 +327,7 @@ class PresentationHandler:
         for i, policy_name in enumerate(policy_names):
             plt.bar(
                 x_pos + i * w_bar,
-                height=[
-                    np.mean(successes[xlabel][policy_name])
-                    for xlabel in xlabels
-                ],
+                height=[np.mean(successes[xlabel][policy_name]) for xlabel in xlabels],
                 width=w_bar,
                 yerr=[
                     np.std(np.mean(successes[xlabel][policy_name], axis=1))
@@ -369,16 +364,13 @@ class PresentationHandler:
                 for results in policy_val:
                     assert isinstance(results, dict), f"{type(results)=}"
                     for result_name, result_val in results.items():
-                        assert isinstance(result_name, str), \
-                            f"{type(result_name)=}"
+                        assert isinstance(result_name, str), f"{type(result_name)=}"
                         if result_name == "success":
-                            assert isinstance(result_val, list), \
-                                f"{type(result_val)=}"
+                            assert isinstance(result_val, list), f"{type(result_val)=}"
                             successes[xlabel][policy_name].append(result_val)
                         elif result_name == "video_url":
                             # internal only information
-                            assert isinstance(result_val, str), \
-                                f"{type(result_val)=}"
+                            assert isinstance(result_val, str), f"{type(result_val)=}"
                         else:
                             raise AssertionError(f"{result_name=}")
         return xlabels, policy_names, successes
@@ -414,9 +406,7 @@ class PresentationHandler:
         slide = self.presentation.slides[summary_id_num]
 
         # captured start end images
-        video_root, ind_row, ind_col, video_row_num = self.select_video_tile(
-            slideinfo
-        )
+        video_root, ind_row, ind_col, video_row_num = self.select_video_tile(slideinfo)
         if not video_root:
             return
         start_frame, end_frame = read_start_end_frame(
@@ -432,22 +422,17 @@ class PresentationHandler:
             ]
             for trim_color in [GREEN, RED, WHITE]:
                 dist_mask = np.where(
-                    np.mean(
-                        np.abs(tile_img - trim_color), axis=2
-                    ) > CAPTURE_TRIM_COLOR_THRESHOLD
+                    np.mean(np.abs(tile_img - trim_color), axis=2)
+                    > CAPTURE_TRIM_COLOR_THRESHOLD
                 )
-                inds = [
-                    func(dist_mask[ax]) for ax in [0, 1] for func in [min, max]
-                ]
+                inds = [func(dist_mask[ax]) for ax in [0, 1] for func in [min, max]]
                 tile_img = tile_img[inds[0] : inds[1], inds[2] : inds[3]]
             _, captu_img_path = tempfile.mkstemp(suffix=".png")
             cv2.imwrite(captu_img_path, tile_img)
-            with tempfile.NamedTemporaryFile(
-                suffix=".png", delete=False
-            ) as tmp_file:
-                Image.fromarray(
-                    imageio.get_reader(captu_img_path).get_data(0)
-                ).save(tmp_file.name)
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+                Image.fromarray(imageio.get_reader(captu_img_path).get_data(0)).save(
+                    tmp_file.name
+                )
                 slide.shapes.add_picture(
                     captu_img_path, ilef + (iwid * 1.2 * n), itop, iwid, ihei
                 )
@@ -472,9 +457,9 @@ class PresentationHandler:
         for xlabel in slideinfo.xlabels:
             for policy_name in slideinfo.policy_names:
                 ext2path = {
-                    ext: slideinfo.get_video_root(
-                        self.media_dir, xlabel, policy_name
-                    ) + f".{ext}" for ext in ["mp4", "wmv"]
+                    ext: slideinfo.get_video_root(self.media_dir, xlabel, policy_name)
+                    + f".{ext}"
+                    for ext in ["mp4", "wmv"]
                 }
                 if os.path.exists(ext2path["wmv"]):
                     continue
@@ -484,8 +469,7 @@ class PresentationHandler:
         if not ext2path_list:
             return
 
-        pbar = tqdm(ext2path_list,
-                    desc=self.convert_mp4_to_wmv.__name__, leave=False)
+        pbar = tqdm(ext2path_list, desc=self.convert_mp4_to_wmv.__name__, leave=False)
         for ext2path in pbar:
             wmv_dir = os.path.dirname(ext2path["wmv"])
             if not os.path.exists(wmv_dir):
@@ -523,8 +507,14 @@ class PresentationHandler:
         raise AssertionError()
 
     def add_video_to_slide(
-        self, video_count, video_root, xlabel, policy_name,
-        len_xlabels, len_policy_names, title_str
+        self,
+        video_count,
+        video_root,
+        xlabel,
+        policy_name,
+        len_xlabels,
+        len_policy_names,
+        title_str,
     ):
         # title
         video_path = os.path.join(self.media_dir, video_root) + ".wmv"
@@ -534,7 +524,9 @@ class PresentationHandler:
         new_video_slide.shapes.title.text = (
             title_str
             + "（"
-            + str(video_count) + "/" + str(len_xlabels * len_policy_names)
+            + str(video_count)
+            + "/"
+            + str(len_xlabels * len_policy_names)
             + "）"
         )
 
@@ -543,15 +535,12 @@ class PresentationHandler:
             *self.vcaption_pos_size.as_tuple()
         ).text_frame.paragraphs
         paragraphs[0].add_run().text = (
-            ": ".join([xlabel, policy_name])
-            if len_xlabels >= 2 else policy_name
+            ": ".join([xlabel, policy_name]) if len_xlabels >= 2 else policy_name
         )
         for paragraph in paragraphs:
             paragraph.alignment = PP_ALIGN.CENTER
 
-        with tempfile.NamedTemporaryFile(
-            suffix=".png", delete=False
-        ) as tmp_file:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
             # save temporary image file
             Image.fromarray(imageio.get_reader(video_path).get_data(0)).save(
                 tmp_file.name
@@ -578,18 +567,24 @@ class PresentationHandler:
     def add_videos_to_slide(self, slideinfo):
         video_id_num_list = []
         video_count = 0
-        for xlabel in tqdm(slideinfo.xlabels,
-                           leave=len(slideinfo.xlabels) > 5,
-                           desc=self.add_video_to_slide.__name__):
+        for xlabel in tqdm(
+            slideinfo.xlabels,
+            leave=len(slideinfo.xlabels) > 5,
+            desc=self.add_video_to_slide.__name__,
+        ):
             for policy_name in slideinfo.policy_names:
                 video_root = slideinfo.get_video_root(
                     self.media_dir, xlabel, policy_name
                 )
                 video_count += 1
                 self.add_video_to_slide(
-                    video_count, video_root, xlabel, policy_name,
-                    len(slideinfo.xlabels), len(slideinfo.policy_names),
-                    slideinfo.title_str
+                    video_count,
+                    video_root,
+                    xlabel,
+                    policy_name,
+                    len(slideinfo.xlabels),
+                    len(slideinfo.policy_names),
+                    slideinfo.title_str,
                 )
                 video_id_num_list.append(len(self.presentation.slides) - 1)
         return video_id_num_list
@@ -621,14 +616,11 @@ class PresentationHandler:
             run = shepe.text_frame.paragraphs[0].add_run()
             set_font(run.font)
             run.text = "△サマリースライドに戻る"
-            shepe.click_action.target_slide = self.presentation.slides[
-                summary_id_num
-            ]
+            shepe.click_action.target_slide = self.presentation.slides[summary_id_num]
 
     def follow_index_for_append(self, index, new_slideinfo):
         assert isinstance(index, dict), f"{type(index)=}"
-        assert all((k in ["label", "path"]) for k in index.keys()), \
-            f"{index.keys()=}"
+        assert all((k in ["label", "path"]) for k in index.keys()), f"{index.keys()=}"
         label = ""
         if "label" in index:
             label = index["label"]
@@ -639,14 +631,16 @@ class PresentationHandler:
             assert task_match, f"{index=}"
             label = task_match.group(1)[:16]
         with open(
-            os.path.join(
-                os.path.dirname(self.in_yaml_filename), index["path"]
-            ), "r", encoding="utf-8"
+            os.path.join(os.path.dirname(self.in_yaml_filename), index["path"]),
+            "r",
+            encoding="utf-8",
         ) as rfile:
             loaded_yaml = YAML().load(rfile)
             result_list = [
-                return_value for yaml_dict in loaded_yaml.values()
-                for key, return_value in yaml_dict.items() if key == "results"
+                return_value
+                for yaml_dict in loaded_yaml.values()
+                for key, return_value in yaml_dict.items()
+                if key == "results"
             ]
             assert len(result_list) == 1, f"{len(result_list)=}"
             _, new_pol_names, new_successes = self.view_result(result_list[0])
@@ -661,16 +655,14 @@ class PresentationHandler:
                 if new_pol_name not in new_slideinfo.successes[label]:
                     new_slideinfo.successes[label][new_pol_name] = []
                 for new_successes_value in new_successes.values():
-                    assert isinstance(new_successes_value, dict), \
-                        f"{type(new_successes_value)=}"
+                    assert isinstance(
+                        new_successes_value, dict
+                    ), f"{type(new_successes_value)=}"
                     result_vals = new_successes_value[new_pol_name]
-                    assert isinstance(result_vals, list), \
-                        f"{type(result_vals)=}"
+                    assert isinstance(result_vals, list), f"{type(result_vals)=}"
                     for result_val in result_vals:
-                        assert isinstance(result_val, list), \
-                            f"{type(result_val)=}"
-                        new_slideinfo.successes[label][new_pol_name].append(
-                            result_val)
+                        assert isinstance(result_val, list), f"{type(result_val)=}"
+                        new_slideinfo.successes[label][new_pol_name].append(result_val)
 
     def parse_yaml_recursively(self, rdata, yaml_idx):
         if list(rdata.keys())[0] == "Index":
@@ -679,9 +671,9 @@ class PresentationHandler:
                 for ym_idx in yaml_idxs:
                     assert isinstance(ym_idx, str), f"{type(ym_idx)=}"
                     with open(
-                        os.path.join(
-                            os.path.dirname(self.in_yaml_filename), ym_idx
-                        ), "r", encoding="utf-8",
+                        os.path.join(os.path.dirname(self.in_yaml_filename), ym_idx),
+                        "r",
+                        encoding="utf-8",
                     ) as rfile:
                         self.parse_yaml_recursively(YAML().load(rfile), ym_idx)
             return
@@ -708,9 +700,7 @@ class PresentationHandler:
                 if item_type == "index":
                     assert isinstance(item_val, list), f"{type(item_val)=}"
                     for index in item_val:
-                        self.follow_index_for_append(
-                            index, new_outline_slideinfo
-                        )
+                        self.follow_index_for_append(index, new_outline_slideinfo)
                     continue
                 raise AssertionError(f"{item_type=}")
             self.slideinfo_list.append(new_outline_slideinfo)
@@ -822,9 +812,7 @@ class PresentationHandler:
                         )
                         new_slide_entity.shapes.add_picture(
                             tfile.name,
-                            *new_slide_info.lookup(
-                                self.plot_pos_sizes
-                            ).as_tuple(),
+                            *new_slide_info.lookup(self.plot_pos_sizes).as_tuple(),
                         )
 
                 # description
@@ -837,9 +825,7 @@ class PresentationHandler:
 
         def create_video_slide():
             for summ_id, slideinfo in enumerate(
-                tqdm(
-                    self.slideinfo_list, desc=f"{create_video_slide.__name__}"
-                ),
+                tqdm(self.slideinfo_list, desc=f"{create_video_slide.__name__}"),
                 start=len(self.presentation.slides) - len(self.slideinfo_list),
             ):
                 if isinstance(slideinfo, OutlineSlideinfo):
@@ -907,36 +893,50 @@ if __name__ == "__main__":
                 args.max_agenda_lines,
                 args.common_title_font_size_pt,
                 args.description_font_size_pt,
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.plot_outline_position_and_size_in_inches
-                ]),
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.plot_summary_position_and_size_in_inches
-                ]),
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.captured_start_end_img_pos_and_size_in_inches
-                ]),
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.video_position_and_size_in_inches
-                ]),
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.video_caption_position_and_size_in_inches
-                ]),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.plot_outline_position_and_size_in_inches
+                    ]
+                ),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.plot_summary_position_and_size_in_inches
+                    ]
+                ),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.captured_start_end_img_pos_and_size_in_inches
+                    ]
+                ),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.video_position_and_size_in_inches
+                    ]
+                ),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.video_caption_position_and_size_in_inches
+                    ]
+                ),
                 args.video_column_num,
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.jump_position_and_size_in_inches
-                ]),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.jump_position_and_size_in_inches
+                    ]
+                ),
                 args.jump_font_size_pt,
-                PosSize(*[
-                    Inches(a) if a else a
-                    for a in args.pagenum_position_and_size_in_inches
-                ]),
+                PosSize(
+                    *[
+                        Inches(a) if a else a
+                        for a in args.pagenum_position_and_size_in_inches
+                    ]
+                ),
                 args.pagenum_font_size_pt,
                 args.xlabel_rotation,
             )
@@ -944,9 +944,7 @@ if __name__ == "__main__":
 
             tqdm.write(f"## {YAML.load.__name__}")
             with open(p.in_yaml_filename, "r", encoding="utf-8") as rtextio:
-                p.parse_yaml_recursively(
-                    YAML().load(rtextio), p.in_yaml_filename
-                )
+                p.parse_yaml_recursively(YAML().load(rtextio), p.in_yaml_filename)
             prog_bar.update(0.01)
 
             tqdm.write(f"## {Presentation.__module__}")
