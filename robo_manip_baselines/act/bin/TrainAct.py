@@ -156,9 +156,9 @@ class TrainAct(object):
                         min_val_loss,
                         deepcopy(self.policy.state_dict()),
                     )
-            summary_string = f"[TrainAct] val loss: {epoch_val_loss:.3f}"
+            summary_string = "[TrainAct][val]"
             for k, v in epoch_summary.items():
-                summary_string += f", {k}: {v.item():.3f}"
+                summary_string += f" {k}: {v.item():.3f}"
             print(summary_string)
 
             # training
@@ -175,10 +175,9 @@ class TrainAct(object):
             epoch_summary = compute_dict_mean(
                 train_history[(batch_idx + 1) * epoch : (batch_idx + 1) * (epoch + 1)]
             )
-            epoch_train_loss = epoch_summary["loss"]
-            summary_string = f"[TrainAct] train loss: {epoch_train_loss:.3f}"
+            summary_string = "[TrainAct][train]"
             for k, v in epoch_summary.items():
-                summary_string += f", {k}: {v.item():.3f}"
+                summary_string += f" {k}: {v.item():.3f}"
             print(summary_string)
 
             if epoch % 100 == 0:

@@ -6,6 +6,7 @@ from .RolloutMujocoUR5eCable import RolloutMujocoUR5eCable
 from .RolloutMujocoUR5eRing import RolloutMujocoUR5eRing
 from .RolloutMujocoUR5eParticle import RolloutMujocoUR5eParticle
 from .RolloutMujocoUR5eCloth import RolloutMujocoUR5eCloth
+from .RolloutMujocoUR5eInsert import RolloutMujocoUR5eInsert
 
 ## Xarm7
 from .RolloutMujocoXarm7Cable import RolloutMujocoXarm7Cable
