@@ -163,7 +163,7 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
         else:
             scatter_list[ax_idx - 1].remove()
         ax[ax_idx, 2].axis("off")
-        ax[ax_idx, 2].set_box_aspect(xyz_array.ptp(axis=0))
+        ax[ax_idx, 2].set_box_aspect(np.ptp(xyz_array, axis=0))
         scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
             xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
         )
