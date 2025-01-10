@@ -11,11 +11,6 @@ $ python ./visualize_data.py <npz_file>
 $ python renew_data.py <npz_file>
 ```
 
-### Trim npz file
-```console
-$ python ./trim_npz.py <npz_directory>
-```
-
 ### Tile teleoperation videos
 ```console
 $ python tile_teleop_videos.py <output_video_path> <npz_directory> --column_num 2 --envs env0 env1 env4 env5
