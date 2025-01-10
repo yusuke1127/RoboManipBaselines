@@ -146,15 +146,6 @@ class TeleopBase(metaclass=ABCMeta):
             "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
         )
         parser.add_argument(
-            "--compress_rgb", type=int, default=1, help="whether to compress rgb image"
-        )
-        parser.add_argument(
-            "--compress_depth",
-            type=int,
-            default=0,
-            help="whether to compress depth image (slow)",
-        )
-        parser.add_argument(
             "--world_idx_list",
             type=int,
             nargs="*",
@@ -406,7 +397,7 @@ class TeleopBase(metaclass=ABCMeta):
 
     def save_data(self, filename=None):
         if filename is None:
-            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.npz".format(
+            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.hdf5".format(
                 self.demo_name,
                 self.datetime_now,
                 self.data_manager.world_idx,
@@ -414,18 +405,6 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.world_idx,
                 self.data_manager.data_idx,
             )
-        if self.args.compress_rgb:
-            print("[TeleopBase] Compress rgb images")
-            for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compress_data(
-                    DataKey.get_rgb_image_key(camera_name), "jpg"
-                )
-        if self.args.compress_depth:
-            print("[TeleopBase] Compress depth images")
-            for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compress_data(
-                    DataKey.get_depth_image_key(camera_name), "exr"
-                )
         self.data_manager.save_data(filename)
         print(
             "[TeleopBase] Teleoperation succeeded: Save the data as {}".format(filename)

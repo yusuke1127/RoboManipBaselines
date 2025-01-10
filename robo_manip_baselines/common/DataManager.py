@@ -1,6 +1,7 @@
 import os
 import warnings
 import numpy as np
+import h5py
 import cv2
 from enum import Enum
 from robo_manip_baselines import __version__
@@ -88,7 +89,7 @@ class DataManager(object):
         self.env = env
 
         self.general_info = {
-            "format": "RoboManipBaselines-TeleopData",
+            "format": "RoboManipBaselines-TeleopData-HDF5",
             "demo": demo_name,
             "version": __version__,
         }
@@ -120,43 +121,13 @@ class DataManager(object):
         """Get a single data from the data sequence."""
         key = DataKey.replace_deprecated_key(key)  # For backward compatibility
         data = self.all_data_seq[key][time_idx]
-        if "rgb_image" in key:
-            if data.ndim == 1:
-                data = cv2.imdecode(data, flags=cv2.IMREAD_COLOR)
-        elif ("depth_image" in key) and ("fov" not in key):
-            if data.ndim == 1:
-                data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
         return data
 
     def get_data(self, key):
         """Get a data sequence."""
         key = DataKey.replace_deprecated_key(key)  # For backward compatibility
         data_seq = self.all_data_seq[key]
-        if "rgb_image" in key:
-            if data_seq[0].ndim == 1:
-                data_seq = np.array(
-                    [cv2.imdecode(data, flags=cv2.IMREAD_COLOR) for data in data_seq]
-                )
-        elif ("depth_image" in key) and ("fov" not in key):
-            if data_seq[0].ndim == 1:
-                data_seq = np.array(
-                    [
-                        cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
-                        for data in data_seq
-                    ]
-                )
         return data_seq
-
-    def compress_data(self, key, compress_flag):
-        """Compress data."""
-        key = DataKey.replace_deprecated_key(key)  # For backward compatibility
-        for time_idx, data in enumerate(self.all_data_seq[key]):
-            if compress_flag == "jpg":
-                self.all_data_seq[key][time_idx] = cv2.imencode(
-                    ".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95)
-                )[1]
-            elif compress_flag == "exr":
-                self.all_data_seq[key][time_idx] = cv2.imencode(".exr", data)[1]
 
     def save_data(self, filename):
         """Save data."""
@@ -166,39 +137,36 @@ class DataManager(object):
             if orig_key != new_key:
                 self.all_data_seq[new_key] = self.all_data_seq.pop(orig_key)
 
-        # If each element has a different shape, save it as an object array
-        for key in self.all_data_seq.keys():
-            if (
-                isinstance(self.all_data_seq[key], list)
-                and len(
-                    {
-                        data.shape if isinstance(data, np.ndarray) else None
-                        for data in self.all_data_seq[key]
-                    }
-                )
-                > 1
-            ):
-                self.all_data_seq[key] = np.array(self.all_data_seq[key], dtype=object)
-
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
         self.all_data_seq.update(self.general_info)
         self.all_data_seq.update(self.world_info)
         self.all_data_seq.update(self.camera_info)
-        np.savez(
-            filename,
-            **self.all_data_seq,
-        )
+
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with h5py.File(filename, mode="w") as f:
+            for key in self.all_data_seq.keys():
+                if isinstance(self.all_data_seq[key], list):
+                    f.create_dataset(key, data=np.array(self.all_data_seq[key]))
+                elif isinstance(self.all_data_seq[key], np.ndarray):
+                    f.create_dataset(key, data=self.all_data_seq[key])
+                else:
+                    f.attrs[key] = self.all_data_seq[key]
+
         self.data_idx += 1
 
     def load_data(self, filename):
         """Load data."""
         self.all_data_seq = {}
-        npz_data = np.load(filename, allow_pickle=True)
-        for orig_key in npz_data.keys():
-            new_key = DataKey.replace_deprecated_key(
-                orig_key
-            )  # For backward compatibility
-            self.all_data_seq[new_key] = np.copy(npz_data[orig_key])
+        with h5py.File(filename, mode="r") as f:
+            for orig_key in f.keys():
+                new_key = DataKey.replace_deprecated_key(
+                    orig_key
+                )  # For backward compatibility
+                self.all_data_seq[new_key] = f[orig_key][()]
+            for orig_key in f.attrs.keys():
+                new_key = DataKey.replace_deprecated_key(
+                    orig_key
+                )  # For backward compatibility
+                self.all_data_seq[new_key] = f.attrs[orig_key]
 
     def go_to_next_status(self):
         """Go to the next status."""
