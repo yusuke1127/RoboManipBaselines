@@ -25,6 +25,7 @@ dependencies = [
   "tqdm",
   "numba",
   "numpy",
+  "h5py",
   "scipy>=1.7.0",
   "opencv-python",
   "pin",
@@ -46,7 +47,6 @@ act = [
   "torchvision",
   "pyyaml",
   "packaging",
-  "h5py",
   "pyquaternion",
 ]
 diffusion-policy = [
@@ -55,7 +55,6 @@ diffusion-policy = [
   "cffi",
   "zarr>=2.12.0",
   "numcodecs",
-  "h5py",
   "hydra-core",
   "einops",
   "dill",
