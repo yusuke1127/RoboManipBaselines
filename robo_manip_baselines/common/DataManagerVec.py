@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import cv2
+import h5py
 from .DataManager import MotionStatus, DataKey, DataManager
 
 
@@ -27,12 +27,6 @@ class DataManagerVec(DataManager):
         data_list = []
         for all_data_seq in self.all_data_seq_list:
             data = all_data_seq[key][time_idx]
-            if "rgb_image" in key:
-                if data.ndim == 1:
-                    data = cv2.imdecode(data, flags=cv2.IMREAD_COLOR)
-            elif ("depth_image" in key) and ("fov" not in key):
-                if data.ndim == 1:
-                    data = cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
             data_list.append(data)
         return data_list
 
@@ -42,38 +36,8 @@ class DataManagerVec(DataManager):
         data_seq_list = []
         for all_data_seq in self.all_data_seq_list:
             data_seq = all_data_seq[key]
-            if "rgb_image" in key:
-                if data_seq[0].ndim == 1:
-                    data_seq = np.array(
-                        [
-                            cv2.imdecode(data, flags=cv2.IMREAD_COLOR)
-                            for data in data_seq
-                        ]
-                    )
-            elif ("depth_image" in key) and ("fov" not in key):
-                if data_seq[0].ndim == 1:
-                    data_seq = np.array(
-                        [
-                            cv2.imdecode(data, flags=cv2.IMREAD_UNCHANGED)
-                            for data in data_seq
-                        ]
-                    )
             data_seq_list.append(data_seq)
         return data_seq_list
-
-    def compress_data(self, key, compress_flag, filter_list=None):
-        """Compress data."""
-        key = DataKey.replace_deprecated_key(key)  # For backward compatibility
-        for data_idx, all_data_seq in enumerate(self.all_data_seq_list):
-            if (filter_list is not None) and (not filter_list[data_idx]):
-                continue
-            for time_idx, data in enumerate(all_data_seq[key]):
-                if compress_flag == "jpg":
-                    all_data_seq[key][time_idx] = cv2.imencode(
-                        ".jpg", data, (cv2.IMWRITE_JPEG_QUALITY, 95)
-                    )[1]
-                elif compress_flag == "exr":
-                    all_data_seq[key][time_idx] = cv2.imencode(".exr", data)[1]
 
     def save_data(self, filename_list):
         """Save data."""
@@ -84,32 +48,23 @@ class DataManagerVec(DataManager):
                 for all_data_seq in self.all_data_seq_list:
                     all_data_seq[new_key] = all_data_seq.pop(orig_key)
 
-        # If each element has a different shape, save it as an object array
-        for all_data_seq in self.all_data_seq_list:
-            for key in all_data_seq.keys():
-                if (
-                    isinstance(all_data_seq[key], list)
-                    and len(
-                        {
-                            data.shape if isinstance(data, np.ndarray) else None
-                            for data in all_data_seq[key]
-                        }
-                    )
-                    > 1
-                ):
-                    all_data_seq[key] = np.array(all_data_seq[key], dtype=object)
-
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
             if filename is None:
                 continue
+
+            all_data_seq.update(self.general_info)
+            all_data_seq.update(self.world_info)
+            all_data_seq.update(self.camera_info)
+
             os.makedirs(os.path.dirname(filename), exist_ok=True)
-            np.savez(
-                filename,
-                **all_data_seq,
-                **self.general_info,
-                **self.world_info,
-                **self.camera_info,
-            )
+            with h5py.File(filename, mode="w") as f:
+                for key in all_data_seq.keys():
+                    if isinstance(all_data_seq[key], list):
+                        f.create_dataset(key, data=np.array(all_data_seq[key]))
+                    elif isinstance(all_data_seq[key], np.ndarray):
+                        f.create_dataset(key, data=all_data_seq[key])
+                    else:
+                        f.attrs[key] = all_data_seq[key]
 
         self.data_idx += 1
 
@@ -117,9 +72,14 @@ class DataManagerVec(DataManager):
         """Load data."""
         self.all_data_seq_list = [{} for file_idx in range(len(filename_list))]
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
-            npz_data = np.load(filename, allow_pickle=True)
-            for orig_key in npz_data.keys():
-                new_key = DataKey.replace_deprecated_key(
-                    orig_key
-                )  # For backward compatibility
-                all_data_seq[new_key] = np.copy(npz_data[orig_key])
+            with h5py.File(filename, mode="r") as f:
+                for orig_key in f.keys():
+                    new_key = DataKey.replace_deprecated_key(
+                        orig_key
+                    )  # For backward compatibility
+                    all_data_seq[new_key] = f[orig_key][()]
+                for orig_key in f.attrs.keys():
+                    new_key = DataKey.replace_deprecated_key(
+                        orig_key
+                    )  # For backward compatibility
+                    all_data_seq[new_key] = f.attrs[orig_key]

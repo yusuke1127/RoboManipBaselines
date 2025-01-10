@@ -136,11 +136,11 @@ class TeleopBaseVec(TeleopBase):
             info_list = self.env.unwrapped.info_list
 
             # Draw images
-            self.drawImage(info_list[self.env.unwrapped.rep_env_idx])
+            self.draw_image(info_list[self.env.unwrapped.rep_env_idx])
 
             # Draw point clouds
             if self.args.enable_3d_plot:
-                self.drawPointCloud(info_list[[self.env.unwrapped.rep_env_idx]])
+                self.draw_point_cloud(info_list[[self.env.unwrapped.rep_env_idx]])
 
             # Manage status
             self.manage_status()
@@ -179,7 +179,7 @@ class TeleopBaseVec(TeleopBase):
             else:
                 extra_label = f"augmented{aug_idx:0>3}"
                 aug_idx += 1
-            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.npz".format(
+            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.hdf5".format(
                 self.demo_name,
                 self.datetime_now,
                 self.data_manager.world_idx,
@@ -189,22 +189,6 @@ class TeleopBaseVec(TeleopBase):
                 extra_label,
             )
             filename_list.append(filename)
-        if self.args.compress_rgb:
-            print("[TeleopBaseVec] Compress rgb images")
-            for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compress_data(
-                    DataKey.get_rgb_image_key(camera_name),
-                    "jpg",
-                    filter_list=list(map(bool, filename_list)),
-                )
-        if self.args.compress_depth:
-            print("[TeleopBaseVec] Compress depth images")
-            for camera_name in self.env.unwrapped.camera_names:
-                self.data_manager.compress_data(
-                    DataKey.get_depth_image_key(camera_name),
-                    "exr",
-                    filter_list=list(map(bool, filename_list)),
-                )
         self.data_manager.save_data(filename_list)
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:
