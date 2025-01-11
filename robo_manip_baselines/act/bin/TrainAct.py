@@ -33,10 +33,10 @@ class TrainAct(object):
             help="dataset_dir",
         )
         parser.add_argument(
-            "--log_dir",
-            default="./log/",
+            "--checkpoint_dir",
+            default="./checkpoint/",
             type=str,
-            help="log_dir",
+            help="checkpoint_dir",
         )
         parser.add_argument(
             "--camera_names",
@@ -116,9 +116,9 @@ class TrainAct(object):
 
     def run(self):
         # save dataset stats
-        if not os.path.isdir(self.args.log_dir):
-            os.makedirs(self.args.log_dir)
-        stats_path = os.path.join(self.args.log_dir, "dataset_stats.pkl")
+        if not os.path.isdir(self.args.checkpoint_dir):
+            os.makedirs(self.args.checkpoint_dir)
+        stats_path = os.path.join(self.args.checkpoint_dir, "dataset_stats.pkl")
         with open(stats_path, "wb") as f:
             pickle.dump(self.stats, f)
         print(f"[TrainAct] Save dataset stats: {stats_path}")
@@ -128,7 +128,7 @@ class TrainAct(object):
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
 
         # save best checkpoint
-        ckpt_path = os.path.join(self.args.log_dir, "policy_best.ckpt")
+        ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_best.ckpt")
         torch.save(best_state_dict, ckpt_path)
         print(f"[TrainAct] Best ckpt, val loss {min_val_loss:.3f} @ epoch{best_epoch}")
 
@@ -182,18 +182,19 @@ class TrainAct(object):
 
             if epoch % 100 == 0:
                 ckpt_path = os.path.join(
-                    self.args.log_dir,
+                    self.args.checkpoint_dir,
                     f"policy_epoch_{epoch}_seed_{self.args.seed}.ckpt",
                 )
                 torch.save(self.policy.state_dict(), ckpt_path)
                 self.plot_history(train_history, validation_history, epoch)
 
-        ckpt_path = os.path.join(self.args.log_dir, "policy_last.ckpt")
+        ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_last.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
 
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
         ckpt_path = os.path.join(
-            self.args.log_dir, f"policy_epoch_{best_epoch}_seed_{self.args.seed}.ckpt"
+            self.args.checkpoint_dir,
+            f"policy_epoch_{best_epoch}_seed_{self.args.seed}.ckpt",
         )
         torch.save(best_state_dict, ckpt_path)
         print(
@@ -221,7 +222,7 @@ class TrainAct(object):
         # save training curves
         for key in train_history[0]:
             plot_path = os.path.join(
-                self.args.log_dir, f"train_val_{key}_seed_{self.args.seed}.png"
+                self.args.checkpoint_dir, f"train_val_{key}_seed_{self.args.seed}.png"
             )
             plt.figure()
             train_values = [summary[key].item() for summary in train_history]
@@ -241,7 +242,7 @@ class TrainAct(object):
             plt.legend()
             plt.title(key)
             plt.savefig(plot_path)
-        print(f"[TrainAct] Saved plots to {self.args.log_dir}")
+        print(f"[TrainAct] Saved plots to {self.args.checkpoint_dir}")
 
 
 if __name__ == "__main__":
