@@ -116,8 +116,11 @@ class MotionManager(object):
         """Get end-effector wrench from observation."""
         return self.env.unwrapped.get_eef_wrench_from_obs(obs)
 
-    def get_measured_eef(self, obs):
-        """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation."""
+    def get_measured_eef_pose(self, obs):
+        """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation.
+
+        This is the end-effector pose corresponding to the measured joint position.
+        """
         measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(
             obs, exclude_gripper=True
         )
@@ -130,8 +133,11 @@ class MotionManager(object):
             ]
         )
 
-    def get_command_eef(self):
-        """Get command end-effector pose (tx, ty, tz, qw, qx, qy, qz)."""
+    def get_command_eef_pose(self):
+        """Get command end-effector pose (tx, ty, tz, qw, qx, qy, qz).
+
+        Note that this is the target end-effector pose for IK, not the end-effector pose corresponding to the command joint position.
+        """
         return np.concatenate(
             [
                 self.target_se3.translation,

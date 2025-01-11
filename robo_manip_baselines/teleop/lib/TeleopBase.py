@@ -240,10 +240,10 @@ class TeleopBase(metaclass=ABCMeta):
             DataKey.MEASURED_JOINT_VEL, self.motion_manager.get_joint_vel(obs)
         )
         self.data_manager.append_single_data(
-            DataKey.MEASURED_EEF_POSE, self.motion_manager.get_measured_eef(obs)
+            DataKey.MEASURED_EEF_POSE, self.motion_manager.get_measured_eef_pose(obs)
         )
         self.data_manager.append_single_data(
-            DataKey.COMMAND_EEF_POSE, self.motion_manager.get_command_eef()
+            DataKey.COMMAND_EEF_POSE, self.motion_manager.get_command_eef_pose()
         )
         self.data_manager.append_single_data(
             DataKey.MEASURED_EEF_WRENCH, self.motion_manager.get_eef_wrench(obs)
