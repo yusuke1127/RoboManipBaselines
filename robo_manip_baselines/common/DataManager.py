@@ -96,7 +96,7 @@ class DataManager(object):
         if self.env is not None:
             self.general_info["env"] = self.env.spec.name
 
-        self.data_idx = 0
+        self.episode_idx = 0
         self.world_idx = 0
         self.world_info = {}
 
@@ -151,7 +151,7 @@ class DataManager(object):
                 else:
                     f.attrs[key] = self.all_data_seq[key]
 
-        self.data_idx += 1
+        self.episode_idx += 1
 
     def load_data(self, filename):
         """Load data."""
@@ -205,7 +205,7 @@ class DataManager(object):
     def setup_sim_world(self, world_idx=None):
         """Setup the simulation world."""
         if world_idx is None:
-            kwargs = {"cumulative_idx": self.data_idx}
+            kwargs = {"cumulative_idx": self.episode_idx}
         else:
             kwargs = {"world_idx": world_idx}
         self.world_idx = self.env.unwrapped.modify_world(**kwargs)

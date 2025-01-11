@@ -28,7 +28,8 @@ class TeleopBaseVec(TeleopBase):
                         world_idx = None
                     else:
                         world_idx = self.args.world_idx_list[
-                            self.data_manager.data_idx % len(self.args.world_idx_list)
+                            self.data_manager.episode_idx
+                            % len(self.args.world_idx_list)
                         ]
                 else:
                     raise NotImplementedError(
@@ -46,9 +47,9 @@ class TeleopBaseVec(TeleopBase):
                 obs_list = self.env.unwrapped.obs_list
                 info_list = self.env.unwrapped.info_list
                 print(
-                    "[{}] data_idx: {}, world_idx: {}".format(
+                    "[{}] episode_idx: {}, world_idx: {}".format(
                         self.demo_name,
-                        self.data_manager.data_idx,
+                        self.data_manager.episode_idx,
                         self.data_manager.world_idx,
                     )
                 )
@@ -188,7 +189,7 @@ class TeleopBaseVec(TeleopBase):
                 self.data_manager.world_idx,
                 self.demo_name,
                 self.data_manager.world_idx,
-                self.data_manager.data_idx,
+                self.data_manager.episode_idx,
                 extra_label,
             )
             filename_list.append(filename)

@@ -174,7 +174,7 @@ class TeleopBase(metaclass=ABCMeta):
                 world_idx = None
             else:
                 world_idx = self.args.world_idx_list[
-                    self.data_manager.data_idx % len(self.args.world_idx_list)
+                    self.data_manager.episode_idx % len(self.args.world_idx_list)
                 ]
         else:
             self.data_manager.load_data(self.args.replay_log)
@@ -185,9 +185,9 @@ class TeleopBase(metaclass=ABCMeta):
         self.data_manager.setup_sim_world(world_idx)
         obs, info = self.env.reset()
         print(
-            "[{}] data_idx: {}, world_idx: {}".format(
+            "[{}] episode_idx: {}, world_idx: {}".format(
                 self.demo_name,
-                self.data_manager.data_idx,
+                self.data_manager.episode_idx,
                 self.data_manager.world_idx,
             )
         )
@@ -403,7 +403,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.world_idx,
                 self.demo_name,
                 self.data_manager.world_idx,
-                self.data_manager.data_idx,
+                self.data_manager.episode_idx,
             )
         self.data_manager.save_data(filename)
         print(
