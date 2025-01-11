@@ -141,6 +141,11 @@ class DataManager(object):
         if all_data_seq is None:
             all_data_seq = self.all_data_seq
 
+        # Convert list data to numpy array
+        for key in all_data_seq.keys():
+            if isinstance(all_data_seq[key], list):
+                all_data_seq[key] = np.array(all_data_seq[key])
+
         # Set relative joint position
         for joint_pos_key, joint_pos_rel_key in [
             (DataKey.MEASURED_JOINT_POS, DataKey.MEASURED_JOINT_POS_REL),
@@ -165,21 +170,15 @@ class DataManager(object):
                 else:
                     current_pose = all_data_seq[eef_pose_key][time_idx]
                     prev_pose = all_data_seq[eef_pose_key][time_idx - 1]
+                    rel_aa = pin.AngleAxis(
+                        pin.Quaternion(*prev_pose[3:7]).inverse()
+                        * pin.Quaternion(*current_pose[3:7])
+                    )
                     rel_pose = np.concatenate(
-                        [
-                            current_pose[0:3] - prev_pose[0:3],
-                            (
-                                pin.Quaternion(*prev_pose[3:7]).inverse()
-                                * pin.Quaternion(*current_pose[3:7])
-                            ).coeffs()[[3, 0, 1, 2]],
-                        ]
+                        [current_pose[0:3] - prev_pose[0:3], rel_aa.angle * rel_aa.axis]
                     )
                 all_data_seq[eef_pose_rel_key].append(rel_pose)
-
-        # Convert list data to numpy array
-        for key in all_data_seq.keys():
-            if isinstance(all_data_seq[key], list):
-                all_data_seq[key] = np.array(all_data_seq[key])
+            all_data_seq[eef_pose_rel_key] = np.array(all_data_seq[eef_pose_rel_key])
 
     def save_data(self, filename, all_data_seq=None):
         """Save data."""
