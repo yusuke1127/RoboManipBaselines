@@ -107,12 +107,15 @@ class TeleopBaseVec(TeleopBase):
                 )
                 self.data_manager.append_single_data(
                     DataKey.MEASURED_EEF_POSE,
-                    [self.motion_manager.get_measured_eef(obs) for obs in obs_list],
+                    [
+                        self.motion_manager.get_measured_eef_pose(obs)
+                        for obs in obs_list
+                    ],
                 )
                 # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
                 self.data_manager.append_single_data(
                     DataKey.COMMAND_EEF_POSE,
-                    [self.motion_manager.get_command_eef()]
+                    [self.motion_manager.get_command_eef_pose()]
                     * self.env.unwrapped.num_envs,
                 )
                 self.data_manager.append_single_data(
