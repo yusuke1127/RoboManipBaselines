@@ -139,7 +139,7 @@ def get_norm_stats(train_dataset_dir, val_dataset_dir):
 
 
 def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val):
-    print(f"\nData from: {dataset_dir}\n")
+    print(f"[RmbActDataset] Load dataset from {dataset_dir}")
     dataset_dir = Path(dataset_dir)
     # obtain train test dataset dir
     train_dataset_dir = dataset_dir / "train"

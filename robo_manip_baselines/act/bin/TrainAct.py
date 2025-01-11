@@ -28,7 +28,7 @@ class TrainAct(object):
 
         parser.add_argument(
             "--dataset_dir",
-            default="./data/",
+            default="./dataset/",
             type=str,
             help="dataset_dir",
         )
