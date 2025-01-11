@@ -3,6 +3,7 @@ import warnings
 import numpy as np
 import h5py
 import cv2
+import pinocchio as pin
 from enum import Enum
 from robo_manip_baselines import __version__
 
@@ -29,6 +30,9 @@ class DataKey(object):
     MEASURED_JOINT_POS = "measured_joint_pos"
     COMMAND_JOINT_POS = "command_joint_pos"
 
+    MEASURED_JOINT_POS_REL = "measured_joint_pos_rel"
+    COMMAND_JOINT_POS_REL = "command_joint_pos_rel"
+
     MEASURED_JOINT_VEL = "measured_joint_vel"
     COMMAND_JOINT_VEL = "command_joint_vel"
 
@@ -37,6 +41,9 @@ class DataKey(object):
 
     MEASURED_EEF_POSE = "measured_eef_pose"
     COMMAND_EEF_POSE = "command_eef_pose"
+
+    MEASURED_EEF_POSE_REL = "measured_eef_pose_rel"
+    COMMAND_EEF_POSE_REL = "command_eef_pose_rel"
 
     MEASURED_EEF_VEL = "measured_eef_vel"
     COMMAND_EEF_VEL = "command_eef_vel"
@@ -129,6 +136,48 @@ class DataManager(object):
         data_seq = self.all_data_seq[key]
         return data_seq
 
+    def finalize_data(self):
+        # Set relative joint position
+        for joint_pos_key, joint_pos_rel_key in [
+            (DataKey.MEASURED_JOINT_POS, DataKey.MEASURED_JOINT_POS_REL),
+            (DataKey.COMMAND_JOINT_POS, DataKey.COMMAND_JOINT_POS_REL),
+        ]:
+            self.all_data_seq[joint_pos_rel_key] = np.concatenate(
+                [
+                    np.zeros((1, len(self.all_data_seq[joint_pos_key][0]))),
+                    self.all_data_seq[joint_pos_key][1:]
+                    - self.all_data_seq[joint_pos_key][:-1],
+                ]
+            )
+
+        # Set relative end-effector pose
+        for eef_pose_key, eef_pose_rel_key in [
+            (DataKey.MEASURED_EEF_POSE, DataKey.MEASURED_EEF_POSE_REL),
+            (DataKey.COMMAND_EEF_POSE, DataKey.COMMAND_EEF_POSE_REL),
+        ]:
+            self.all_data_seq[eef_pose_rel_key] = []
+            for time_idx in range(len(self.all_data_seq[DataKey.TIME])):
+                if time_idx == 0:
+                    rel_pose = np.zeros(6)
+                else:
+                    current_pose = self.all_data_seq[eef_pose_key][time_idx]
+                    prev_pose = self.all_data_seq[eef_pose_key][time_idx - 1]
+                    rel_pose = np.concatenate(
+                        [
+                            current_pose[0:3] - prev_pose[0:3],
+                            (
+                                pin.Quaternion(*prev_pose[3:7]).inverse()
+                                * pin.Quaternion(*current_pose[3:7])
+                            ).coeffs()[[3, 0, 1, 2]],
+                        ]
+                    )
+                self.all_data_seq[eef_pose_rel_key].append(rel_pose)
+
+        # Convert list data to numpy array
+        for key in self.all_data_seq.keys():
+            if isinstance(self.all_data_seq[key], list):
+                self.all_data_seq[key] = np.array(self.all_data_seq[key])
+
     def save_data(self, filename):
         """Save data."""
         # For backward compatibility
@@ -145,7 +194,9 @@ class DataManager(object):
         with h5py.File(filename, "w") as f:
             for key in self.all_data_seq.keys():
                 if isinstance(self.all_data_seq[key], list):
-                    f.create_dataset(key, data=np.array(self.all_data_seq[key]))
+                    raise RuntimeError(
+                        "[DataManager] List data is not assumed. finalize_data() should be called first."
+                    )
                 elif isinstance(self.all_data_seq[key], np.ndarray):
                     f.create_dataset(key, data=self.all_data_seq[key])
                 else:
