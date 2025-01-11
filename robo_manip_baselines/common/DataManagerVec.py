@@ -57,7 +57,7 @@ class DataManagerVec(DataManager):
             all_data_seq.update(self.camera_info)
 
             os.makedirs(os.path.dirname(filename), exist_ok=True)
-            with h5py.File(filename, mode="w") as f:
+            with h5py.File(filename, "w") as f:
                 for key in all_data_seq.keys():
                     if isinstance(all_data_seq[key], list):
                         f.create_dataset(key, data=np.array(all_data_seq[key]))
@@ -72,7 +72,7 @@ class DataManagerVec(DataManager):
         """Load data."""
         self.all_data_seq_list = [{} for file_idx in range(len(filename_list))]
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
-            with h5py.File(filename, mode="r") as f:
+            with h5py.File(filename, "r") as f:
                 for orig_key in f.keys():
                     new_key = DataKey.replace_deprecated_key(
                         orig_key
