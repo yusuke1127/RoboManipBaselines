@@ -405,6 +405,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.world_idx,
                 self.data_manager.episode_idx,
             )
+        self.data_manager.finalize_data()
         self.data_manager.save_data(filename)
         print(
             "[TeleopBase] Teleoperation succeeded: Save the data as {}".format(filename)
