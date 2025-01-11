@@ -193,6 +193,7 @@ class TeleopBaseVec(TeleopBase):
                 extra_label,
             )
             filename_list.append(filename)
+        self.data_manager.finalize_data()
         self.data_manager.save_data(filename_list)
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:

@@ -136,17 +136,20 @@ class DataManager(object):
         data_seq = self.all_data_seq[key]
         return data_seq
 
-    def finalize_data(self):
+    def finalize_data(self, all_data_seq=None):
+        """Finalize data."""
+        if all_data_seq is None:
+            all_data_seq = self.all_data_seq
+
         # Set relative joint position
         for joint_pos_key, joint_pos_rel_key in [
             (DataKey.MEASURED_JOINT_POS, DataKey.MEASURED_JOINT_POS_REL),
             (DataKey.COMMAND_JOINT_POS, DataKey.COMMAND_JOINT_POS_REL),
         ]:
-            self.all_data_seq[joint_pos_rel_key] = np.concatenate(
+            all_data_seq[joint_pos_rel_key] = np.concatenate(
                 [
-                    np.zeros((1, len(self.all_data_seq[joint_pos_key][0]))),
-                    self.all_data_seq[joint_pos_key][1:]
-                    - self.all_data_seq[joint_pos_key][:-1],
+                    np.zeros((1, len(all_data_seq[joint_pos_key][0]))),
+                    all_data_seq[joint_pos_key][1:] - all_data_seq[joint_pos_key][:-1],
                 ]
             )
 
@@ -155,13 +158,13 @@ class DataManager(object):
             (DataKey.MEASURED_EEF_POSE, DataKey.MEASURED_EEF_POSE_REL),
             (DataKey.COMMAND_EEF_POSE, DataKey.COMMAND_EEF_POSE_REL),
         ]:
-            self.all_data_seq[eef_pose_rel_key] = []
-            for time_idx in range(len(self.all_data_seq[DataKey.TIME])):
+            all_data_seq[eef_pose_rel_key] = []
+            for time_idx in range(len(all_data_seq[DataKey.TIME])):
                 if time_idx == 0:
                     rel_pose = np.zeros(6)
                 else:
-                    current_pose = self.all_data_seq[eef_pose_key][time_idx]
-                    prev_pose = self.all_data_seq[eef_pose_key][time_idx - 1]
+                    current_pose = all_data_seq[eef_pose_key][time_idx]
+                    prev_pose = all_data_seq[eef_pose_key][time_idx - 1]
                     rel_pose = np.concatenate(
                         [
                             current_pose[0:3] - prev_pose[0:3],
@@ -171,38 +174,44 @@ class DataManager(object):
                             ).coeffs()[[3, 0, 1, 2]],
                         ]
                     )
-                self.all_data_seq[eef_pose_rel_key].append(rel_pose)
+                all_data_seq[eef_pose_rel_key].append(rel_pose)
 
         # Convert list data to numpy array
-        for key in self.all_data_seq.keys():
-            if isinstance(self.all_data_seq[key], list):
-                self.all_data_seq[key] = np.array(self.all_data_seq[key])
+        for key in all_data_seq.keys():
+            if isinstance(all_data_seq[key], list):
+                all_data_seq[key] = np.array(all_data_seq[key])
 
-    def save_data(self, filename):
+    def save_data(self, filename, all_data_seq=None):
         """Save data."""
+        if all_data_seq is None:
+            all_data_seq = self.all_data_seq
+
         # For backward compatibility
-        for orig_key in self.all_data_seq.keys():
+        for orig_key in all_data_seq.keys():
             new_key = DataKey.replace_deprecated_key(orig_key)
             if orig_key != new_key:
-                self.all_data_seq[new_key] = self.all_data_seq.pop(orig_key)
+                all_data_seq[new_key] = all_data_seq.pop(orig_key)
 
-        self.all_data_seq.update(self.general_info)
-        self.all_data_seq.update(self.world_info)
-        self.all_data_seq.update(self.camera_info)
+        # Set meta data
+        all_data_seq.update(self.general_info)
+        all_data_seq.update(self.world_info)
+        all_data_seq.update(self.camera_info)
 
+        # Dump to a file
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, "w") as f:
-            for key in self.all_data_seq.keys():
-                if isinstance(self.all_data_seq[key], list):
+            for key in all_data_seq.keys():
+                if isinstance(all_data_seq[key], list):
                     raise RuntimeError(
                         "[DataManager] List data is not assumed. finalize_data() should be called first."
                     )
-                elif isinstance(self.all_data_seq[key], np.ndarray):
-                    f.create_dataset(key, data=self.all_data_seq[key])
+                elif isinstance(all_data_seq[key], np.ndarray):
+                    f.create_dataset(key, data=all_data_seq[key])
                 else:
-                    f.attrs[key] = self.all_data_seq[key]
+                    f.attrs[key] = all_data_seq[key]
 
-        self.episode_idx += 1
+        if all_data_seq is None:
+            self.episode_idx += 1
 
     def load_data(self, filename):
         """Load data."""
