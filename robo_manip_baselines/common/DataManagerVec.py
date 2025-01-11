@@ -56,14 +56,14 @@ class DataManagerVec(DataManager):
         """Load data."""
         self.all_data_seq_list = [{} for file_idx in range(len(filename_list))]
         for all_data_seq, filename in zip(self.all_data_seq_list, filename_list):
-            with h5py.File(filename, "r") as f:
-                for orig_key in f.keys():
+            with h5py.File(filename, "r") as h5file:
+                for orig_key in h5file.keys():
                     new_key = DataKey.replace_deprecated_key(
                         orig_key
                     )  # For backward compatibility
-                    all_data_seq[new_key] = f[orig_key][()]
-                for orig_key in f.attrs.keys():
+                    all_data_seq[new_key] = h5file[orig_key][()]
+                for orig_key in h5file.attrs.keys():
                     new_key = DataKey.replace_deprecated_key(
                         orig_key
                     )  # For backward compatibility
-                    all_data_seq[new_key] = f.attrs[orig_key]
+                    all_data_seq[new_key] = h5file.attrs[orig_key]
