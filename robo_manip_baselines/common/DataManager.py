@@ -198,16 +198,16 @@ class DataManager(object):
 
         # Dump to a file
         os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with h5py.File(filename, "w") as f:
+        with h5py.File(filename, "w") as h5file:
             for key in all_data_seq.keys():
                 if isinstance(all_data_seq[key], list):
                     raise RuntimeError(
                         "[DataManager] List data is not assumed. finalize_data() should be called first."
                     )
                 elif isinstance(all_data_seq[key], np.ndarray):
-                    f.create_dataset(key, data=all_data_seq[key])
+                    h5file.create_dataset(key, data=all_data_seq[key])
                 else:
-                    f.attrs[key] = all_data_seq[key]
+                    h5file.attrs[key] = all_data_seq[key]
 
         if all_data_seq is None:
             self.episode_idx += 1
@@ -215,17 +215,17 @@ class DataManager(object):
     def load_data(self, filename):
         """Load data."""
         self.all_data_seq = {}
-        with h5py.File(filename, "r") as f:
-            for orig_key in f.keys():
+        with h5py.File(filename, "r") as h5file:
+            for orig_key in h5file.keys():
                 new_key = DataKey.replace_deprecated_key(
                     orig_key
                 )  # For backward compatibility
-                self.all_data_seq[new_key] = f[orig_key][()]
-            for orig_key in f.attrs.keys():
+                self.all_data_seq[new_key] = h5file[orig_key][()]
+            for orig_key in h5file.attrs.keys():
                 new_key = DataKey.replace_deprecated_key(
                     orig_key
                 )  # For backward compatibility
-                self.all_data_seq[new_key] = f.attrs[orig_key]
+                self.all_data_seq[new_key] = h5file.attrs[orig_key]
 
     def go_to_next_status(self):
         """Go to the next status."""
