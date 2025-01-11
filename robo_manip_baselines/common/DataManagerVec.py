@@ -66,7 +66,7 @@ class DataManagerVec(DataManager):
                     else:
                         f.attrs[key] = all_data_seq[key]
 
-        self.data_idx += 1
+        self.episode_idx += 1
 
     def load_data(self, filename_list):
         """Load data."""
