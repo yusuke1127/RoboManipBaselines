@@ -57,7 +57,7 @@ class TrainAct(object):
         parser.add_argument(
             "--state_keys",
             default=[DataKey.MEASURED_JOINT_POS],
-            nargs="+",
+            nargs="*",
             type=str,
             help="state data keys",
         )
@@ -131,7 +131,8 @@ class TrainAct(object):
             for filename in all_filenames:
                 with h5py.File(filename, "r") as h5file:
                     if len(self.args.state_keys) == 0:
-                        state = np.zeros(0, dtype=np.float32)
+                        episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
+                        state = np.zeros((episode_len, 0), dtype=np.float32)
                     else:
                         state = np.concatenate(
                             [
@@ -147,18 +148,18 @@ class TrainAct(object):
             all_action = np.concatenate(all_action, dtype=np.float32)
 
             # Calculate stats
-            action_mean = all_action.mean(axis=0)
-            action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
             state_mean = all_state.mean(axis=0)
             state_std = np.clip(all_state.std(axis=0), 1e-2, np.inf)
+            action_mean = all_action.mean(axis=0)
+            action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
 
             return {
-                "action_mean": action_mean,
-                "action_std": action_std,
                 "state_mean": state_mean,
                 "state_std": state_std,
-                "example_action": all_action[0],
                 "example_state": all_state[0],
+                "action_mean": action_mean,
+                "action_std": action_std,
+                "example_action": all_action[0],
             }
 
         self.dataset_stats = make_dataset_stats()
@@ -201,6 +202,10 @@ class TrainAct(object):
         action_dim = self.train_dataloader.dataset[0][2].shape[1]
         DETRVAE.set_state_dim(state_dim)
         DETRVAE.set_action_dim(action_dim)
+        print(
+            "[TrainAct] Construct ACT policy.\n"
+            f"  - state dim: {state_dim}, action dim: {action_dim}"
+        )
 
         # Set policy config
         lr_backbone = 1e-5
