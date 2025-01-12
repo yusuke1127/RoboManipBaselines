@@ -260,7 +260,7 @@ def anim_update(i):
         ax[0, 2].plot(
             np.arange(i + 1), pred_joint[: i + 1, joint_idx] * joint_scales[joint_idx]
         )
-    ax[0, 2].set_xlabel("Step", fontsize=20)
+    ax[0, 2].set_xlabel("Step", fontsize=16)
     ax[0, 2].set_title("Joint", fontsize=20)
     ax[0, 2].tick_params(axis="x", labelsize=16)
     ax[0, 2].tick_params(axis="y", labelsize=16)
@@ -272,7 +272,7 @@ def anim_update(i):
         ax[1, 2].plot(wrenches[1:], linestyle="dashed", c="k")
         for wrench_idx in range(pred_wrench.shape[1]):
             ax[1, 2].plot(np.arange(i + 1), pred_wrench[: i + 1, wrench_idx])
-        ax[1, 2].set_xlabel("Step", fontsize=20)
+        ax[1, 2].set_xlabel("Step", fontsize=16)
         ax[1, 2].set_title("Wrench", fontsize=20)
         ax[1, 2].tick_params(axis="x", labelsize=16)
         ax[1, 2].tick_params(axis="y", labelsize=16)

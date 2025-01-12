@@ -166,7 +166,7 @@ class RolloutSarnn(RolloutBase):
                 np.arange(self.pred_action_list.shape[0]),
                 self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
             )
-        self.ax[0, 2].set_xlabel("Step", fontsize=20)
+        self.ax[0, 2].set_xlabel("Step", fontsize=16)
         self.ax[0, 2].set_title("Joint", fontsize=20)
         self.ax[0, 2].tick_params(axis="x", labelsize=16)
         self.ax[0, 2].tick_params(axis="y", labelsize=16)
