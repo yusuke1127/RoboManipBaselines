@@ -48,7 +48,7 @@ class DataManagerVec(DataManager):
             if filename is None:
                 continue
 
-            super().save_data(filename, all_data_seq)
+            super().save_data(filename, all_data_seq, increment_episode_idx=False)
 
         self.episode_idx += 1
 
