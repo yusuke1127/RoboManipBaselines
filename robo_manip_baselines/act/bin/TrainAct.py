@@ -1,18 +1,25 @@
-import torch
-import numpy as np
+import glob
+import datetime
+import random
 import sys
 import os
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
 import pickle
 import argparse
+import h5py
 import matplotlib.pyplot as plt
 from copy import deepcopy
 from tqdm import tqdm
-from robo_manip_baselines.act import load_data
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from utils import compute_dict_mean, set_seed, detach_dict
 from policy import ACTPolicy
 from detr.models.detr_vae import DETRVAE
+
+from robo_manip_baselines.common import DataKey
+from robo_manip_baselines.act import RmbActDataset
 
 
 class TrainAct(object):
@@ -24,32 +31,58 @@ class TrainAct(object):
         self.setup_policy()
 
     def setup_args(self):
-        parser = argparse.ArgumentParser(description="Train ACT")
+        parser = argparse.ArgumentParser(
+            description="Train ACT",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
 
         parser.add_argument(
             "--dataset_dir",
-            default="./dataset/",
+            required=True,
             type=str,
-            help="dataset_dir",
+            help="dataset directory",
         )
         parser.add_argument(
             "--checkpoint_dir",
-            default="./checkpoint/",
+            default=None,
             type=str,
-            help="checkpoint_dir",
+            help="checkpoint directory",
+        )
+        parser.add_argument(
+            "--action_key",
+            default=DataKey.COMMAND_JOINT_POS,
+            type=str,
+            help="action data key",
+        )
+        parser.add_argument(
+            "--state_keys",
+            default=[DataKey.MEASURED_JOINT_POS],
+            nargs="+",
+            type=str,
+            help="state data keys",
         )
         parser.add_argument(
             "--camera_names",
-            action="store",
-            type=lambda x: list(map(str, x.split(","))),
-            help="camera_names",
-            required=False,
             default=["front"],
+            nargs="+",
+            type=str,
+            help="camera names",
         )
-        parser.add_argument("--batch_size", default=8, type=int, help="batch_size")
+        parser.add_argument(
+            "--train_ratio", default=0.8, type=float, help="ratio of train data"
+        )
+        parser.add_argument(
+            "--skip",
+            default=3,
+            type=int,
+            help="skip interval of data sequence (set 1 for no skip)",
+        )
+        parser.add_argument("--batch_size", default=8, type=int, help="batch size")
         parser.add_argument("--seed", default=0, type=int, help="seed")
-        parser.add_argument("--num_epochs", default=1000, type=int, help="num_epochs")
-        parser.add_argument("--lr", default=1e-5, type=float, help="lr")
+        parser.add_argument(
+            "--num_epochs", default=1000, type=int, help="number of epochs"
+        )
+        parser.add_argument("--lr", default=1e-5, type=float, help="learning rate")
 
         # for ACT
         parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
@@ -68,34 +101,114 @@ class TrainAct(object):
 
         self.args = parser.parse_args()
 
+        # Set checkpoint directory if it is not specified
+        if self.args.checkpoint_dir is None:
+            dataset_dirname = os.path.basename(os.path.normpath(self.args.dataset_dir))
+            checkpoint_dirname = "{}_TrainAct_{:%Y%m%d_%H%M%S}".format(
+                dataset_dirname, datetime.datetime.now()
+            )
+            self.args.checkpoint_dir = os.path.normpath(
+                os.path.join(
+                    os.path.dirname(__file__), "../checkpoint/", checkpoint_dirname
+                )
+            )
+
     def setup_dataset(self):
         set_seed(1)
 
-        is_sim = True
-        batch_size_train = self.args.batch_size
-        batch_size_val = self.args.batch_size
-        self.train_dataloader, self.val_dataloader, self.stats, _ = load_data(
-            self.args.dataset_dir,
-            is_sim,
-            self.args.camera_names,
-            batch_size_train,
-            batch_size_val,
+        # Get file list
+        all_filenames = glob.glob(f"{self.args.dataset_dir}/**/*.hdf5", recursive=True)
+        random.shuffle(all_filenames)
+        train_num = int(len(all_filenames) * self.args.train_ratio)
+        train_filenames = all_filenames[:train_num]
+        val_filenames = all_filenames[train_num:]
+
+        # Construct dataset stats for normalization
+        def make_dataset_stats():
+            # Load all state and action
+            all_state = []
+            all_action = []
+            for filename in all_filenames:
+                with h5py.File(filename, "r") as h5file:
+                    if len(self.args.state_keys) == 0:
+                        state = np.zeros(0, dtype=np.float32)
+                    else:
+                        state = np.concatenate(
+                            [
+                                h5file[state_key][:: self.args.skip][()]
+                                for state_key in self.args.state_keys
+                            ],
+                            axis=1,
+                        )
+                    action = h5file[self.args.action_key][:: self.args.skip][()]
+                    all_state.append(state)
+                    all_action.append(action)
+            all_state = np.concatenate(all_state, dtype=np.float32)
+            all_action = np.concatenate(all_action, dtype=np.float32)
+
+            # Calculate stats
+            action_mean = all_action.mean(axis=0)
+            action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
+            state_mean = all_state.mean(axis=0)
+            state_std = np.clip(all_state.std(axis=0), 1e-2, np.inf)
+
+            return {
+                "action_mean": action_mean,
+                "action_std": action_std,
+                "state_mean": state_mean,
+                "state_std": state_std,
+                "example_action": all_action[0],
+                "example_state": all_state[0],
+            }
+
+        self.dataset_stats = make_dataset_stats()
+
+        # Construct dataloader
+        def make_dataloader(filenames):
+            dataset = RmbActDataset(
+                filenames,
+                self.args.action_key,
+                self.args.state_keys,
+                self.args.camera_names,
+                self.dataset_stats,
+                self.args.skip,
+                self.args.chunk_size,
+            )
+
+            dataloader = DataLoader(
+                dataset,
+                batch_size=self.args.batch_size,
+                shuffle=True,
+                pin_memory=True,
+                num_workers=1,
+                prefetch_factor=1,
+            )
+
+            return dataloader
+
+        self.train_dataloader = make_dataloader(train_filenames)
+        self.val_dataloader = make_dataloader(val_filenames)
+        print(
+            f"[TrainAct] Load dataset from {self.args.dataset_dir}\n"
+            f"  - train episodes: {len(train_filenames)}, val episodes: {len(val_filenames)}"
         )
 
     def setup_policy(self):
         set_seed(self.args.seed)
 
+        # Set dimensions of state and action
         state_dim = self.train_dataloader.dataset[0][1].shape[0]
         action_dim = self.train_dataloader.dataset[0][2].shape[1]
         DETRVAE.set_state_dim(state_dim)
         DETRVAE.set_action_dim(action_dim)
 
+        # Set policy config
         lr_backbone = 1e-5
         backbone = "resnet18"
         enc_layers = 4
         dec_layers = 7
         nheads = 8
-        policy_config = {
+        self.policy_config = {
             "lr": self.args.lr,
             "num_queries": self.args.chunk_size,
             "kl_weight": self.args.kl_weight,
@@ -107,38 +220,50 @@ class TrainAct(object):
             "dec_layers": dec_layers,
             "nheads": nheads,
             "camera_names": self.args.camera_names,
+            "skip": self.args.skip,
         }
 
-        self.policy = ACTPolicy(policy_config)
+        # Construct policy
+        self.policy = ACTPolicy(self.policy_config)
         self.policy.cuda()
 
+        # Construct optimizer
         self.optimizer = self.policy.configure_optimizers()
 
     def run(self):
-        # save dataset stats
-        if not os.path.isdir(self.args.checkpoint_dir):
-            os.makedirs(self.args.checkpoint_dir)
-        stats_path = os.path.join(self.args.checkpoint_dir, "dataset_stats.pkl")
-        with open(stats_path, "wb") as f:
-            pickle.dump(self.stats, f)
-        print(f"[TrainAct] Save dataset stats: {stats_path}")
+        os.makedirs(self.args.checkpoint_dir, exist_ok=True)
 
-        # train
+        # Save dataset stats
+        dataset_stats_path = os.path.join(self.args.checkpoint_dir, "dataset_stats.pkl")
+        with open(dataset_stats_path, "wb") as f:
+            pickle.dump(self.dataset_stats, f)
+        print(f"[TrainAct] Save dataset stats: {dataset_stats_path}")
+
+        # Save policy config
+        policy_config_path = os.path.join(self.args.checkpoint_dir, "policy_config.pkl")
+        with open(policy_config_path, "wb") as f:
+            pickle.dump(self.policy_config, f)
+        print(f"[TrainAct] Save policy config: {policy_config_path}")
+
+        # Train
+        print(f"[TrainAct] Train with saving checkpoints: {self.args.checkpoint_dir}")
         best_ckpt_info = self.train_bc()
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
 
-        # save best checkpoint
+        # Save best checkpoint
         ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_best.ckpt")
         torch.save(best_state_dict, ckpt_path)
-        print(f"[TrainAct] Best ckpt, val loss {min_val_loss:.3f} @ epoch{best_epoch}")
+        print(
+            f"[TrainAct] Save the best checkpoint. val loss is {min_val_loss:.3f} at epoch {best_epoch}"
+        )
 
-    def train_bc(self):
+    def train_bc(self, print_summary=False):
         train_history = []
         validation_history = []
         min_val_loss = np.inf
         best_ckpt_info = None
         for epoch in tqdm(range(self.args.num_epochs)):
-            # validation
+            # Run validation step
             with torch.inference_mode():
                 self.policy.eval()
                 epoch_dicts = []
@@ -156,17 +281,17 @@ class TrainAct(object):
                         min_val_loss,
                         deepcopy(self.policy.state_dict()),
                     )
-            summary_string = "[TrainAct][val]"
-            for k, v in epoch_summary.items():
-                summary_string += f" {k}: {v.item():.3f}"
-            print(summary_string)
+            if print_summary:
+                summary_string = "[TrainAct][val]"
+                for k, v in epoch_summary.items():
+                    summary_string += f" {k}: {v.item():.3f}"
+                print(summary_string)
 
-            # training
+            # Run train step
             self.policy.train()
             self.optimizer.zero_grad()
             for batch_idx, data in enumerate(self.train_dataloader):
                 forward_dict = self.forward_pass(data)
-                # backward
                 loss = forward_dict["loss"]
                 loss.backward()
                 self.optimizer.step()
@@ -175,11 +300,13 @@ class TrainAct(object):
             epoch_summary = compute_dict_mean(
                 train_history[(batch_idx + 1) * epoch : (batch_idx + 1) * (epoch + 1)]
             )
-            summary_string = "[TrainAct][train]"
-            for k, v in epoch_summary.items():
-                summary_string += f" {k}: {v.item():.3f}"
-            print(summary_string)
+            if print_summary:
+                summary_string = "[TrainAct][train]"
+                for k, v in epoch_summary.items():
+                    summary_string += f" {k}: {v.item():.3f}"
+                print(summary_string)
 
+            # Save current checkpoint
             if epoch % 100 == 0:
                 ckpt_path = os.path.join(
                     self.args.checkpoint_dir,
@@ -188,38 +315,23 @@ class TrainAct(object):
                 torch.save(self.policy.state_dict(), ckpt_path)
                 self.plot_history(train_history, validation_history, epoch)
 
+        # Save last checkpoint
         ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_last.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
-
-        best_epoch, min_val_loss, best_state_dict = best_ckpt_info
-        ckpt_path = os.path.join(
-            self.args.checkpoint_dir,
-            f"policy_epoch_{best_epoch}_seed_{self.args.seed}.ckpt",
-        )
-        torch.save(best_state_dict, ckpt_path)
-        print(
-            f"[TrainAct] Training finished: seed {self.args.seed}, val loss {min_val_loss:.3f} at epoch {best_epoch}"
-        )
-
-        # save training curves
         self.plot_history(train_history, validation_history, self.args.num_epochs)
 
         return best_ckpt_info
 
     def forward_pass(self, data):
-        image_data, joint_data, action_data, is_pad = data
-        image_data, joint_data, action_data, is_pad = (
-            image_data.cuda(),
-            joint_data.cuda(),
-            action_data.cuda(),
-            is_pad.cuda(),
-        )
+        image_tensor, joint_tensor, action_tensor, is_pad_tensor = data
         return self.policy(
-            joint_data, image_data, action_data, is_pad
-        )  # TODO remove None
+            joint_tensor.cuda(),
+            image_tensor.cuda(),
+            action_tensor.cuda(),
+            is_pad_tensor.cuda(),
+        )
 
     def plot_history(self, train_history, validation_history, epoch):
-        # save training curves
         for key in train_history[0]:
             plot_path = os.path.join(
                 self.args.checkpoint_dir, f"train_val_{key}_seed_{self.args.seed}.png"
@@ -237,12 +349,11 @@ class TrainAct(object):
                 val_values,
                 label="validation",
             )
-            # plt.ylim([-0.1, 1])
-            plt.tight_layout()
+            plt.tight_layout(rect=[0, 0, 1, 0.96])
             plt.legend()
             plt.title(key)
             plt.savefig(plot_path)
-        print(f"[TrainAct] Saved plots to {self.args.checkpoint_dir}")
+            plt.close()
 
 
 if __name__ == "__main__":

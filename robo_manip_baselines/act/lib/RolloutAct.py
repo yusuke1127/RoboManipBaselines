@@ -24,53 +24,37 @@ class RolloutAct(RolloutBase):
             help="checkpoint file of ACT (*.ckpt)",
             required=True,
         )
-        parser.add_argument("--kl_weight", default=10, type=int, help="KL weight")
-        parser.add_argument(
-            "--chunk_size", default=100, type=int, help="action chunking size"
-        )
-        parser.add_argument(
-            "--hidden_dim", default=512, type=int, help="hidden dimension of ACT policy"
-        )
-        parser.add_argument(
-            "--dim_feedforward",
-            default=3200,
-            type=int,
-            help="feedforward dimension of ACT policy",
-        )
 
         super().setup_args(parser)
 
+    def setup_policy(self):
+        checkpoint_dir = os.path.split(self.args.checkpoint)[0]
+
+        # Load data statistics
+        dataset_stats_path = os.path.join(checkpoint_dir, "dataset_stats.pkl")
+        with open(dataset_stats_path, "rb") as f:
+            self.dataset_stats = pickle.load(f)
+        print(f"[RolloutAct] Load dataset stats: {dataset_stats_path}")
+
+        # Load policy config
+        policy_config_path = os.path.join(checkpoint_dir, "policy_config.pkl")
+        with open(policy_config_path, "rb") as f:
+            self.policy_config = pickle.load(f)
+        print(f"[RolloutAct] Load policy config: {policy_config_path}")
+
+        # Set skip if not specified
         if self.args.skip is None:
-            self.args.skip = 3
+            self.args.skip = self.policy_config["skip"]
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
-    def setup_policy(self):
-        # Load data statistics
-        checkpoint_dir = os.path.split(self.args.checkpoint)[0]
-        stats_path = os.path.join(checkpoint_dir, "dataset_stats.pkl")
-        with open(stats_path, "rb") as f:
-            self.stats = pickle.load(f)
-
-        # Set policy parameters
-        self.state_dim = len(self.stats["joint_mean"])
-        self.action_dim = len(self.stats["action_mean"])
+        # Set dimensions of state and action
+        self.state_dim = len(self.dataset_stats["state_mean"])
+        self.action_dim = len(self.dataset_stats["action_mean"])
         DETRVAE.set_state_dim(self.state_dim)
         DETRVAE.set_action_dim(self.action_dim)
 
-        # Define policy
-        self.policy_config = {
-            "num_queries": self.args.chunk_size,
-            "kl_weight": self.args.kl_weight,
-            "hidden_dim": self.args.hidden_dim,
-            "dim_feedforward": self.args.dim_feedforward,
-            "lr_backbone": 1e-5,
-            "backbone": "resnet18",
-            "enc_layers": 4,
-            "dec_layers": 7,
-            "nheads": 8,
-            "camera_names": ["front"],
-        }
+        # Construct policy
         self.policy = ACTPolicy(self.policy_config)
 
         def forward_fook(_layer, _input, _output):
@@ -84,7 +68,7 @@ class RolloutAct(RolloutBase):
 
         # Load weight
         print(f"[RolloutAct] Load {self.args.checkpoint}")
-        self.policy.load_state_dict(torch.load(self.args.checkpoint))
+        self.policy.load_state_dict(torch.load(self.args.checkpoint, weights_only=True))
         self.policy.cuda()
         self.policy.eval()
 
@@ -115,13 +99,15 @@ class RolloutAct(RolloutBase):
             torch.Tensor(np.expand_dims(front_image_input, 0)).cuda().unsqueeze(0)
         )
         joint_input = self.motion_manager.get_joint_pos(self.obs)
-        joint_input = (joint_input - self.stats["joint_mean"]) / self.stats["joint_std"]
+        joint_input = (
+            joint_input - self.dataset_stats["state_mean"]
+        ) / self.dataset_stats["state_std"]
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0)).cuda()
 
         # Infer
         all_actions = self.policy(joint_input, front_image_input)[0]
         self.all_actions_history.append(all_actions.cpu().detach().numpy())
-        if len(self.all_actions_history) > self.args.chunk_size:
+        if len(self.all_actions_history) > self.policy_config["num_queries"]:
             self.all_actions_history.pop(0)
 
         # Postprocess (temporal ensembling)
@@ -131,7 +117,10 @@ class RolloutAct(RolloutBase):
         action = np.zeros(self.action_dim)
         for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
-        self.pred_action = action * self.stats["action_std"] + self.stats["action_mean"]
+        self.pred_action = (
+            action * self.dataset_stats["action_std"]
+            + self.dataset_stats["action_mean"]
+        )
         self.pred_action_list = np.concatenate(
             [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
         )
