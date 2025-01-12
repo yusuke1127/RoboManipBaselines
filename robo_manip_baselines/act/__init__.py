@@ -1,2 +1,2 @@
-from .lib.RmbActDataset import load_data
+from .lib.RmbActDataset import RmbActDataset
 from .lib.RolloutAct import RolloutAct

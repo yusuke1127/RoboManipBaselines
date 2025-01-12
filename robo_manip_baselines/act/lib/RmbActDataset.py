@@ -1,171 +1,86 @@
 import numpy as np
 import torch
-from functools import lru_cache
-from pathlib import Path
-from torch.utils.data import DataLoader
+import h5py
 
-import IPython
-
-e = IPython.embed
-
-
-@lru_cache(maxsize=128)
-def load_array(dir_path, glob_pattern):
-    globbed_list = list(dir_path.glob(glob_pattern))
-    assert len(globbed_list) == 1
-    return np.load(globbed_list[0])
+from robo_manip_baselines.common import DataKey
 
 
 class RmbActDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset_dir, is_sim, camera_names, norm_stats):
+    def __init__(
+        self,
+        filenames,
+        action_key,
+        state_keys,
+        camera_names,
+        dataset_stats,
+        skip,
+        chunk_size,
+    ):
         super().__init__()
-        self.dataset_dir = dataset_dir
+
+        self.filenames = filenames
+        self.action_key = action_key
+        self.state_keys = state_keys
         self.camera_names = camera_names
-        self.norm_stats = norm_stats
-        self.is_sim = is_sim
-        self.__getitem__(0)  # initialize self.is_sim
+        self.dataset_stats = dataset_stats
+        self.skip = skip
+        self.chunk_size = chunk_size
 
     def __len__(self):
-        return len(load_array(self.dataset_dir, "**/joints.npy"))
+        return len(self.filenames)
 
-    def __getitem__(self, episode_id):
-        sample_full_episode = False  # hardcode
+    def __getitem__(self, episode_idx):
+        with h5py.File(self.filenames[episode_idx], "r") as h5file:
+            episode_len = h5file[DataKey.TIME][:: self.skip].shape[0]
+            start_time_idx = np.random.choice(episode_len)
 
-        original_action = load_array(self.dataset_dir, "**/actions.npy")[episode_id]
-        original_action_shape = original_action.shape
-        episode_len = original_action_shape[0]
-        if sample_full_episode:
-            start_ts = 0
-        else:
-            start_ts = np.random.choice(episode_len)
-        # get observation at start_ts only
-        joint = load_array(self.dataset_dir, "**/joints.npy")[episode_id][start_ts]
-        image_dict = dict()
-        for cam_name in self.camera_names:
-            try:
-                original_image = load_array(
-                    self.dataset_dir, f"**/{cam_name}_images.npy"
+            # Load images
+            images = np.stack(
+                [
+                    h5file[DataKey.get_rgb_image_key(camera_name)][
+                        start_time_idx * self.skip
+                    ]
+                    for camera_name in self.camera_names
+                ],
+                axis=0,
+            )
+
+            # Load state
+            if len(self.state_keys) == 0:
+                state = np.zeros(0, dtype=np.float32)
+            else:
+                state = np.concatenate(
+                    [
+                        h5file[state_key][start_time_idx * self.skip]
+                        for state_key in self.state_keys
+                    ]
                 )
-            except IndexError:
-                print(f"self.dataset_dir:\t{self.dataset_dir}")
-                print(f"cam_name:\t{cam_name}")
-                raise
-            image_dict[cam_name] = original_image[episode_id][start_ts]
-        # get mask
-        original_mask = load_array(self.dataset_dir, "**/masks.npy")[episode_id].astype(
-            bool
-        )
-        # get all actions after and including start_ts
-        if self.is_sim:
-            action = original_action[start_ts:]
-            action_len = episode_len - start_ts
-            mask = original_mask[start_ts:]
-        else:
-            action = original_action[
-                max(0, start_ts - 1) :
-            ]  # hack, to make timesteps more aligned
-            action_len = episode_len - max(
-                0, start_ts - 1
-            )  # hack, to make timesteps more aligned
-            mask = original_mask[max(0, start_ts - 1) :]
 
-        padded_action = np.zeros(original_action_shape, dtype=np.float32)
-        padded_action[:action_len] = action
-        padded_mask = np.zeros(episode_len, dtype=bool)
-        padded_mask[:action_len] = mask
-        is_pad = ~padded_mask
+            # Load action
+            action = h5file[self.action_key][:: self.skip][start_time_idx:]
 
-        # new axis for different cameras
-        all_cam_images = []
-        for cam_name in self.camera_names:
-            all_cam_images.append(image_dict[cam_name])
-        all_cam_images = np.stack(all_cam_images, axis=0)
+        # Set padded action
+        action_len = action.shape[0]
+        padded_action = np.zeros((self.chunk_size, action.shape[1]), dtype=np.float32)
+        padded_action[:action_len] = action[: self.chunk_size]
+        is_pad = np.zeros(self.chunk_size, dtype=bool)
+        is_pad[action_len:] = True
 
-        # construct observations
-        image_data = torch.from_numpy(all_cam_images)
-        joint_data = torch.from_numpy(joint).float()
-        action_data = torch.from_numpy(padded_action).float()
-        is_pad = torch.from_numpy(is_pad).bool()
+        # Construct tensors
+        images_tensor = torch.from_numpy(images)
+        state_tensor = torch.from_numpy(state).float()
+        action_tensor = torch.from_numpy(padded_action).float()
+        is_pad_tensor = torch.from_numpy(is_pad).bool()
 
-        # channel last
-        image_data = torch.einsum("k h w c -> k c h w", image_data)
+        # Pre-convert data
+        images_tensor = torch.einsum("k h w c -> k c h w", images_tensor)
+        images_tensor = images_tensor / 255.0
+        if len(self.state_keys) > 0:
+            state_tensor = (
+                state_tensor - self.dataset_stats["state_mean"]
+            ) / self.dataset_stats["state_std"]
+        action_tensor = (
+            action_tensor - self.dataset_stats["action_mean"]
+        ) / self.dataset_stats["action_std"]
 
-        # normalize image and change dtype to float
-        image_data = image_data / 255.0
-        action_data = (action_data - self.norm_stats["action_mean"]) / self.norm_stats[
-            "action_std"
-        ]
-        joint_data = (joint_data - self.norm_stats["joint_mean"]) / self.norm_stats[
-            "joint_std"
-        ]
-
-        return image_data, joint_data, action_data, is_pad
-
-
-def get_norm_stats(train_dataset_dir, val_dataset_dir):
-    all_joint_data = []
-    all_action_data = []
-    for dataset_dir in (train_dataset_dir, val_dataset_dir):
-        try:
-            joint = load_array(dataset_dir, "**/joints.npy")
-            action = load_array(dataset_dir, "**/actions.npy")
-        except IndexError:
-            print(f"dataset_dir:\t{dataset_dir}")
-            raise
-        all_joint_data.append(torch.from_numpy(joint))
-        all_action_data.append(torch.from_numpy(action))
-    all_joint_data = torch.cat(all_joint_data)
-    all_action_data = torch.cat(all_action_data)
-
-    # normalize action data
-    action_mean = all_action_data.mean(dim=[0, 1], keepdim=True)
-    action_std = all_action_data.std(dim=[0, 1], keepdim=True)
-    action_std = torch.clip(action_std, 1e-2, np.inf)  # clipping
-
-    # normalize joint data
-    joint_mean = all_joint_data.mean(dim=[0, 1], keepdim=True)
-    joint_std = all_joint_data.std(dim=[0, 1], keepdim=True)
-    joint_std = torch.clip(joint_std, 1e-2, np.inf)  # clipping
-
-    stats = {
-        "action_mean": action_mean.numpy().squeeze(),
-        "action_std": action_std.numpy().squeeze(),
-        "joint_mean": joint_mean.numpy().squeeze(),
-        "joint_std": joint_std.numpy().squeeze(),
-        "example_joint": joint,
-    }
-
-    return stats
-
-
-def load_data(dataset_dir, is_sim, camera_names, batch_size_train, batch_size_val):
-    print(f"[RmbActDataset] Load dataset from {dataset_dir}")
-    dataset_dir = Path(dataset_dir)
-    # obtain train test dataset dir
-    train_dataset_dir = dataset_dir / "train"
-    val_dataset_dir = dataset_dir / "test"
-
-    # obtain normalization stats for joint and action
-    norm_stats = get_norm_stats(train_dataset_dir, val_dataset_dir)
-
-    # construct dataset and dataloader
-    train_dataset = RmbActDataset(train_dataset_dir, is_sim, camera_names, norm_stats)
-    val_dataset = RmbActDataset(val_dataset_dir, is_sim, camera_names, norm_stats)
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_size_train,
-        shuffle=True,
-        pin_memory=True,
-        num_workers=1,
-        prefetch_factor=1,
-    )
-    val_dataloader = DataLoader(
-        val_dataset,
-        batch_size=batch_size_val,
-        shuffle=True,
-        pin_memory=True,
-        num_workers=1,
-        prefetch_factor=1,
-    )
-
-    return train_dataloader, val_dataloader, norm_stats, train_dataset.is_sim
+        return images_tensor, state_tensor, action_tensor, is_pad_tensor

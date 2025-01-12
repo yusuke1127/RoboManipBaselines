@@ -39,7 +39,7 @@ class TrainSarnn(object):
         parser.add_argument("--batch_size", type=int, default=5)
         parser.add_argument("--rec_dim", type=int, default=50)
         parser.add_argument("--k_dim", type=int, default=5)
-        parser.add_argument("--random_seed", type=int, required=False)
+        parser.add_argument("--random_seed", type=int)
         parser.add_argument("--front_img_loss", type=float, default=0.1)
         parser.add_argument("--side_img_loss", type=float, default=0.1)
         parser.add_argument("--joint_loss", type=float, default=1.0)
