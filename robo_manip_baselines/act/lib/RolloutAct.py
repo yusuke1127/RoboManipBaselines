@@ -64,6 +64,7 @@ class RolloutAct(RolloutBase):
         # Construct policy
         self.policy = ACTPolicy(self.policy_config)
 
+        # Register fook to visualize attention images
         def forward_fook(_layer, _input, _output):
             # Output of MultiheadAttention is a tuple (attn_output, attn_output_weights)
             # https://pytorch.org/docs/stable/generated/torch.nn.MultiheadAttention.html
@@ -87,7 +88,10 @@ class RolloutAct(RolloutBase):
     def setup_plot(self):
         fig_ax = plt.subplots(
             2,
-            max(2, self.policy_config["enc_layers"]),
+            max(
+                len(self.dataset_stats["camera_names"]) + 1,
+                self.policy_config["enc_layers"],
+            ),
             figsize=(13.5, 6.0),
             dpi=60,
             squeeze=False,
@@ -157,32 +161,37 @@ class RolloutAct(RolloutBase):
             _ax.axis("off")
 
         # Draw observed image
-        self.ax[0, 0].imshow(self.front_image)
-        self.ax[0, 0].set_title("Observed image", fontsize=20)
+        for camera_idx, camera_name in enumerate(self.dataset_stats["camera_names"]):
+            self.ax[0, camera_idx].imshow(self.info["rgb_images"][camera_name])
+            self.ax[0, camera_idx].set_title(f"{camera_name} image", fontsize=20)
 
         # Plot joint
+        joint_ax = self.ax[0, len(self.dataset_stats["camera_names"])]
         xlim = 500 // self.args.skip
-        self.ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-        self.ax[0, 1].set_xlim(0, xlim)
+        joint_ax.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
+        joint_ax.set_xlim(0, xlim)
         for joint_idx in range(self.pred_action_list.shape[1]):
-            self.ax[0, 1].plot(
+            joint_ax.plot(
                 np.arange(self.pred_action_list.shape[0]),
                 self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
             )
-        self.ax[0, 1].set_xlabel("Step", fontsize=20)
-        self.ax[0, 1].set_title("Joint", fontsize=20)
-        self.ax[0, 1].tick_params(axis="x", labelsize=16)
-        self.ax[0, 1].tick_params(axis="y", labelsize=16)
-        self.ax[0, 1].axis("on")
+        joint_ax.set_xlabel("Step", fontsize=16)
+        joint_ax.set_title("Joint", fontsize=20)
+        joint_ax.tick_params(axis="x", labelsize=16)
+        joint_ax.tick_params(axis="y", labelsize=16)
+        joint_ax.axis("on")
 
         # Draw attention images
+        attention_shape = (15, 20 * len(self.dataset_stats["camera_names"]))
         for layer_idx, layer in enumerate(self.policy.model.transformer.encoder.layers):
             if layer.self_attn.correlation_mat is None:
                 continue
             self.ax[1, layer_idx].imshow(
-                layer.self_attn.correlation_mat[2:, 1].reshape((15, 20))
+                layer.self_attn.correlation_mat[2:, 1].reshape(attention_shape)
             )
-            self.ax[1, layer_idx].set_title(f"Attention ({layer_idx})", fontsize=20)
+            self.ax[1, layer_idx].set_title(
+                f"Attention image ({layer_idx})", fontsize=20
+            )
 
         self.fig.tight_layout()
         self.canvas.draw()
