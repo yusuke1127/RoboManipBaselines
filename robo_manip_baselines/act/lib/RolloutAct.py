@@ -44,7 +44,7 @@ class RolloutAct(RolloutBase):
 
         # Set skip if not specified
         if self.args.skip is None:
-            self.args.skip = self.policy_config["skip"]
+            self.args.skip = self.dataset_stats["skip"]
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
@@ -53,6 +53,13 @@ class RolloutAct(RolloutBase):
         self.action_dim = len(self.dataset_stats["action_mean"])
         DETRVAE.set_state_dim(self.state_dim)
         DETRVAE.set_action_dim(self.action_dim)
+        print(
+            "[RolloutAct] Construct ACT policy.\n"
+            f"  - state dim: {self.state_dim}, action dim: {self.action_dim}\n"
+            f"  - state keys: {self.dataset_stats['state_keys']}\n"
+            f"  - action key: {self.dataset_stats['action_key']}\n"
+            f"  - camera names: {self.dataset_stats['camera_names']}"
+        )
 
         # Construct policy
         self.policy = ACTPolicy(self.policy_config)
@@ -91,26 +98,40 @@ class RolloutAct(RolloutBase):
         if self.auto_time_idx % self.args.skip != 0:
             return False
 
-        # Preprocess
-        self.front_image = self.info["rgb_images"]["front"]
-        front_image_input = self.front_image.transpose(2, 0, 1)
-        front_image_input = front_image_input.astype(np.float32) / 255.0
-        front_image_input = (
-            torch.Tensor(np.expand_dims(front_image_input, 0)).cuda().unsqueeze(0)
+        # Get images
+        images = np.stack(
+            [
+                self.info["rgb_images"][camera_name]
+                for camera_name in self.dataset_stats["camera_names"]
+            ],
+            axis=0,
         )
-        joint_input = self.motion_manager.get_joint_pos(self.obs)
-        joint_input = (
-            joint_input - self.dataset_stats["state_mean"]
-        ) / self.dataset_stats["state_std"]
-        joint_input = torch.Tensor(np.expand_dims(joint_input, 0)).cuda()
+        images = np.einsum("k h w c -> k c h w", images)
+        images = images / 255.0
+        images = torch.tensor(images[np.newaxis], dtype=torch.float32).cuda()
+
+        # Get state
+        if len(self.dataset_stats["state_keys"]) == 0:
+            state = np.zeros(0, dtype=np.float32)
+        else:
+            state = np.concatenate(
+                [
+                    self.motion_manager.get_measured_data(state_key, self.obs)
+                    for state_key in self.dataset_stats["state_keys"]
+                ]
+            )
+        state = (state - self.dataset_stats["state_mean"]) / self.dataset_stats[
+            "state_std"
+        ]
+        state = torch.tensor(state[np.newaxis], dtype=torch.float32).cuda()
 
         # Infer
-        all_actions = self.policy(joint_input, front_image_input)[0]
+        all_actions = self.policy(state, images)[0]
         self.all_actions_history.append(all_actions.cpu().detach().numpy())
         if len(self.all_actions_history) > self.policy_config["num_queries"]:
             self.all_actions_history.pop(0)
 
-        # Postprocess (temporal ensembling)
+        # Apply temporal ensembling to action
         k = 0.01
         exp_weights = np.exp(-k * np.arange(len(self.all_actions_history)))
         exp_weights = exp_weights / exp_weights.sum()
@@ -122,7 +143,7 @@ class RolloutAct(RolloutBase):
             + self.dataset_stats["action_mean"]
         )
         self.pred_action_list = np.concatenate(
-            [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
+            [self.pred_action_list, self.pred_action[np.newaxis]]
         )
 
         return True

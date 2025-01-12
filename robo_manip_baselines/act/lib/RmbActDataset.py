@@ -61,26 +61,24 @@ class RmbActDataset(torch.utils.data.Dataset):
 
         # Set padded action
         action_len = action.shape[0]
-        padded_action = np.zeros((self.chunk_size, action.shape[1]), dtype=np.float32)
-        padded_action[:action_len] = action[: self.chunk_size]
+        action_chunked = np.zeros((self.chunk_size, action.shape[1]), dtype=np.float32)
+        action_chunked[:action_len] = action[: self.chunk_size]
         is_pad = np.zeros(self.chunk_size, dtype=bool)
         is_pad[action_len:] = True
 
-        # Construct tensors
-        images_tensor = torch.from_numpy(images)
-        state_tensor = torch.from_numpy(state).float()
-        action_tensor = torch.from_numpy(padded_action).float()
-        is_pad_tensor = torch.from_numpy(is_pad).bool()
-
         # Pre-convert data
-        images_tensor = torch.einsum("k h w c -> k c h w", images_tensor)
-        images_tensor = images_tensor / 255.0
-        if len(self.state_keys) > 0:
-            state_tensor = (
-                state_tensor - self.dataset_stats["state_mean"]
-            ) / self.dataset_stats["state_std"]
-        action_tensor = (
-            action_tensor - self.dataset_stats["action_mean"]
+        images = np.einsum("k h w c -> k c h w", images)
+        images = images / 255.0
+        state = (state - self.dataset_stats["state_mean"]) / self.dataset_stats[
+            "state_std"
+        ]
+        action_chunked = (
+            action_chunked - self.dataset_stats["action_mean"]
         ) / self.dataset_stats["action_std"]
 
-        return images_tensor, state_tensor, action_tensor, is_pad_tensor
+        return (
+            torch.tensor(images, dtype=torch.float32),
+            torch.tensor(state, dtype=torch.float32),
+            torch.tensor(action_chunked, dtype=torch.float32),
+            torch.tensor(is_pad, dtype=torch.bool),
+        )
