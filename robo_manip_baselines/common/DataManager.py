@@ -180,7 +180,7 @@ class DataManager(object):
                 all_data_seq[eef_pose_rel_key].append(rel_pose)
             all_data_seq[eef_pose_rel_key] = np.array(all_data_seq[eef_pose_rel_key])
 
-    def save_data(self, filename, all_data_seq=None):
+    def save_data(self, filename, all_data_seq=None, increment_episode_idx=True):
         """Save data."""
         if all_data_seq is None:
             all_data_seq = self.all_data_seq
@@ -209,7 +209,7 @@ class DataManager(object):
                 else:
                     h5file.attrs[key] = all_data_seq[key]
 
-        if all_data_seq is None:
+        if increment_episode_idx:
             self.episode_idx += 1
 
     def load_data(self, filename):
