@@ -154,12 +154,19 @@ class TrainAct(object):
             action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
 
             return {
+                # Normalization
                 "state_mean": state_mean,
                 "state_std": state_std,
-                "example_state": all_state[0],
                 "action_mean": action_mean,
                 "action_std": action_std,
+                # Example
+                "example_state": all_state[0],
                 "example_action": all_action[0],
+                # Args
+                "action_key": self.args.action_key,
+                "state_keys": self.args.state_keys,
+                "camera_names": self.args.camera_names,
+                "skip": self.args.skip,
             }
 
         self.dataset_stats = make_dataset_stats()
@@ -204,7 +211,10 @@ class TrainAct(object):
         DETRVAE.set_action_dim(action_dim)
         print(
             "[TrainAct] Construct ACT policy.\n"
-            f"  - state dim: {state_dim}, action dim: {action_dim}"
+            f"  - state dim: {state_dim}, action dim: {action_dim}\n"
+            f"  - state keys: {self.args.state_keys}\n"
+            f"  - action key: {self.args.action_key}\n"
+            f"  - camera names: {self.args.camera_names}"
         )
 
         # Set policy config
@@ -225,7 +235,6 @@ class TrainAct(object):
             "dec_layers": dec_layers,
             "nheads": nheads,
             "camera_names": self.args.camera_names,
-            "skip": self.args.skip,
         }
 
         # Construct policy

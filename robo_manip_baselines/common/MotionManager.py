@@ -1,6 +1,8 @@
 import numpy as np
 import pinocchio as pin
 
+from .DataManager import DataKey
+
 
 class MotionManager(object):
     """
@@ -103,6 +105,19 @@ class MotionManager(object):
     def get_action(self):
         """Get action for Gym."""
         return np.concatenate([self.joint_pos, [self.gripper_pos]])
+
+    def get_measured_data(self, key, obs):
+        """Get measured data from observation by specifying a key."""
+        if key == DataKey.MEASURED_JOINT_POS:
+            return self.get_joint_pos(obs)
+        elif key == DataKey.MEASURED_JOINT_VEL:
+            return self.get_joint_vel(obs)
+        elif key == DataKey.MEASURED_EEF_POSE:
+            return self.get_measured_eef_pose(obs)
+        elif key == DataKey.MEASURED_EEF_WRENCH:
+            return self.get_eef_wrench(obs)
+        else:
+            raise RuntimeError(f"[MotionManager] Invalid data key: {key}")
 
     def get_joint_pos(self, obs):
         """Get joint position from observation."""
