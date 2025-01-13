@@ -154,7 +154,7 @@ class RolloutMtAct(RolloutBase):
         front_image_input = (
             torch.Tensor(np.expand_dims(front_image_input, 0)).cuda().unsqueeze(0)
         )
-        joint_input = self.motion_manager.get_joint_pos(self.obs)
+        joint_input = self.motion_manager.get_measured_joint_pos(self.obs)
         joint_input = (joint_input - self.stats["joint_mean"]) / self.stats["joint_std"]
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0)).cuda()
 

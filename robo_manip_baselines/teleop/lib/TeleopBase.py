@@ -235,11 +235,11 @@ class TeleopBase(metaclass=ABCMeta):
             DataKey.TIME, self.data_manager.status_elapsed_duration
         )
         self.data_manager.append_single_data(
-            DataKey.MEASURED_JOINT_POS, self.motion_manager.get_joint_pos(obs)
+            DataKey.MEASURED_JOINT_POS, self.motion_manager.get_measured_joint_pos(obs)
         )
         self.data_manager.append_single_data(DataKey.COMMAND_JOINT_POS, action)
         self.data_manager.append_single_data(
-            DataKey.MEASURED_JOINT_VEL, self.motion_manager.get_joint_vel(obs)
+            DataKey.MEASURED_JOINT_VEL, self.motion_manager.get_measured_joint_vel(obs)
         )
         self.data_manager.append_single_data(
             DataKey.MEASURED_EEF_POSE, self.motion_manager.get_measured_eef_pose(obs)
@@ -248,7 +248,8 @@ class TeleopBase(metaclass=ABCMeta):
             DataKey.COMMAND_EEF_POSE, self.motion_manager.get_command_eef_pose()
         )
         self.data_manager.append_single_data(
-            DataKey.MEASURED_EEF_WRENCH, self.motion_manager.get_eef_wrench(obs)
+            DataKey.MEASURED_EEF_WRENCH,
+            self.motion_manager.get_measured_eef_wrench(obs),
         )
         for camera_name in self.env.unwrapped.camera_names:
             self.data_manager.append_single_data(
