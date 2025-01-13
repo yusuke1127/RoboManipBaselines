@@ -188,20 +188,20 @@ class RolloutBase(metaclass=ABCMeta):
 
     def set_arm_command(self):
         if self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.joint_pos = self.pred_action[
-                self.env.unwrapped.arm_action_idxes
+            self.motion_manager.arm_joint_pos = self.pred_action[
+                self.env.unwrapped.arm_joint_idxes
             ]
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[
-                self.env.unwrapped.gripper_action_idxes
+            self.motion_manager.gripper_joint_pos = self.env.action_space.high[
+                self.env.unwrapped.gripper_joint_idxes
             ]
         elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = np.clip(
-                self.pred_action[self.env.unwrapped.gripper_action_idxes],
-                self.env.action_space.low[self.env.unwrapped.gripper_action_idxes],
-                self.env.action_space.high[self.env.unwrapped.gripper_action_idxes],
+            self.motion_manager.gripper_joint_pos = np.clip(
+                self.pred_action[self.env.unwrapped.gripper_joint_idxes],
+                self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
+                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
 
     @abstractmethod

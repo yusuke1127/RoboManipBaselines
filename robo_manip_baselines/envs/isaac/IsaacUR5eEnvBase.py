@@ -27,8 +27,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.render_mode = kwargs.get("render_mode")
 
         # Setup Isaac Gym
-        self.gripper_action_idxes = [6]
-        self.arm_action_idxes = slice(0, 6)
+        self.gripper_joint_idxes = [6]
+        self.arm_joint_idxes = slice(0, 6)
         self.setupSim(num_envs)
 
         # Setup robot
@@ -230,8 +230,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
                 self.init_robot_dof_state = np.zeros(
                     robot_num_dofs, gymapi.DofState.dtype
                 )
-                self.init_robot_dof_state["pos"] = self.get_robot_dof_pos_from_qpos(
-                    self.init_qpos
+                self.init_robot_dof_state["pos"] = (
+                    self.get_robot_dof_pos_from_joint_pos(self.init_qpos)
                 )
             self.gym.set_actor_dof_states(
                 env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL
@@ -351,9 +351,9 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         ):
             if self.action_list is None:
                 if env_idx == 0:
-                    robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
+                    robot_dof_pos = self.get_robot_dof_pos_from_joint_pos(action)
             else:
-                robot_dof_pos = self.get_robot_dof_pos_from_qpos(
+                robot_dof_pos = self.get_robot_dof_pos_from_joint_pos(
                     self.action_list[env_idx]
                 )
             self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
@@ -397,19 +397,23 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
                 env, robot_handle, gymapi.STATE_ALL
             )
 
-            arm_qpos = robot_dof_state["pos"][0:6]
-            arm_qvel = robot_dof_state["vel"][0:6]
-            gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(
+            arm_joint_pos = robot_dof_state["pos"][0:6]
+            arm_joint_vel = robot_dof_state["vel"][0:6]
+            gripper_joint_pos = self.get_gripper_joint_pos_from_dof_pos(
                 robot_dof_state["pos"][6:12]
             )
-            gripper_vel = np.zeros(1)
+            gripper_joint_vel = np.zeros(1)
             wrench = force_sensor.get_forces()
             force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
             torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
             obs = {
-                "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-                "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+                "joint_pos": np.concatenate(
+                    (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+                ),
+                "joint_vel": np.concatenate(
+                    (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+                ),
                 "wrench": np.concatenate((force, torque), dtype=np.float64),
             }
             obs_list.append(obs)
@@ -459,14 +463,14 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
+            return obs["joint_pos"][self.arm_joint_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
+            return obs["joint_vel"][self.arm_joint_idxes]
         else:
             return obs["joint_vel"]
 
@@ -530,23 +534,23 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         # TODO: Implement a method
         pass
 
-    def get_robot_dof_pos_from_qpos(self, qpos):
+    def get_robot_dof_pos_from_joint_pos(self, robot_joint_pos):
         robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
         robot_dof_pos = np.zeros(robot_num_dofs, dtype=np.float32)
-        robot_dof_pos[0:6] = qpos[self.arm_action_idxes]
-        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(
-            qpos[self.gripper_action_idxes]
+        robot_dof_pos[0:6] = robot_joint_pos[self.arm_joint_idxes]
+        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_joint_pos(
+            robot_joint_pos[self.gripper_joint_idxes]
         )
         return robot_dof_pos
 
-    def get_gripper_dof_pos_from_gripper_pos(self, gripper_pos):
+    def get_gripper_dof_pos_from_joint_pos(self, gripper_joint_pos):
         return (
-            gripper_pos[0]
+            gripper_joint_pos[0]
             * self.gripper_command_scale
             * self.gripper_mimic_multiplier_list
         )
 
-    def get_gripper_pos_from_gripper_dof_pos(self, gripper_dof_pos):
+    def get_gripper_joint_pos_from_dof_pos(self, gripper_dof_pos):
         return (
             gripper_dof_pos
             / (self.gripper_command_scale * self.gripper_mimic_multiplier_list)

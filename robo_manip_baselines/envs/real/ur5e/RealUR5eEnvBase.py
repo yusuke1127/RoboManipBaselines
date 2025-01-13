@@ -56,15 +56,15 @@ class RealUR5eEnvBase(RealEnvBase):
         super().__init__(**kwargs)
 
         # Setup robot
-        self.gripper_action_idxes = [6]
-        self.arm_action_idxes = slice(0, 6)
+        self.gripper_joint_idxes = [6]
+        self.arm_joint_idxes = slice(0, 6)
         self.arm_urdf_path = path.join(
             path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
         )
         self.arm_root_pose = None
         self.ik_eef_joint_id = 6
         self.init_qpos = init_qpos
-        self.qvel_limit = np.deg2rad(191)  # [rad/s]
+        self.joint_vel_limit = np.deg2rad(191)  # [rad/s]
 
         # Connect to UR5e
         print("[RealUR5eEnvBase] Start connecting the UR5e.")
@@ -72,7 +72,7 @@ class RealUR5eEnvBase(RealEnvBase):
         self.rtde_c = rtde_control.RTDEControlInterface(self.robot_ip)
         self.rtde_r = rtde_receive.RTDEReceiveInterface(self.robot_ip)
         self.rtde_c.endFreedriveMode()
-        self.arm_qpos_actual = np.array(self.rtde_r.getActualQ())
+        self.arm_joint_pos_actual = np.array(self.rtde_r.getActualQ())
         print("[RealUR5eEnvBase] Finish connecting the UR5e.")
 
         # Connect to Robotiq gripper
@@ -88,7 +88,9 @@ class RealUR5eEnvBase(RealEnvBase):
 
     def _reset_robot(self):
         print("[RealUR5eEnvBase] Start moving the robot to the reset position.")
-        self._set_action(self.init_qpos, duration=None, qvel_limit_scale=0.3, wait=True)
+        self._set_action(
+            self.init_qpos, duration=None, joint_vel_limit_scale=0.3, wait=True
+        )
         print("[RealUR5eEnvBase] Finish moving the robot to the reset position.")
 
         if not self._gripper_activated:
@@ -97,30 +99,33 @@ class RealUR5eEnvBase(RealEnvBase):
             self.gripper.activate()
             print("[RealUR5eEnvBase] Finish activating the Robotiq gripper.")
 
-    def _set_action(self, action, duration=None, qvel_limit_scale=0.5, wait=False):
+    def _set_action(self, action, duration=None, joint_vel_limit_scale=0.5, wait=False):
         start_time = time.time()
 
-        # Overwrite duration or qpos for safety
-        arm_qpos_command = action[self.arm_action_idxes]
-        scaled_qvel_limit = np.clip(qvel_limit_scale, 0.01, 10.0) * self.qvel_limit
+        # Overwrite duration or joint_pos for safety
+        arm_joint_pos_command = action[self.arm_joint_idxes]
+        scaled_joint_vel_limit = (
+            np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
+        )
         if duration is None:
             duration_min, duration_max = 0.1, 10.0  # [s]
             duration = np.clip(
                 np.max(
-                    np.abs(arm_qpos_command - self.arm_qpos_actual) / scaled_qvel_limit
+                    np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+                    / scaled_joint_vel_limit
                 ),
                 duration_min,
                 duration_max,
             )
         else:
-            arm_qpos_command_overwritten = self.arm_qpos_actual + np.clip(
-                arm_qpos_command - self.arm_qpos_actual,
-                -1 * scaled_qvel_limit * duration,
-                scaled_qvel_limit * duration,
+            arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
+                arm_joint_pos_command - self.arm_joint_pos_actual,
+                -1 * scaled_joint_vel_limit * duration,
+                scaled_joint_vel_limit * duration,
             )
-            # if np.linalg.norm(arm_qpos_command_overwritten - arm_qpos_command) > 1e-10:
+            # if np.linalg.norm(arm_joint_pos_command_overwritten - arm_joint_pos_command) > 1e-10:
             #     print("[RealUR5eEnvBase] Overwrite joint command for safety.")
-            arm_qpos_command = arm_qpos_command_overwritten
+            arm_joint_pos_command = arm_joint_pos_command_overwritten
 
         # Send command to UR5e
         velocity = 0.5
@@ -129,15 +134,20 @@ class RealUR5eEnvBase(RealEnvBase):
         gain = 100
         period = self.rtde_c.initPeriod()
         self.rtde_c.servoJ(
-            arm_qpos_command, velocity, acceleration, duration, lookahead_time, gain
+            arm_joint_pos_command,
+            velocity,
+            acceleration,
+            duration,
+            lookahead_time,
+            gain,
         )
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[self.gripper_action_idxes]
+        gripper_pos = action[self.gripper_joint_idxes][0]
         speed = 50
         force = 10
-        self.gripper.move(int(gripper_pos[0]), speed, force)
+        self.gripper.move(int(gripper_pos), speed, force)
 
         # Wait
         elapsed_duration = time.time() - start_time
@@ -146,13 +156,15 @@ class RealUR5eEnvBase(RealEnvBase):
 
     def _get_obs(self):
         # Get state from UR5e
-        arm_qpos = np.array(self.rtde_r.getActualQ())
-        arm_qvel = np.array(self.rtde_r.getActualQd())
-        self.arm_qpos_actual = arm_qpos.copy()
+        arm_joint_pos = np.array(self.rtde_r.getActualQ())
+        arm_joint_vel = np.array(self.rtde_r.getActualQd())
+        self.arm_joint_pos_actual = arm_joint_pos.copy()
 
         # Get state from Robotiq gripper
-        gripper_pos = np.array([self.gripper.get_current_position()], dtype=np.float64)
-        gripper_vel = np.zeros(1)
+        gripper_joint_pos = np.array(
+            [self.gripper.get_current_position()], dtype=np.float64
+        )
+        gripper_joint_vel = np.zeros(1)
 
         # Get wrench from force sensor
         # Set zero because UR5e does not have a wrist force sensor
@@ -160,7 +172,11 @@ class RealUR5eEnvBase(RealEnvBase):
         torque = np.zeros(3)
 
         return {
-            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+            "joint_pos": np.concatenate(
+                (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+            ),
+            "joint_vel": np.concatenate(
+                (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+            ),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }

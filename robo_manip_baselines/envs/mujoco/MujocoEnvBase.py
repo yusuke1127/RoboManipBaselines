@@ -126,14 +126,14 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
+            return obs["joint_pos"][self.arm_joint_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
+            return obs["joint_vel"][self.arm_joint_idxes]
         else:
             return obs["joint_vel"]
 
