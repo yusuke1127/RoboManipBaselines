@@ -231,26 +231,29 @@ class TeleopBase(metaclass=ABCMeta):
                 self.motion_manager.gripper_pos -= self.gripper_scale
 
     def record_data(self, obs, action, info):
+        # Add time
         self.data_manager.append_single_data(
             DataKey.TIME, self.data_manager.status_elapsed_duration
         )
-        self.data_manager.append_single_data(
-            DataKey.MEASURED_JOINT_POS, self.motion_manager.get_measured_joint_pos(obs)
-        )
+
+        # Add measured data
+        for key in (
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.MEASURED_JOINT_VEL,
+            DataKey.MEASURED_EEF_POSE,
+            DataKey.MEASURED_EEF_WRENCH,
+        ):
+            self.data_manager.append_single_data(
+                key, self.motion_manager.get_measured_data(key, obs)
+            )
+
+        # Add command data
         self.data_manager.append_single_data(DataKey.COMMAND_JOINT_POS, action)
-        self.data_manager.append_single_data(
-            DataKey.MEASURED_JOINT_VEL, self.motion_manager.get_measured_joint_vel(obs)
-        )
-        self.data_manager.append_single_data(
-            DataKey.MEASURED_EEF_POSE, self.motion_manager.get_measured_eef_pose(obs)
-        )
         self.data_manager.append_single_data(
             DataKey.COMMAND_EEF_POSE, self.motion_manager.get_command_eef_pose()
         )
-        self.data_manager.append_single_data(
-            DataKey.MEASURED_EEF_WRENCH,
-            self.motion_manager.get_measured_eef_wrench(obs),
-        )
+
+        # Add image
         for camera_name in self.env.unwrapped.camera_names:
             self.data_manager.append_single_data(
                 DataKey.get_rgb_image_key(camera_name),
