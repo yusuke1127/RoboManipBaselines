@@ -1,3 +1,4 @@
+import numpy as np
 import gymnasium as gym
 from robo_manip_baselines.teleop import TeleopBase
 from robo_manip_baselines.common import MotionStatus
@@ -26,7 +27,7 @@ class TeleopRealUR5eDemo(TeleopBase):
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = 150
+            self.motion_manager.gripper_pos = np.array([150.0])
         else:
             super().set_gripper_command()
 

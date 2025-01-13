@@ -56,7 +56,7 @@ class RealUR5eEnvBase(RealEnvBase):
         super().__init__(**kwargs)
 
         # Setup robot
-        self.gripper_action_idx = 6
+        self.gripper_action_idxes = [6]
         self.arm_action_idxes = slice(0, 6)
         self.arm_urdf_path = path.join(
             path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
@@ -134,10 +134,10 @@ class RealUR5eEnvBase(RealEnvBase):
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[self.gripper_action_idx]
+        gripper_pos = action[self.gripper_action_idxes]
         speed = 50
         force = 10
-        self.gripper.move(int(gripper_pos), speed, force)
+        self.gripper.move(int(gripper_pos[0]), speed, force)
 
         # Wait
         elapsed_duration = time.time() - start_time

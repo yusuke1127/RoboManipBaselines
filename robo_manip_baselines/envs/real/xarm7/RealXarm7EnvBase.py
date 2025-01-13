@@ -56,7 +56,7 @@ class RealXarm7EnvBase(RealEnvBase):
         super().__init__(**kwargs)
 
         # Setup robot
-        self.gripper_action_idx = 7
+        self.gripper_action_idxes = [7]
         self.arm_action_idxes = slice(0, 7)
         self.arm_urdf_path = path.join(
             path.dirname(__file__), "../../assets/common/robots/xarm7/xarm7.urdf"
@@ -138,8 +138,8 @@ class RealXarm7EnvBase(RealEnvBase):
             raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 
         # Send command to xArm gripper
-        gripper_pos = action[self.gripper_action_idx]
-        xarm_code = self.xarm_api.set_gripper_position(gripper_pos, wait=False)
+        gripper_pos = action[self.gripper_action_idxes]
+        xarm_code = self.xarm_api.set_gripper_position(gripper_pos[0], wait=False)
         if xarm_code != 0:
             raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
 

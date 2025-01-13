@@ -41,7 +41,7 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
         self.init_qpos[len(init_qpos) : 2 * len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_action_idx = 6
+        self.gripper_action_idxes = [6]
         self.arm_action_idxes = slice(0, 6)
 
     def step(self, action):
