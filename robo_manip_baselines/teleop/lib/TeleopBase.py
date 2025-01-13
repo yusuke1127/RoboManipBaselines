@@ -229,6 +229,11 @@ class TeleopBase(metaclass=ABCMeta):
                 and self.spacemouse_state.buttons[0] <= 0
             ):
                 self.motion_manager.gripper_pos -= self.gripper_scale
+            self.motion_manager.gripper_pos = np.clip(
+                self.motion_manager.gripper_pos,
+                self.env.action_space.low[self.env.unwrapped.gripper_action_idx],
+                self.env.action_space.high[self.env.unwrapped.gripper_action_idx],
+            )
 
     def record_data(self, obs, action, info):
         # Add time

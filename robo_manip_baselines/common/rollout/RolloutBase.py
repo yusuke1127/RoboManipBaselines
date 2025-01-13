@@ -198,9 +198,11 @@ class RolloutBase(metaclass=ABCMeta):
                 self.env.unwrapped.gripper_action_idx
             ]
         elif self.data_manager.status == MotionStatus.TELEOP:
-            self.motion_manager.gripper_pos = self.pred_action[
-                self.env.unwrapped.gripper_action_idx
-            ]
+            self.motion_manager.gripper_pos = np.clip(
+                self.pred_action[self.env.unwrapped.gripper_action_idx],
+                self.env.action_space.low[self.env.unwrapped.gripper_action_idx],
+                self.env.action_space.high[self.env.unwrapped.gripper_action_idx],
+            )
 
     @abstractmethod
     def infer_policy(self):
