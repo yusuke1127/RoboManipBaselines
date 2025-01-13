@@ -29,7 +29,7 @@ class MotionManager(object):
 
         # Setup arm
         self.joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.ik_arm_joint_ids
+            self.env.unwrapped.arm_action_idxes
         ].copy()
         self.forward_kinematics()
         self._original_target_se3 = self.pin_data.oMi[
@@ -45,7 +45,7 @@ class MotionManager(object):
     def reset(self):
         """Reset states of arm and gripper."""
         self.joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.ik_arm_joint_ids
+            self.env.unwrapped.arm_action_idxes
         ].copy()
         self.target_se3 = self._original_target_se3.copy()
         self.gripper_pos = self.env.unwrapped.init_qpos[

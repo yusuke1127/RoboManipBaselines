@@ -28,7 +28,6 @@ class MujocoXarm7EnvBase(MujocoEnvBase):
         )
         self.arm_root_pose = self.get_body_pose("xarm7_root_frame")
         self.ik_eef_joint_id = 7
-        self.ik_arm_joint_ids = slice(0, 7)
         self.init_qpos[: len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 

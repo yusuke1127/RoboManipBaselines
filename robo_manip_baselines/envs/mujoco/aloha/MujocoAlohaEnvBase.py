@@ -37,7 +37,6 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
         )
         self.arm_root_pose = self.get_body_pose("left/base_link")
         self.ik_eef_joint_id = 6
-        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos[0 : len(init_qpos)] = init_qpos
         self.init_qpos[len(init_qpos) : 2 * len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0

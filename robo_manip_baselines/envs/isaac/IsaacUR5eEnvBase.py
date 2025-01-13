@@ -37,7 +37,6 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         )
         self.arm_root_pose = self.get_link_pose("ur5e", "base_link")
         self.ik_eef_joint_id = 6
-        self.ik_arm_joint_ids = slice(0, 6)
 
         # Setup environment parameters
         self.skip_sim = 2
