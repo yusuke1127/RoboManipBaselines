@@ -38,7 +38,7 @@ class MotionManager(object):
         self.target_se3 = self._original_target_se3.copy()
 
         # Setup gripper
-        self._gripper_pos = self.env.unwrapped.init_qpos[
+        self.gripper_pos = self.env.unwrapped.init_qpos[
             self.env.unwrapped.gripper_action_idx
         ]
 
@@ -171,17 +171,3 @@ class MotionManager(object):
     def current_se3(self):
         """Get the current pose of the end-effector."""
         return self.pin_data.oMi[self.env.unwrapped.ik_eef_joint_id]
-
-    @property
-    def gripper_pos(self):
-        """Get the target gripper position."""
-        return self._gripper_pos
-
-    @gripper_pos.setter
-    def gripper_pos(self, new_gripper_pos):
-        """Set the target gripper position."""
-        self._gripper_pos = np.clip(
-            new_gripper_pos,
-            self.env.action_space.low[self.env.unwrapped.gripper_action_idx],
-            self.env.action_space.high[self.env.unwrapped.gripper_action_idx],
-        )
