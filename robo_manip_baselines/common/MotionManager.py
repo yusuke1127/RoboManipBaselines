@@ -28,8 +28,8 @@ class MotionManager(object):
         self.pin_data_obs = self.pin_model.createData()
 
         # Setup arm
-        self.joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.arm_action_idxes
+        self.arm_joint_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.arm_joint_idxes
         ].copy()
         self.forward_kinematics()
         self._original_target_se3 = self.pin_data.oMi[
@@ -38,25 +38,25 @@ class MotionManager(object):
         self.target_se3 = self._original_target_se3.copy()
 
         # Setup gripper
-        self.gripper_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_action_idxes
+        self.gripper_joint_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.gripper_joint_idxes
         ]
 
     def reset(self):
         """Reset states of arm and gripper."""
         # Reset arm
-        self.joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.arm_action_idxes
+        self.arm_joint_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.arm_joint_idxes
         ].copy()
         self.target_se3 = self._original_target_se3.copy()
 
         # Reset gripper
-        self.gripper_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_action_idxes
+        self.gripper_joint_pos = self.env.unwrapped.init_qpos[
+            self.env.unwrapped.gripper_joint_idxes
         ]
 
     def forward_kinematics(self):
-        pin.forwardKinematics(self.pin_model, self.pin_data, self.joint_pos)
+        pin.forwardKinematics(self.pin_model, self.pin_data, self.arm_joint_pos)
 
     def inverse_kinematics(self):
         """Solve inverse kinematics."""
@@ -66,7 +66,7 @@ class MotionManager(object):
         J = pin.computeJointJacobian(
             self.pin_model,
             self.pin_data,
-            self.joint_pos,
+            self.arm_joint_pos,
             self.env.unwrapped.ik_eef_joint_id,
         )  # in joint frame
         J = -1 * np.dot(pin.Jlog6(error_se3.inverse()), J)
@@ -78,7 +78,9 @@ class MotionManager(object):
                 error_vec,
             )
         )
-        self.joint_pos = pin.integrate(self.pin_model, self.joint_pos, delta_joint_pos)
+        self.arm_joint_pos = pin.integrate(
+            self.pin_model, self.arm_joint_pos, delta_joint_pos
+        )
         self.forward_kinematics()
 
     def set_relative_target_se3(
@@ -114,7 +116,7 @@ class MotionManager(object):
 
     def get_action(self):
         """Get action for Gym."""
-        return np.concatenate([self.joint_pos, self.gripper_pos])
+        return np.concatenate([self.arm_joint_pos, self.gripper_joint_pos])
 
     def get_measured_data(self, key, obs):
         """Get measured data from observation by specifying a key."""

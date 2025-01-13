@@ -31,8 +31,8 @@ class TeleopMujocoUR5eCloth(TeleopBase):
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.low[
-                self.env.unwrapped.gripper_action_idxes
+            self.motion_manager.gripper_joint_pos = self.env.action_space.low[
+                self.env.unwrapped.gripper_joint_idxes
             ]
         else:
             super().set_gripper_command()

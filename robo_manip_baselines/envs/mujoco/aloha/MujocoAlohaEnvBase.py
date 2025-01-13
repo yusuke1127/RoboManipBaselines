@@ -41,8 +41,8 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
         self.init_qpos[len(init_qpos) : 2 * len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_action_idxes = [6]
-        self.arm_action_idxes = slice(0, 6)
+        self.gripper_joint_idxes = [6]
+        self.arm_joint_idxes = slice(0, 6)
 
     def step(self, action):
         # Copy the same action to both arms
@@ -79,28 +79,28 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
                 obs[joint_pos_key][joint_idx] = self.data.joint(joint_name).qpos[0]
                 obs[joint_vel_key][joint_idx] = self.data.joint(joint_name).qvel[0]
 
-            gripper_joint_qpos = np.zeros(2)
-            gripper_joint_qvel = np.zeros(2)
-            for joint_idx, joint_name in enumerate(single_gripper_joint_name_list):
+            gripper_joint_qpos = []
+            gripper_joint_qvel = []
+            for joint_name in single_gripper_joint_name_list:
                 joint_name = f"{arm_name}/{joint_name}"
-                gripper_joint_qpos[joint_idx] = self.data.joint(joint_name).qpos[0]
-                gripper_joint_qvel[joint_idx] = self.data.joint(joint_name).qvel[0]
-            obs[joint_pos_key][-1] = gripper_joint_qpos.mean()
-            obs[joint_vel_key][-1] = gripper_joint_qvel.mean()
+                gripper_joint_qpos.append(self.data.joint(joint_name).qpos[0])
+                gripper_joint_qvel.append(self.data.joint(joint_name).qvel[0])
+            obs[joint_pos_key][-1] = np.array(gripper_joint_qpos).mean()
+            obs[joint_vel_key][-1] = np.array(gripper_joint_qvel).mean()
 
         return obs
 
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["left/joint_pos"][self.arm_action_idxes]
+            return obs["left/joint_pos"][self.arm_joint_idxes]
         else:
             return obs["left/joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["left/joint_vel"][self.arm_action_idxes]
+            return obs["left/joint_vel"][self.arm_joint_idxes]
         else:
             return obs["left/joint_vel"]
 

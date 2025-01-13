@@ -215,24 +215,24 @@ class TeleopBase(metaclass=ABCMeta):
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
-            self.motion_manager.gripper_pos = self.env.action_space.high[
-                self.env.unwrapped.gripper_action_idxes
+            self.motion_manager.gripper_joint_pos = self.env.action_space.high[
+                self.env.unwrapped.gripper_joint_idxes
             ]
         elif self.data_manager.status == MotionStatus.TELEOP:
             if (
                 self.spacemouse_state.buttons[0] > 0
                 and self.spacemouse_state.buttons[-1] <= 0
             ):
-                self.motion_manager.gripper_pos += self.gripper_scale
+                self.motion_manager.gripper_joint_pos += self.gripper_scale
             elif (
                 self.spacemouse_state.buttons[-1] > 0
                 and self.spacemouse_state.buttons[0] <= 0
             ):
-                self.motion_manager.gripper_pos -= self.gripper_scale
-            self.motion_manager.gripper_pos = np.clip(
-                self.motion_manager.gripper_pos,
-                self.env.action_space.low[self.env.unwrapped.gripper_action_idxes],
-                self.env.action_space.high[self.env.unwrapped.gripper_action_idxes],
+                self.motion_manager.gripper_joint_pos -= self.gripper_scale
+            self.motion_manager.gripper_joint_pos = np.clip(
+                self.motion_manager.gripper_joint_pos,
+                self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
+                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
 
     def record_data(self, obs, action, info):

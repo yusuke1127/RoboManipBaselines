@@ -31,8 +31,8 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         self.init_qpos[: len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_action_idxes = [6]
-        self.arm_action_idxes = slice(0, 6)
+        self.gripper_joint_idxes = [6]
+        self.arm_joint_idxes = slice(0, 6)
 
     def _get_obs(self):
         arm_joint_name_list = [
@@ -50,10 +50,10 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
             "left_spring_link_joint",
         ]
 
-        arm_qpos = np.array(
+        arm_joint_pos = np.array(
             [self.data.joint(joint_name).qpos[0] for joint_name in arm_joint_name_list]
         )
-        arm_qvel = np.array(
+        arm_joint_vel = np.array(
             [self.data.joint(joint_name).qvel[0] for joint_name in arm_joint_name_list]
         )
         gripper_qpos = np.array(
@@ -62,13 +62,17 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
                 for joint_name in gripper_joint_name_list
             ]
         )
-        gripper_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
-        gripper_vel = np.zeros(1)
+        gripper_joint_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
+        gripper_joint_vel = np.zeros(1)
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
 
         return {
-            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+            "joint_pos": np.concatenate(
+                (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+            ),
+            "joint_vel": np.concatenate(
+                (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+            ),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }

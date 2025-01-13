@@ -65,7 +65,7 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         return observation, info
 
     def step(self, action):
-        self._set_action(action, duration=self.dt, qvel_limit_scale=2.0, wait=True)
+        self._set_action(action, duration=self.dt, joint_vel_limit_scale=2.0, wait=True)
 
         observation = self._get_obs()
         reward = 0.0
@@ -118,14 +118,14 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
         """Get joint position from observation."""
         if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
+            return obs["joint_pos"][self.arm_joint_idxes]
         else:
             return obs["joint_pos"]
 
     def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
         """Get joint velocity from observation."""
         if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
+            return obs["joint_vel"][self.arm_joint_idxes]
         else:
             return obs["joint_vel"]
 
