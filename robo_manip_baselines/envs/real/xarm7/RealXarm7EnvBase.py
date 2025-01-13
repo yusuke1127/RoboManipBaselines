@@ -63,7 +63,6 @@ class RealXarm7EnvBase(RealEnvBase):
         )
         self.arm_root_pose = None
         self.ik_eef_joint_id = 7
-        self.ik_arm_joint_ids = slice(0, 7)
         self.init_qpos = init_qpos
         self.qvel_limit = np.deg2rad(180)  # [rad/s]
 

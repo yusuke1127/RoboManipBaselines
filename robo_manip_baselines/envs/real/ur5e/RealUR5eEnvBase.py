@@ -63,7 +63,6 @@ class RealUR5eEnvBase(RealEnvBase):
         )
         self.arm_root_pose = None
         self.ik_eef_joint_id = 6
-        self.ik_arm_joint_ids = slice(0, 6)
         self.init_qpos = init_qpos
         self.qvel_limit = np.deg2rad(191)  # [rad/s]
 
