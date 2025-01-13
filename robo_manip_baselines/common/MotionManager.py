@@ -39,17 +39,20 @@ class MotionManager(object):
 
         # Setup gripper
         self.gripper_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_action_idx
+            self.env.unwrapped.gripper_action_idxes
         ]
 
     def reset(self):
         """Reset states of arm and gripper."""
+        # Reset arm
         self.joint_pos = self.env.unwrapped.init_qpos[
             self.env.unwrapped.arm_action_idxes
         ].copy()
         self.target_se3 = self._original_target_se3.copy()
+
+        # Reset gripper
         self.gripper_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_action_idx
+            self.env.unwrapped.gripper_action_idxes
         ]
 
     def forward_kinematics(self):
@@ -111,7 +114,7 @@ class MotionManager(object):
 
     def get_action(self):
         """Get action for Gym."""
-        return np.concatenate([self.joint_pos, [self.gripper_pos]])
+        return np.concatenate([self.joint_pos, self.gripper_pos])
 
     def get_measured_data(self, key, obs):
         """Get measured data from observation by specifying a key."""

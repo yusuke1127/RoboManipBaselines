@@ -27,7 +27,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.render_mode = kwargs.get("render_mode")
 
         # Setup Isaac Gym
-        self.gripper_action_idx = 6
+        self.gripper_action_idxes = [6]
         self.arm_action_idxes = slice(0, 6)
         self.setupSim(num_envs)
 
@@ -535,13 +535,13 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         robot_dof_pos = np.zeros(robot_num_dofs, dtype=np.float32)
         robot_dof_pos[0:6] = qpos[self.arm_action_idxes]
         robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(
-            qpos[self.gripper_action_idx]
+            qpos[self.gripper_action_idxes]
         )
         return robot_dof_pos
 
     def get_gripper_dof_pos_from_gripper_pos(self, gripper_pos):
         return (
-            gripper_pos
+            gripper_pos[0]
             * self.gripper_command_scale
             * self.gripper_mimic_multiplier_list
         )

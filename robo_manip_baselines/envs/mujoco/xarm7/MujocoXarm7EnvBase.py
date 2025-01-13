@@ -31,7 +31,7 @@ class MujocoXarm7EnvBase(MujocoEnvBase):
         self.init_qpos[: len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_action_idx = 7
+        self.gripper_action_idxes = [7]
         self.arm_action_idxes = slice(0, 7)
 
     def _get_obs(self):

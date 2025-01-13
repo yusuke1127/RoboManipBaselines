@@ -195,13 +195,13 @@ class RolloutBase(metaclass=ABCMeta):
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
             self.motion_manager.gripper_pos = self.env.action_space.high[
-                self.env.unwrapped.gripper_action_idx
+                self.env.unwrapped.gripper_action_idxes
             ]
         elif self.data_manager.status == MotionStatus.TELEOP:
             self.motion_manager.gripper_pos = np.clip(
-                self.pred_action[self.env.unwrapped.gripper_action_idx],
-                self.env.action_space.low[self.env.unwrapped.gripper_action_idx],
-                self.env.action_space.high[self.env.unwrapped.gripper_action_idx],
+                self.pred_action[self.env.unwrapped.gripper_action_idxes],
+                self.env.action_space.low[self.env.unwrapped.gripper_action_idxes],
+                self.env.action_space.high[self.env.unwrapped.gripper_action_idxes],
             )
 
     @abstractmethod
