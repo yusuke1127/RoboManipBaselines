@@ -78,14 +78,21 @@ class MotionManager(object):
         self.joint_pos = pin.integrate(self.pin_model, self.joint_pos, delta_joint_pos)
         self.forward_kinematics()
 
-    def set_relative_target_se3(self, delta_pos=None, delta_rpy=None):
+    def set_relative_target_se3(
+        self, delta_pos=None, delta_rpy=None, is_delta_rpy_in_world_frame=True
+    ):
         """Set the target pose of the end-effector relatively."""
         if delta_pos is not None:
             self.target_se3.translation += delta_pos
         if delta_rpy is not None:
-            self.target_se3.rotation = np.matmul(
-                pin.rpy.rpyToMatrix(*delta_rpy), self.target_se3.rotation
-            )
+            if is_delta_rpy_in_world_frame:
+                self.target_se3.rotation = (
+                    pin.rpy.rpyToMatrix(*delta_rpy) @ self.target_se3.rotation
+                )
+            else:
+                self.target_se3.rotation = (
+                    self.target_se3.rotation @ pin.rpy.rpyToMatrix(*delta_rpy)
+                )
 
     def draw_markers(self):
         """Draw markers of the current and target poses of the end-effector to viewer."""

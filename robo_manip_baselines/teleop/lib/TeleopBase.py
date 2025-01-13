@@ -209,7 +209,9 @@ class TeleopBase(metaclass=ABCMeta):
                     -2.0 * self.spacemouse_state.yaw,
                 ]
             )
-            self.motion_manager.set_relative_target_se3(delta_pos, delta_rpy)
+            self.motion_manager.set_relative_target_se3(
+                delta_pos, delta_rpy=delta_rpy, is_delta_rpy_in_world_frame=True
+            )
 
     def set_gripper_command(self):
         if self.data_manager.status == MotionStatus.GRASP:
