@@ -170,12 +170,14 @@ class DataManager(object):
                 else:
                     current_pose = all_data_seq[eef_pose_key][time_idx]
                     prev_pose = all_data_seq[eef_pose_key][time_idx - 1]
-                    rel_aa = pin.AngleAxis(
-                        pin.Quaternion(*prev_pose[3:7]).inverse()
-                        * pin.Quaternion(*current_pose[3:7])
+                    rel_rpy = pin.rpy.matrixToRpy(
+                        (
+                            pin.Quaternion(*prev_pose[3:7]).inverse()
+                            * pin.Quaternion(*current_pose[3:7])
+                        ).toRotationMatrix()
                     )
                     rel_pose = np.concatenate(
-                        [current_pose[0:3] - prev_pose[0:3], rel_aa.angle * rel_aa.axis]
+                        [current_pose[0:3] - prev_pose[0:3], rel_rpy]
                     )
                 all_data_seq[eef_pose_rel_key].append(rel_pose)
             all_data_seq[eef_pose_rel_key] = np.array(all_data_seq[eef_pose_rel_key])
