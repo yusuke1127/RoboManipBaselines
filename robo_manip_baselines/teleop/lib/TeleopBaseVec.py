@@ -90,34 +90,31 @@ class TeleopBaseVec(TeleopBase):
                 self.data_manager.status == MotionStatus.TELEOP
                 and self.args.replay_log is None
             ):
+                # Add time
                 self.data_manager.append_single_data(
                     DataKey.TIME,
                     [self.data_manager.status_elapsed_duration]
                     * self.env.unwrapped.num_envs,
                 )
-                self.data_manager.append_single_data(
+
+                # Add measured data
+                for key in (
                     DataKey.MEASURED_JOINT_POS,
-                    [
-                        self.motion_manager.get_measured_joint_pos(obs)
-                        for obs in obs_list
-                    ],
-                )
+                    DataKey.MEASURED_JOINT_VEL,
+                    DataKey.MEASURED_EEF_POSE,
+                    DataKey.MEASURED_EEF_WRENCH,
+                ):
+                    self.data_manager.append_single_data(
+                        key,
+                        [
+                            self.motion_manager.get_measured_data(key, obs)
+                            for obs in obs_list
+                        ],
+                    )
+
+                # Add command data
                 self.data_manager.append_single_data(
                     DataKey.COMMAND_JOINT_POS, action_list
-                )
-                self.data_manager.append_single_data(
-                    DataKey.MEASURED_JOINT_VEL,
-                    [
-                        self.motion_manager.get_measured_joint_vel(obs)
-                        for obs in obs_list
-                    ],
-                )
-                self.data_manager.append_single_data(
-                    DataKey.MEASURED_EEF_POSE,
-                    [
-                        self.motion_manager.get_measured_eef_pose(obs)
-                        for obs in obs_list
-                    ],
                 )
                 # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
                 self.data_manager.append_single_data(
@@ -125,13 +122,8 @@ class TeleopBaseVec(TeleopBase):
                     [self.motion_manager.get_command_eef_pose()]
                     * self.env.unwrapped.num_envs,
                 )
-                self.data_manager.append_single_data(
-                    DataKey.MEASURED_EEF_WRENCH,
-                    [
-                        self.motion_manager.get_measured_eef_wrench(obs)
-                        for obs in obs_list
-                    ],
-                )
+
+                # Add image
                 for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.append_single_data(
                         DataKey.get_rgb_image_key(camera_name),
