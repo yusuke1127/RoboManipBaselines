@@ -70,7 +70,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         else:
             self.front_image_history.pop(0)
             self.front_image_history.append(self.front_image)
-        obs_joint = self.motion_manager.get_joint_pos(self.obs)
+        obs_joint = self.motion_manager.get_measured_joint_pos(self.obs)
         if self.obs_joint_history is None:
             self.obs_joint_history = []
             for _ in range(self.n_obs_steps):

@@ -116,26 +116,26 @@ class MotionManager(object):
     def get_measured_data(self, key, obs):
         """Get measured data from observation by specifying a key."""
         if key == DataKey.MEASURED_JOINT_POS:
-            return self.get_joint_pos(obs)
+            return self.get_measured_joint_pos(obs)
         elif key == DataKey.MEASURED_JOINT_VEL:
-            return self.get_joint_vel(obs)
+            return self.get_measured_joint_vel(obs)
         elif key == DataKey.MEASURED_EEF_POSE:
             return self.get_measured_eef_pose(obs)
         elif key == DataKey.MEASURED_EEF_WRENCH:
-            return self.get_eef_wrench(obs)
+            return self.get_measured_eef_wrench(obs)
         else:
             raise RuntimeError(f"[MotionManager] Invalid data key: {key}")
 
-    def get_joint_pos(self, obs):
-        """Get joint position from observation."""
+    def get_measured_joint_pos(self, obs):
+        """Get measured joint position from observation."""
         return self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=False)
 
-    def get_joint_vel(self, obs):
-        """Get joint velocity from observation."""
+    def get_measured_joint_vel(self, obs):
+        """Get measured joint velocity from observation."""
         return self.env.unwrapped.get_joint_vel_from_obs(obs, exclude_gripper=False)
 
-    def get_eef_wrench(self, obs):
-        """Get end-effector wrench from observation."""
+    def get_measured_eef_wrench(self, obs):
+        """Get measured end-effector wrench from observation."""
         return self.env.unwrapped.get_eef_wrench_from_obs(obs)
 
     def get_measured_eef_pose(self, obs):
