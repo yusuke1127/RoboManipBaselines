@@ -37,10 +37,12 @@ class DataManagerVec(DataManager):
             data_seq_list.append(data_seq)
         return data_seq_list
 
-    def finalize_data(self):
-        """Finalize data."""
-        for all_data_seq in self.all_data_seq_list:
-            super().finalize_data(all_data_seq)
+    def calc_relative_data(self, key):
+        """Calculate relative data."""
+        return [
+            super(DataManagerVec, self).calc_relative_data(key, all_data_seq)
+            for all_data_seq in self.all_data_seq_list
+        ]
 
     def save_data(self, filename_list):
         """Save data."""

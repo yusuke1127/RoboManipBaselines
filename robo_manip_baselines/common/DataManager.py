@@ -52,6 +52,34 @@ class DataKey(object):
     COMMAND_EEF_WRENCH = "command_eef_wrench"
 
     @classmethod
+    def get_rel_key(cls, key):
+        """Get the relative key corresponding to the absolute key."""
+        if key == DataKey.MEASURED_JOINT_POS:
+            return DataKey.MEASURED_JOINT_POS_REL
+        elif key == DataKey.COMMAND_JOINT_POS:
+            return DataKey.COMMAND_JOINT_POS_REL
+        elif key == DataKey.MEASURED_EEF_POSE:
+            return DataKey.MEASURED_EEF_POSE_REL
+        elif key == DataKey.COMMAND_EEF_POSE:
+            return DataKey.COMMAND_EEF_POSE_REL
+        else:
+            raise RuntimeError(f"[DataKey] Relative data key not found: {key}")
+
+    @classmethod
+    def get_abs_key(cls, key):
+        """Get the absolute key corresponding to the relative key."""
+        if key == DataKey.MEASURED_JOINT_POS_REL:
+            return DataKey.MEASURED_JOINT_POS
+        elif key == DataKey.COMMAND_JOINT_POS_REL:
+            return DataKey.COMMAND_JOINT_POS
+        elif key == DataKey.MEASURED_EEF_POSE_REL:
+            return DataKey.MEASURED_EEF_POSE
+        elif key == DataKey.COMMAND_EEF_POSE_REL:
+            return DataKey.COMMAND_EEF_POSE
+        else:
+            raise RuntimeError(f"[DataKey] Absolute data key not found: {key}")
+
+    @classmethod
     def get_rgb_image_key(cls, camera_name):
         """Get the rgb image key from the camera name."""
         return camera_name.lower() + "_rgb_image"
@@ -136,51 +164,34 @@ class DataManager(object):
         data_seq = self.all_data_seq[key]
         return data_seq
 
-    def finalize_data(self, all_data_seq=None):
-        """Finalize data."""
+    def calc_relative_data(self, key, all_data_seq=None):
+        """Calculate relative data."""
         if all_data_seq is None:
             all_data_seq = self.all_data_seq
 
-        # Convert list data to numpy array
-        for key in all_data_seq.keys():
-            if isinstance(all_data_seq[key], list):
-                all_data_seq[key] = np.array(all_data_seq[key])
+        abs_key = DataKey.get_abs_key(key)
 
-        # Set relative joint position
-        for joint_pos_key, joint_pos_rel_key in [
-            (DataKey.MEASURED_JOINT_POS, DataKey.MEASURED_JOINT_POS_REL),
-            (DataKey.COMMAND_JOINT_POS, DataKey.COMMAND_JOINT_POS_REL),
-        ]:
-            all_data_seq[joint_pos_rel_key] = np.concatenate(
-                [
-                    np.zeros((1, len(all_data_seq[joint_pos_key][0]))),
-                    all_data_seq[joint_pos_key][1:] - all_data_seq[joint_pos_key][:-1],
-                ]
-            )
-
-        # Set relative end-effector pose
-        for eef_pose_key, eef_pose_rel_key in [
-            (DataKey.MEASURED_EEF_POSE, DataKey.MEASURED_EEF_POSE_REL),
-            (DataKey.COMMAND_EEF_POSE, DataKey.COMMAND_EEF_POSE_REL),
-        ]:
-            all_data_seq[eef_pose_rel_key] = []
-            for time_idx in range(len(all_data_seq[DataKey.TIME])):
-                if time_idx == 0:
-                    rel_pose = np.zeros(6)
-                else:
-                    current_pose = all_data_seq[eef_pose_key][time_idx]
-                    prev_pose = all_data_seq[eef_pose_key][time_idx - 1]
-                    rel_rpy = pin.rpy.matrixToRpy(
-                        (
-                            pin.Quaternion(*prev_pose[3:7]).inverse()
-                            * pin.Quaternion(*current_pose[3:7])
-                        ).toRotationMatrix()
-                    )
-                    rel_pose = np.concatenate(
-                        [current_pose[0:3] - prev_pose[0:3], rel_rpy]
-                    )
-                all_data_seq[eef_pose_rel_key].append(rel_pose)
-            all_data_seq[eef_pose_rel_key] = np.array(all_data_seq[eef_pose_rel_key])
+        if key in (DataKey.MEASURED_JOINT_POS_REL, DataKey.COMMAND_JOINT_POS_REL):
+            if len(all_data_seq[abs_key]) < 2:
+                return np.zeros_like(all_data_seq[abs_key][0])
+            else:
+                current_pos = all_data_seq[abs_key][-1]
+                prev_pos = all_data_seq[abs_key][-2]
+                return current_pos - prev_pos
+        elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
+            if len(all_data_seq[abs_key]) < 2:
+                return np.zeros(6)
+            else:
+                current_pose = all_data_seq[abs_key][-1]
+                prev_pose = all_data_seq[abs_key][-2]
+                rel_pos = current_pose[0:3] - prev_pose[0:3]
+                rel_rpy = pin.rpy.matrixToRpy(
+                    (
+                        pin.Quaternion(*prev_pose[3:7]).inverse()
+                        * pin.Quaternion(*current_pose[3:7])
+                    ).toRotationMatrix()
+                )
+                return np.concatenate([rel_pos, rel_rpy])
 
     def save_data(self, filename, all_data_seq=None, increment_episode_idx=True):
         """Save data."""
@@ -203,9 +214,7 @@ class DataManager(object):
         with h5py.File(filename, "w") as h5file:
             for key in all_data_seq.keys():
                 if isinstance(all_data_seq[key], list):
-                    raise RuntimeError(
-                        "[DataManager] List data is not assumed. finalize_data() should be called first."
-                    )
+                    h5file.create_dataset(key, data=np.array(all_data_seq[key]))
                 elif isinstance(all_data_seq[key], np.ndarray):
                     h5file.create_dataset(key, data=all_data_seq[key])
                 else:

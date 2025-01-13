@@ -123,6 +123,17 @@ class TeleopBaseVec(TeleopBase):
                     * self.env.unwrapped.num_envs,
                 )
 
+                # Add relative data
+                for key in (
+                    DataKey.MEASURED_JOINT_POS_REL,
+                    DataKey.COMMAND_JOINT_POS_REL,
+                    DataKey.MEASURED_EEF_POSE_REL,
+                    DataKey.COMMAND_EEF_POSE_REL,
+                ):
+                    self.data_manager.append_single_data(
+                        key, self.data_manager.calc_relative_data(key)
+                    )
+
                 # Add image
                 for camera_name in self.env.unwrapped.camera_names:
                     self.data_manager.append_single_data(
@@ -194,7 +205,6 @@ class TeleopBaseVec(TeleopBase):
                 extra_label,
             )
             filename_list.append(filename)
-        self.data_manager.finalize_data()
         self.data_manager.save_data(filename_list)
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:
