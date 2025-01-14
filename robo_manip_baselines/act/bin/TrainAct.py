@@ -56,10 +56,11 @@ class TrainAct(object):
             help="state data keys",
         )
         parser.add_argument(
-            "--action_key",
-            default=DataKey.COMMAND_JOINT_POS,
+            "--action_keys",
+            default=[DataKey.COMMAND_JOINT_POS],
+            nargs="+",
             type=str,
-            help="action data key",
+            help="action data keys",
         )
         parser.add_argument(
             "--camera_names",
@@ -141,7 +142,13 @@ class TrainAct(object):
                             ],
                             axis=1,
                         )
-                    action = h5file[self.args.action_key][:: self.args.skip][()]
+                    action = np.concatenate(
+                        [
+                            h5file[action_key][:: self.args.skip][()]
+                            for action_key in self.args.action_keys
+                        ],
+                        axis=1,
+                    )
                     all_state.append(state)
                     all_action.append(action)
             all_state = np.concatenate(all_state, dtype=np.float32)
@@ -164,7 +171,7 @@ class TrainAct(object):
                 "example_action": all_action[0],
                 # Args
                 "state_keys": self.args.state_keys,
-                "action_key": self.args.action_key,
+                "action_keys": self.args.action_keys,
                 "camera_names": self.args.camera_names,
                 "skip": self.args.skip,
             }
@@ -176,7 +183,7 @@ class TrainAct(object):
             dataset = RmbActDataset(
                 filenames,
                 self.args.state_keys,
-                self.args.action_key,
+                self.args.action_keys,
                 self.args.camera_names,
                 self.dataset_stats,
                 self.args.skip,
@@ -205,15 +212,15 @@ class TrainAct(object):
         set_seed(self.args.seed)
 
         # Set dimensions of state and action
-        state_dim = self.train_dataloader.dataset[0][1].shape[0]
-        action_dim = self.train_dataloader.dataset[0][2].shape[1]
+        state_dim = self.train_dataloader.dataset[0][0].shape[0]
+        action_dim = self.train_dataloader.dataset[0][1].shape[1]
         DETRVAE.set_state_dim(state_dim)
         DETRVAE.set_action_dim(action_dim)
         print(
             "[TrainAct] Construct ACT policy.\n"
             f"  - state dim: {state_dim}, action dim: {action_dim}\n"
             f"  - state keys: {self.args.state_keys}\n"
-            f"  - action key: {self.args.action_key}\n"
+            f"  - action key: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}"
         )
 
