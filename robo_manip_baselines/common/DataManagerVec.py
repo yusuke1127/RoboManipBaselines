@@ -1,5 +1,6 @@
 import h5py
-from .DataManager import MotionStatus, DataKey, DataManager
+from .DataKey import DataKey
+from .DataManager import MotionStatus, DataManager
 
 
 class DataManagerVec(DataManager):
