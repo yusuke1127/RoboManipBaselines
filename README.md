@@ -23,9 +23,6 @@ Action Chunking with Transformers
 ### [DiffusionPolicy](./robo_manip_baselines/diffusion_policy)
 Diffusion Policy
 
-### [MT-ACT](./robo_manip_baselines/mt_act)
-Multi-Task Action Chunking Transformer
-
 ## Data
 ### Publicly available datasets
 See [the dataset list](./doc/dataset_list.md).
