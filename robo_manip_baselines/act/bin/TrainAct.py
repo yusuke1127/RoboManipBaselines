@@ -49,17 +49,17 @@ class TrainAct(object):
             help="checkpoint directory",
         )
         parser.add_argument(
-            "--action_key",
-            default=DataKey.COMMAND_JOINT_POS,
-            type=str,
-            help="action data key",
-        )
-        parser.add_argument(
             "--state_keys",
             default=[DataKey.MEASURED_JOINT_POS],
             nargs="*",
             type=str,
             help="state data keys",
+        )
+        parser.add_argument(
+            "--action_key",
+            default=DataKey.COMMAND_JOINT_POS,
+            type=str,
+            help="action data key",
         )
         parser.add_argument(
             "--camera_names",
@@ -163,8 +163,8 @@ class TrainAct(object):
                 "example_state": all_state[0],
                 "example_action": all_action[0],
                 # Args
-                "action_key": self.args.action_key,
                 "state_keys": self.args.state_keys,
+                "action_key": self.args.action_key,
                 "camera_names": self.args.camera_names,
                 "skip": self.args.skip,
             }
@@ -175,8 +175,8 @@ class TrainAct(object):
         def make_dataloader(filenames):
             dataset = RmbActDataset(
                 filenames,
-                self.args.action_key,
                 self.args.state_keys,
+                self.args.action_key,
                 self.args.camera_names,
                 self.dataset_stats,
                 self.args.skip,
@@ -337,9 +337,9 @@ class TrainAct(object):
         return best_ckpt_info
 
     def forward_pass(self, data):
-        image_tensor, joint_tensor, action_tensor, is_pad_tensor = data
+        state_tensor, action_tensor, image_tensor, is_pad_tensor = data
         return self.policy(
-            joint_tensor.cuda(),
+            state_tensor.cuda(),
             image_tensor.cuda(),
             action_tensor.cuda(),
             is_pad_tensor.cuda(),
