@@ -8,6 +8,8 @@ $ cd RoboManipBaselines
 $ pip install -e .
 ```
 
+**Note**: If you have problems with pip installation, such as excessive time or module version errors, please add the option `--use-deprecated=legacy-resolver`.
+
 **Note**: If you have problems installing the Pinocchio library (`pin` module) from `pip` in certain environments (e.g. Ubuntu 20.04), you can also install it via `apt`. See [here](https://stack-of-tasks.github.io/pinocchio/download.html#Install) for details.
 
 This common installation enables data collection by teleoperation in the MuJoCo environments.
