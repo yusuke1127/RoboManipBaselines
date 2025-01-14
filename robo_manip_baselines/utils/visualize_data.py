@@ -4,7 +4,7 @@ import numpy as np
 from robo_manip_baselines.common import (
     DataKey,
     DataManager,
-    convertDepthImageToPointCloud,
+    convert_depth_image_to_point_cloud,
 )
 
 parser = argparse.ArgumentParser()
@@ -136,7 +136,7 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
         small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
         small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
         fovy = data_manager.get_data(f"{depth_key}_fovy").tolist()
-        xyz_array, rgb_array = convertDepthImageToPointCloud(
+        xyz_array, rgb_array = convert_depth_image_to_point_cloud(
             small_depth_image,
             fovy=fovy,
             rgb_image=small_rgb_image,

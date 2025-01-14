@@ -12,8 +12,8 @@ from robo_manip_baselines.common import (
     MotionStatus,
     DataKey,
     DataManager,
-    convertDepthImageToColorImage,
-    convertDepthImageToPointCloud,
+    convert_depth_image_to_color_image,
+    convert_depth_image_to_point_cloud,
 )
 
 
@@ -299,7 +299,7 @@ class TeleopBase(metaclass=ABCMeta):
                 int(resized_image_width / image_ratio),
             )
             rgb_images.append(cv2.resize(rgb_image, resized_image_size))
-            depth_image = convertDepthImageToColorImage(
+            depth_image = convert_depth_image_to_color_image(
                 info["depth_images"][camera_name]
             )
             depth_images.append(cv2.resize(depth_image, resized_image_size))
@@ -328,7 +328,7 @@ class TeleopBase(metaclass=ABCMeta):
             fovy = self.data_manager.camera_info[
                 DataKey.get_depth_image_key(camera_name) + "_fovy"
             ]
-            xyz_array, rgb_array = convertDepthImageToPointCloud(
+            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
                 small_depth_image,
                 fovy=fovy,
                 rgb_image=small_rgb_image,
