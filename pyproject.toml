@@ -88,8 +88,7 @@ real-xarm7 = [
 benchmarks = [
   "ruamel.yaml",
   "python-pptx",
-  "imageio[ffmpeg]",
-  "imageio[pyav]",
+  "imageio-ffmpeg",
   "ffmpeg-python",
 ]
 
