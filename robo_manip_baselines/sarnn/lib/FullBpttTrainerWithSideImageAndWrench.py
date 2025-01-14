@@ -5,10 +5,11 @@
 # see https://www.gnu.org/licenses/agpl-3.0.txt
 #
 
+from enum import IntEnum
+
 import torch
 import torch.nn as nn
 from eipl.utils import LossScheduler
-from enum import IntEnum
 
 
 class Loss(IntEnum):

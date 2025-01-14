@@ -1,5 +1,5 @@
-from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 from robo_manip_baselines.common.rollout import RolloutMujocoXarm7Ring
+from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 
 
 class RolloutDiffusionPolicyMujocoXarm7Ring(

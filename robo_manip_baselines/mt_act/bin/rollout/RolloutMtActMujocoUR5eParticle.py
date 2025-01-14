@@ -1,5 +1,5 @@
-from robo_manip_baselines.mt_act import RolloutMtAct
 from robo_manip_baselines.common.rollout import RolloutMujocoUR5eParticle
+from robo_manip_baselines.mt_act import RolloutMtAct
 
 
 class RolloutMtActMujocoUR5eParticle(RolloutMtAct, RolloutMujocoUR5eParticle):

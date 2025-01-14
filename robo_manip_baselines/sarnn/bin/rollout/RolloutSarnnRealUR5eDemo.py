@@ -1,5 +1,5 @@
-from robo_manip_baselines.sarnn import RolloutSarnn
 from robo_manip_baselines.common.rollout import RolloutRealUR5eDemo
+from robo_manip_baselines.sarnn import RolloutSarnn
 
 
 class RolloutSarnnRealUR5eDemo(RolloutSarnn, RolloutRealUR5eDemo):

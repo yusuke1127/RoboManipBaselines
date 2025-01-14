@@ -1,7 +1,8 @@
-import numpy as np
 import gymnasium as gym
-from robo_manip_baselines.teleop import TeleopBase
+import numpy as np
+
 from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.teleop import TeleopBase
 
 
 class TeleopRealUR5eDemo(TeleopBase):

@@ -1,9 +1,11 @@
 from os import path
-import numpy as np
 
-from isaacgym import gymapi  # noqa: F401
-from isaacgym import gymutil  # noqa: F401
-from isaacgym import gymtorch  # noqa: F401
+import numpy as np
+from isaacgym import (
+    gymapi,  # noqa: F401
+    gymtorch,  # noqa: F401
+    gymutil,  # noqa: F401
+)
 
 from .IsaacUR5eEnvBase import IsaacUR5eEnvBase
 

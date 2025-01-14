@@ -1,9 +1,11 @@
-from isaacgym import gymapi  # noqa: F401
-from isaacgym import gymutil  # noqa: F401
-from isaacgym import gymtorch  # noqa: F401
+from isaacgym import (
+    gymapi,  # noqa: F401
+    gymtorch,  # noqa: F401
+    gymutil,  # noqa: F401
+)
 
-from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 from robo_manip_baselines.common.rollout import RolloutIsaacUR5eChain
+from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 
 
 class RolloutDiffusionPolicyIsaacUR5eChain(

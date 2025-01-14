@@ -1,15 +1,17 @@
-import os
-import sys
 import argparse
+import os
 import pickle
-import numpy as np
-import matplotlib.pylab as plt
+import sys
+
 import cv2
+import matplotlib.pylab as plt
+import numpy as np
 import torch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
-from policy import ACTPolicy
 from detr.models.detr_vae import DETRVAE
+from policy import ACTPolicy
+
 from robo_manip_baselines.common.rollout import RolloutBase
 
 
@@ -57,7 +59,7 @@ class RolloutAct(RolloutBase):
             "[RolloutAct] Construct ACT policy.\n"
             f"  - state dim: {self.state_dim}, action dim: {self.action_dim}\n"
             f"  - state keys: {self.dataset_stats['state_keys']}\n"
-            f"  - action key: {self.dataset_stats['action_key']}\n"
+            f"  - action key: {self.dataset_stats['action_keys']}\n"
             f"  - camera names: {self.dataset_stats['camera_names']}"
         )
 

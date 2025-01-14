@@ -1,8 +1,9 @@
-import numpy as np
 import gymnasium as gym
+import numpy as np
 import pinocchio as pin
-from robo_manip_baselines.teleop import TeleopBase
+
 from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.teleop import TeleopBase
 
 
 class TeleopMujocoXarm7Cable(TeleopBase):

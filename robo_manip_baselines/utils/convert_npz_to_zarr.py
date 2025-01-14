@@ -1,11 +1,13 @@
-from tqdm import tqdm
-import numpy as np
-import glob
-import zarr
 import argparse
+import glob
 import os
-import cv2
 from multiprocessing import Pool
+
+import cv2
+import numpy as np
+import zarr
+from tqdm import tqdm
+
 from robo_manip_baselines.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()

@@ -1,6 +1,7 @@
 from os import path
-import numpy as np
+
 import mujoco
+import numpy as np
 from gymnasium.spaces import Box, Dict
 
 from ..MujocoEnvBase import MujocoEnvBase

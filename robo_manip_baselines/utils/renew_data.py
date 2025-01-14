@@ -1,5 +1,6 @@
-import os
 import argparse
+import os
+
 from robo_manip_baselines.common import DataManager
 
 parser = argparse.ArgumentParser()

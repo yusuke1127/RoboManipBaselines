@@ -5,14 +5,15 @@
 # see https://www.gnu.org/licenses/agpl-3.0.txt
 #
 
-import os
-from tqdm import tqdm
-import torch
 import argparse
-import numpy as np
-import matplotlib.pylab as plt
+import os
+
 import matplotlib.animation as anim
-from eipl.utils import restore_args, tensor2numpy, deprocess_img, normalization
+import matplotlib.pylab as plt
+import numpy as np
+import torch
+from eipl.utils import deprocess_img, normalization, restore_args, tensor2numpy
+from tqdm import tqdm
 
 # argument parser
 parser = argparse.ArgumentParser()

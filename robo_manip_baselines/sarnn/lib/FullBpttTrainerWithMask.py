@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from eipl.utils import tensor2numpy
 from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
+from eipl.utils import tensor2numpy
 
 
 class FullBpttTrainerWithMask(fullBPTTtrainer):

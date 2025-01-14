@@ -1,5 +1,5 @@
-from robo_manip_baselines.sarnn import RolloutSarnn
 from robo_manip_baselines.common.rollout import RolloutMujocoAlohaCable
+from robo_manip_baselines.sarnn import RolloutSarnn
 
 
 class RolloutSarnnMujocoAlohaCable(RolloutSarnn, RolloutMujocoAlohaCable):

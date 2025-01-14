@@ -1,25 +1,26 @@
 ## Copyright (c) Meta Platforms, Inc. and affiliates
 
-import torch
-import numpy as np
+import argparse
 import os
 import pickle
-import argparse
-from pathlib import Path
-import matplotlib.pyplot as plt
-from copy import deepcopy
-from tqdm import tqdm
-from einops import rearrange
 import sys
+from copy import deepcopy
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+from einops import rearrange
+from tqdm import tqdm
 
 # import wandb
-from robo_manip_baselines.mt_act import load_data, CAMERA_NAMES
+from robo_manip_baselines.mt_act import CAMERA_NAMES, load_data
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
-from utils import compute_dict_mean, set_seed, detach_dict
 from policy import ACTPolicy, CNNMLPPolicy
+from utils import compute_dict_mean, detach_dict, set_seed
 
 
 def main(args):

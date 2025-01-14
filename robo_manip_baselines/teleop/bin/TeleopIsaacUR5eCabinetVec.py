@@ -1,7 +1,8 @@
-import numpy as np
 import gymnasium as gym
-from robo_manip_baselines.teleop import TeleopBaseVec
+import numpy as np
+
 from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.teleop import TeleopBaseVec
 
 
 class TeleopIsaacUR5eCabinetVec(TeleopBaseVec):

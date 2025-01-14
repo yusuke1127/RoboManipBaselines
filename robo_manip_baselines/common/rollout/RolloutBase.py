@@ -1,18 +1,20 @@
-from abc import ABCMeta, abstractmethod
-import sys
 import argparse
+import sys
 import time
-import numpy as np
+from abc import ABCMeta, abstractmethod
+
+import cv2
 import matplotlib
 import matplotlib.pylab as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-import cv2
+import numpy as np
 import torch
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+
 from robo_manip_baselines.common import (
-    MotionManager,
-    MotionStatus,
     DataKey,
     DataManager,
+    MotionManager,
+    MotionStatus,
 )
 
 
