@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-def convertDepthImageToColorImage(image):
+def convert_depth_image_to_color_image(image):
     """Convert depth image (float type) to color image (uint8 type)."""
     eps = 1e-6
     image_copied = image.copy()
@@ -19,8 +19,10 @@ def convertDepthImageToColorImage(image):
     return cv2.merge((image_copied,) * 3)
 
 
-def convertDepthImageToPointCloud(depth_image, fovy, rgb_image=None, dist_thre=None):
-    """Convert depth image (float type) to point cloud (array of 3D position)."""
+def convert_depth_image_to_point_cloud(
+    depth_image, fovy, rgb_image=None, dist_thre=None
+):
+    """Convert depth image (float type) to point cloud (array of 3D point)."""
     focal_scaling = (1.0 / np.tan(np.deg2rad(fovy) / 2.0)) * depth_image.shape[0] / 2.0
     xyz_array = np.array(
         [
