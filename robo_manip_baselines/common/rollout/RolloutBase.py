@@ -8,7 +8,12 @@ import matplotlib.pylab as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import cv2
 import torch
-from robo_manip_baselines.common import MotionManager, MotionStatus, DataManager
+from robo_manip_baselines.common import (
+    MotionManager,
+    MotionStatus,
+    DataKey,
+    DataManager,
+)
 
 
 class RolloutBase(metaclass=ABCMeta):
@@ -44,7 +49,7 @@ class RolloutBase(metaclass=ABCMeta):
             self.set_arm_command()
             self.set_gripper_command()
 
-            action = self.motion_manager.get_action()
+            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
             self.obs, _, _, _, self.info = self.env.step(action)
 
             if self.data_manager.status == MotionStatus.TELEOP:
