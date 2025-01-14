@@ -13,6 +13,7 @@ sys.path.append(
 from policy import ACTPolicy
 from robo_manip_baselines.mt_act import TASKS, TEXT_EMBEDDINGS
 from robo_manip_baselines.common.rollout import RolloutBase
+from robo_manip_baselines.common import DataKey
 
 
 class RolloutMtAct(RolloutBase):
@@ -154,7 +155,9 @@ class RolloutMtAct(RolloutBase):
         front_image_input = (
             torch.Tensor(np.expand_dims(front_image_input, 0)).cuda().unsqueeze(0)
         )
-        joint_input = self.motion_manager.get_measured_joint_pos(self.obs)
+        joint_input = self.motion_manager.get_measured_data(
+            DataKey.MEASURED_JOINT_POS, self.obs
+        )
         joint_input = (joint_input - self.stats["joint_mean"]) / self.stats["joint_std"]
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0)).cuda()
 

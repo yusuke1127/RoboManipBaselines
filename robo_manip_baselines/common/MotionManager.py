@@ -121,49 +121,32 @@ class MotionManager(object):
     def get_measured_data(self, key, obs):
         """Get measured data from observation by specifying a key."""
         if key == DataKey.MEASURED_JOINT_POS:
-            return self.get_measured_joint_pos(obs)
+            data = self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=False)
         elif key == DataKey.MEASURED_JOINT_VEL:
-            return self.get_measured_joint_vel(obs)
+            data = self.env.unwrapped.get_joint_vel_from_obs(obs, exclude_gripper=False)
         elif key == DataKey.MEASURED_EEF_POSE:
-            return self.get_measured_eef_pose(obs)
+            measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(
+                obs, exclude_gripper=True
+            )
+            pin.forwardKinematics(self.pin_model, self.pin_data_obs, measured_joint_pos)
+            measured_se3 = self.pin_data_obs.oMi[self.env.unwrapped.ik_eef_joint_id]
+            data = np.concatenate(
+                [
+                    measured_se3.translation,
+                    pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]],
+                ]
+            )
         elif key == DataKey.MEASURED_EEF_WRENCH:
-            return self.get_measured_eef_wrench(obs)
+            data = self.env.unwrapped.get_eef_wrench_from_obs(obs)
         else:
             raise RuntimeError(f"[MotionManager] Invalid data key: {key}")
 
-    def get_measured_joint_pos(self, obs):
-        """Get measured joint position from observation."""
-        return self.env.unwrapped.get_joint_pos_from_obs(obs, exclude_gripper=False)
-
-    def get_measured_joint_vel(self, obs):
-        """Get measured joint velocity from observation."""
-        return self.env.unwrapped.get_joint_vel_from_obs(obs, exclude_gripper=False)
-
-    def get_measured_eef_wrench(self, obs):
-        """Get measured end-effector wrench from observation."""
-        return self.env.unwrapped.get_eef_wrench_from_obs(obs)
-
-    def get_measured_eef_pose(self, obs):
-        """Get measured end-effector pose (tx, ty, tz, qw, qx, qy, qz) from observation.
-
-        This is the end-effector pose corresponding to the measured joint position.
-        """
-        measured_joint_pos = self.env.unwrapped.get_joint_pos_from_obs(
-            obs, exclude_gripper=True
-        )
-        pin.forwardKinematics(self.pin_model, self.pin_data_obs, measured_joint_pos)
-        measured_se3 = self.pin_data_obs.oMi[self.env.unwrapped.ik_eef_joint_id]
-        return np.concatenate(
-            [
-                measured_se3.translation,
-                pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]],
-            ]
-        )
+        return data
 
     def get_command_eef_pose(self):
         """Get command end-effector pose (tx, ty, tz, qw, qx, qy, qz).
 
-        Note that this is the target end-effector pose for IK, not the end-effector pose corresponding to the command joint position.
+        Note: This is the target end-effector pose for IK, not the end-effector pose corresponding to the command joint position.
         """
         return np.concatenate(
             [

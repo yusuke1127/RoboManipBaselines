@@ -8,6 +8,7 @@ import cv2
 import torch
 from diffusion_policy.common.pytorch_util import dict_apply
 from robo_manip_baselines.common.rollout import RolloutBase
+from robo_manip_baselines.common import DataKey
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -70,7 +71,9 @@ class RolloutDiffusionPolicy(RolloutBase):
         else:
             self.front_image_history.pop(0)
             self.front_image_history.append(self.front_image)
-        obs_joint = self.motion_manager.get_measured_joint_pos(self.obs)
+        obs_joint = self.motion_manager.get_measured_data(
+            DataKey.MEASURED_JOINT_POS, self.obs
+        )
         if self.obs_joint_history is None:
             self.obs_joint_history = []
             for _ in range(self.n_obs_steps):

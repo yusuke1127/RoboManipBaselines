@@ -4,30 +4,54 @@ import warnings
 class DataKey(object):
     """Data key."""
 
+    # Time [s]
     TIME = "time"
 
+    # Measured joint position (including both arm and gripper)
     MEASURED_JOINT_POS = "measured_joint_pos"
+    # Command joint position (including both arm and gripper)
     COMMAND_JOINT_POS = "command_joint_pos"
 
+    # Measured joint position relative to previous step (including both arm and gripper)
     MEASURED_JOINT_POS_REL = "measured_joint_pos_rel"
+    # Command joint position relative to previous step (including both arm and gripper)
     COMMAND_JOINT_POS_REL = "command_joint_pos_rel"
 
+    # Measured joint velocity
     MEASURED_JOINT_VEL = "measured_joint_vel"
+    # Command joint velocity
     COMMAND_JOINT_VEL = "command_joint_vel"
 
+    # Measured joint torque
     MEASURED_JOINT_TORQUE = "measured_joint_torque"
+    # Command joint torque
     COMMAND_JOINT_TORQUE = "command_joint_torque"
 
+    # Measured gripper joint position
+    MEASURED_GRIPPER_JOINT_POS = "measured_gripper_joint_pos"
+    # Command gripper joint position
+    COMMAND_GRIPPER_JOINT_POS = "command_gripper_joint_pos"
+
+    # Measured end-effector pose (tx, ty, tz, qw, qx, qy, qz)
+    # Note: This is the end-effector pose corresponding to the measured joint position.
     MEASURED_EEF_POSE = "measured_eef_pose"
+    # Command end-effector pose (tx, ty, tz, qw, qx, qy, qz)
+    # Note: This is the target end-effector pose for IK, not the end-effector pose corresponding to the command joint position.
     COMMAND_EEF_POSE = "command_eef_pose"
 
+    # Measured end-effector pose relative to previous step in the previous pose frame (tx, ty, tz, roll, pitch, yaw)
     MEASURED_EEF_POSE_REL = "measured_eef_pose_rel"
+    # Command end-effector pose relative to previous step in the previous pose frame (tx, ty, tz, roll, pitch, yaw)
     COMMAND_EEF_POSE_REL = "command_eef_pose_rel"
 
+    # Measured end-effector velocity (vx, vy, vz, wx, wy, wz)
     MEASURED_EEF_VEL = "measured_eef_vel"
+    # Command end-effector velocity (vx, vy, vz, wx, wy, wz)
     COMMAND_EEF_VEL = "command_eef_vel"
 
+    # Measured end-effector wrench (fx, fy, fz, nx, ny, nz)
     MEASURED_EEF_WRENCH = "measured_eef_wrench"
+    # Command end-effector wrench (fx, fy, fz, nx, ny, nz)
     COMMAND_EEF_WRENCH = "command_eef_wrench"
 
     @classmethod
