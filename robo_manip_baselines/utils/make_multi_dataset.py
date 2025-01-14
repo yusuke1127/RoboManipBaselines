@@ -1,13 +1,15 @@
-import sys
-import os
-import glob
 import argparse
-import numpy as np
+import glob
+import os
+import random
+import sys
 from multiprocessing import Pool
 from pathlib import Path
-import random
+
 import cv2
+import numpy as np
 from array_utils import calc_minmax, stack_arrays_with_padding
+
 from robo_manip_baselines.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()

@@ -1,9 +1,8 @@
-from abc import ABCMeta, abstractmethod
 import time
-import numpy as np
+from abc import ABCMeta, abstractmethod
 
 import gymnasium as gym
-
+import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
 

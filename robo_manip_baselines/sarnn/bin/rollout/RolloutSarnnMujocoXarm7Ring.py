@@ -1,5 +1,5 @@
-from robo_manip_baselines.sarnn import RolloutSarnn
 from robo_manip_baselines.common.rollout import RolloutMujocoXarm7Ring
+from robo_manip_baselines.sarnn import RolloutSarnn
 
 
 class RolloutSarnnMujocoXarm7Ring(RolloutSarnn, RolloutMujocoXarm7Ring):

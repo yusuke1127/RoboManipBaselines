@@ -1,5 +1,5 @@
-from robo_manip_baselines.sarnn import RolloutSarnn
 from robo_manip_baselines.common.rollout import RolloutMujocoUR5eCloth
+from robo_manip_baselines.sarnn import RolloutSarnn
 
 
 class RolloutSarnnMujocoUR5eCloth(RolloutSarnn, RolloutMujocoUR5eCloth):

@@ -5,12 +5,13 @@
 # see https://www.gnu.org/licenses/agpl-3.0.txt
 #
 
-import os
-from tqdm import tqdm
 import argparse
-import numpy as np
-import matplotlib.pylab as plt
+import os
+
 import matplotlib.animation as anim
+import matplotlib.pylab as plt
+import numpy as np
+from tqdm import tqdm
 
 
 def normalization(data, indata_range, outdata_range):

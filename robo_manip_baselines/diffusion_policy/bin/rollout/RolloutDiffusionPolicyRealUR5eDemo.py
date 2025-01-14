@@ -1,5 +1,5 @@
-from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 from robo_manip_baselines.common.rollout import RolloutRealUR5eDemo
+from robo_manip_baselines.diffusion_policy import RolloutDiffusionPolicy
 
 
 class RolloutDiffusionPolicyRealUR5eDemo(RolloutDiffusionPolicy, RolloutRealUR5eDemo):

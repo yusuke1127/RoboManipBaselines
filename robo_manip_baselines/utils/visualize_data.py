@@ -1,6 +1,8 @@
 import argparse
+
 import matplotlib.pylab as plt
 import numpy as np
+
 from robo_manip_baselines.common import (
     DataKey,
     DataManager,

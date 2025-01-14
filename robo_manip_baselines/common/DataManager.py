@@ -1,10 +1,13 @@
 import os
-import numpy as np
-import h5py
-import cv2
-import pinocchio as pin
 from enum import Enum
+
+import cv2
+import h5py
+import numpy as np
+import pinocchio as pin
+
 from robo_manip_baselines import __version__
+
 from .DataKey import DataKey
 
 

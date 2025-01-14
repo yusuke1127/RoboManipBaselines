@@ -1,7 +1,10 @@
 import time
+
 import numpy as np
 import pyspacemouse
-from robo_manip_baselines.common import MotionStatus, DataKey, DataManagerVec
+
+from robo_manip_baselines.common import DataKey, DataManagerVec, MotionStatus
+
 from .TeleopBase import TeleopBase
 
 

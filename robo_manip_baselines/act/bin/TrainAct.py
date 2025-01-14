@@ -1,25 +1,26 @@
-import glob
+import argparse
 import datetime
+import glob
+import os
+import pickle
 import random
 import sys
-import os
+from copy import deepcopy
+
+import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-import pickle
-import argparse
-import h5py
-import matplotlib.pyplot as plt
-from copy import deepcopy
 from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
-from utils import compute_dict_mean, set_seed, detach_dict
-from policy import ACTPolicy
 from detr.models.detr_vae import DETRVAE
+from policy import ACTPolicy
+from utils import compute_dict_mean, detach_dict, set_seed
 
-from robo_manip_baselines.common import DataKey
 from robo_manip_baselines.act import RmbActDataset
+from robo_manip_baselines.common import DataKey
 
 
 class TrainAct(object):

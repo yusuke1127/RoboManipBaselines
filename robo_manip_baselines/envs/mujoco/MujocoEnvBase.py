@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
-import numpy as np
-import mujoco
 
+import mujoco
+import numpy as np
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 

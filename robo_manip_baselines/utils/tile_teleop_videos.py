@@ -1,10 +1,12 @@
-import numpy as np
-import glob
-import cv2
 import argparse
+import glob
 import os
-from robo_manip_baselines.common import DataKey, DataManager
+
+import cv2
+import numpy as np
 from PIL import Image, ImageOps
+
+from robo_manip_baselines.common import DataKey, DataManager
 
 parser = argparse.ArgumentParser()
 parser.add_argument("out_video_filename", type=str)

@@ -1,5 +1,5 @@
-import numpy as np
 import cv2
+import numpy as np
 
 
 def convert_depth_image_to_color_image(image):

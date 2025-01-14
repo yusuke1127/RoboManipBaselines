@@ -1,17 +1,19 @@
-from abc import ABCMeta, abstractmethod
-import sys
 import argparse
-import time
 import datetime
-import numpy as np
+import sys
+import time
+from abc import ABCMeta, abstractmethod
+
 import cv2
 import matplotlib.pylab as plt
+import numpy as np
 import pyspacemouse
+
 from robo_manip_baselines.common import (
-    MotionManager,
-    MotionStatus,
     DataKey,
     DataManager,
+    MotionManager,
+    MotionStatus,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
 )

@@ -1,6 +1,6 @@
+import h5py
 import numpy as np
 import torch
-import h5py
 
 from robo_manip_baselines.common import DataKey
 

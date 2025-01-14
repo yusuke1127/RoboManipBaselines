@@ -7,7 +7,7 @@
 
 import torch
 import torch.nn as nn
-from eipl.layer import SpatialSoftmax, InverseSpatialSoftmax
+from eipl.layer import InverseSpatialSoftmax, SpatialSoftmax
 
 
 class SarnnWithSideImageAndWrench(nn.Module):

@@ -1,19 +1,21 @@
-import os
-import sys
 import argparse
+import os
 import pickle
-import numpy as np
-import matplotlib.pylab as plt
+import sys
+
 import cv2
+import matplotlib.pylab as plt
+import numpy as np
 import torch
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
 from policy import ACTPolicy
-from robo_manip_baselines.mt_act import TASKS, TEXT_EMBEDDINGS
-from robo_manip_baselines.common.rollout import RolloutBase
+
 from robo_manip_baselines.common import DataKey
+from robo_manip_baselines.common.rollout import RolloutBase
+from robo_manip_baselines.mt_act import TASKS, TEXT_EMBEDDINGS
 
 
 class RolloutMtAct(RolloutBase):

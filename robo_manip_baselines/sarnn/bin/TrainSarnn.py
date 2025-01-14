@@ -5,21 +5,20 @@
 # see https://www.gnu.org/licenses/agpl-3.0.txt
 #
 
-import os
-import shutil
-import random
-import torch
-import numpy as np
 import argparse
+import os
+import random
+import shutil
+from collections import OrderedDict
 from pathlib import Path
 
-from tqdm import tqdm
+import numpy as np
+import torch
 import torch.optim as optim
-from collections import OrderedDict
-from torch.utils.tensorboard import SummaryWriter
+from eipl.utils import EarlyStopping, check_args, normalization, set_logdir
 from torch.utils.data import DataLoader
-
-from eipl.utils import EarlyStopping, check_args, set_logdir, normalization
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 
 class TrainSarnn(object):

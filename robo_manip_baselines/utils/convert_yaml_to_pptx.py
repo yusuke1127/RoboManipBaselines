@@ -1,9 +1,5 @@
 import argparse
-import cv2
-import imageio
 import math
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import re
 import subprocess
@@ -12,6 +8,11 @@ import tempfile
 from abc import ABC, abstractmethod
 from datetime import datetime
 from glob import glob
+
+import cv2
+import imageio
+import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor

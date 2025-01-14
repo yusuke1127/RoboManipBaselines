@@ -1,10 +1,10 @@
+import argparse
 import math
 import os
 import tempfile
 from datetime import datetime, timedelta
 from enum import Enum, auto
 
-import argparse
 import cv2
 import ffmpeg
 import numpy as np
