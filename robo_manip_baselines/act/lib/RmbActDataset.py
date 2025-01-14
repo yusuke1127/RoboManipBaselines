@@ -9,8 +9,8 @@ class RmbActDataset(torch.utils.data.Dataset):
     def __init__(
         self,
         filenames,
-        action_key,
         state_keys,
+        action_key,
         camera_names,
         dataset_stats,
         skip,
@@ -34,17 +34,6 @@ class RmbActDataset(torch.utils.data.Dataset):
             episode_len = h5file[DataKey.TIME][:: self.skip].shape[0]
             start_time_idx = np.random.choice(episode_len)
 
-            # Load images
-            images = np.stack(
-                [
-                    h5file[DataKey.get_rgb_image_key(camera_name)][
-                        start_time_idx * self.skip
-                    ]
-                    for camera_name in self.camera_names
-                ],
-                axis=0,
-            )
-
             # Load state
             if len(self.state_keys) == 0:
                 state = np.zeros(0, dtype=np.float32)
@@ -59,7 +48,18 @@ class RmbActDataset(torch.utils.data.Dataset):
             # Load action
             action = h5file[self.action_key][:: self.skip][start_time_idx:]
 
-        # Set padded action
+            # Load images
+            images = np.stack(
+                [
+                    h5file[DataKey.get_rgb_image_key(camera_name)][
+                        start_time_idx * self.skip
+                    ]
+                    for camera_name in self.camera_names
+                ],
+                axis=0,
+            )
+
+        # Set chunked action
         action_len = action.shape[0]
         action_chunked = np.zeros((self.chunk_size, action.shape[1]), dtype=np.float32)
         action_chunked[:action_len] = action[: self.chunk_size]
@@ -67,18 +67,18 @@ class RmbActDataset(torch.utils.data.Dataset):
         is_pad[action_len:] = True
 
         # Pre-convert data
-        images = np.einsum("k h w c -> k c h w", images)
-        images = images / 255.0
         state = (state - self.dataset_stats["state_mean"]) / self.dataset_stats[
             "state_std"
         ]
         action_chunked = (
             action_chunked - self.dataset_stats["action_mean"]
         ) / self.dataset_stats["action_std"]
+        images = np.einsum("k h w c -> k c h w", images)
+        images = images / 255.0
 
         return (
-            torch.tensor(images, dtype=torch.float32),
             torch.tensor(state, dtype=torch.float32),
             torch.tensor(action_chunked, dtype=torch.float32),
+            torch.tensor(images, dtype=torch.float32),
             torch.tensor(is_pad, dtype=torch.bool),
         )
