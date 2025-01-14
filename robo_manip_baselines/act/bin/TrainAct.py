@@ -124,89 +124,89 @@ class TrainAct(object):
         train_filenames = all_filenames[:train_num]
         val_filenames = all_filenames[train_num:]
 
-        # Construct dataset stats for normalization
-        def make_dataset_stats():
-            # Load all state and action
-            all_state = []
-            all_action = []
-            for filename in all_filenames:
-                with h5py.File(filename, "r") as h5file:
-                    if len(self.args.state_keys) == 0:
-                        episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
-                        state = np.zeros((episode_len, 0), dtype=np.float32)
-                    else:
-                        state = np.concatenate(
-                            [
-                                h5file[state_key][:: self.args.skip][()]
-                                for state_key in self.args.state_keys
-                            ],
-                            axis=1,
-                        )
-                    action = np.concatenate(
-                        [
-                            h5file[action_key][:: self.args.skip][()]
-                            for action_key in self.args.action_keys
-                        ],
-                        axis=1,
-                    )
-                    all_state.append(state)
-                    all_action.append(action)
-            all_state = np.concatenate(all_state, dtype=np.float32)
-            all_action = np.concatenate(all_action, dtype=np.float32)
-
-            # Calculate stats
-            state_mean = all_state.mean(axis=0)
-            state_std = np.clip(all_state.std(axis=0), 1e-2, np.inf)
-            action_mean = all_action.mean(axis=0)
-            action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
-
-            return {
-                # Normalization
-                "state_mean": state_mean,
-                "state_std": state_std,
-                "action_mean": action_mean,
-                "action_std": action_std,
-                # Example
-                "example_state": all_state[0],
-                "example_action": all_action[0],
-                # Args
-                "state_keys": self.args.state_keys,
-                "action_keys": self.args.action_keys,
-                "camera_names": self.args.camera_names,
-                "skip": self.args.skip,
-            }
-
-        self.dataset_stats = make_dataset_stats()
+        # Construct dataset stats
+        self.dataset_stats = self.make_dataset_stats(all_filenames)
 
         # Construct dataloader
-        def make_dataloader(filenames):
-            dataset = RmbActDataset(
-                filenames,
-                self.args.state_keys,
-                self.args.action_keys,
-                self.args.camera_names,
-                self.dataset_stats,
-                self.args.skip,
-                self.args.chunk_size,
-            )
-
-            dataloader = DataLoader(
-                dataset,
-                batch_size=self.args.batch_size,
-                shuffle=True,
-                pin_memory=True,
-                num_workers=1,
-                prefetch_factor=1,
-            )
-
-            return dataloader
-
-        self.train_dataloader = make_dataloader(train_filenames)
-        self.val_dataloader = make_dataloader(val_filenames)
+        self.train_dataloader = self.make_dataloader(train_filenames)
+        self.val_dataloader = self.make_dataloader(val_filenames)
         print(
             f"[TrainAct] Load dataset from {self.args.dataset_dir}\n"
             f"  - train episodes: {len(train_filenames)}, val episodes: {len(val_filenames)}"
         )
+
+    def make_dataset_stats(self, all_filenames):
+        # Load all state and action
+        all_state = []
+        all_action = []
+        for filename in all_filenames:
+            with h5py.File(filename, "r") as h5file:
+                if len(self.args.state_keys) == 0:
+                    episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
+                    state = np.zeros((episode_len, 0), dtype=np.float32)
+                else:
+                    state = np.concatenate(
+                        [
+                            h5file[state_key][:: self.args.skip][()]
+                            for state_key in self.args.state_keys
+                        ],
+                        axis=1,
+                    )
+                action = np.concatenate(
+                    [
+                        h5file[action_key][:: self.args.skip][()]
+                        for action_key in self.args.action_keys
+                    ],
+                    axis=1,
+                )
+                all_state.append(state)
+                all_action.append(action)
+        all_state = np.concatenate(all_state, dtype=np.float32)
+        all_action = np.concatenate(all_action, dtype=np.float32)
+
+        # Calculate stats
+        state_mean = all_state.mean(axis=0)
+        state_std = np.clip(all_state.std(axis=0), 1e-2, np.inf)
+        action_mean = all_action.mean(axis=0)
+        action_std = np.clip(all_action.std(axis=0), 1e-2, np.inf)
+
+        return {
+            # Normalization
+            "state_mean": state_mean,
+            "state_std": state_std,
+            "action_mean": action_mean,
+            "action_std": action_std,
+            # Example
+            "example_state": all_state[0],
+            "example_action": all_action[0],
+            # Args
+            "state_keys": self.args.state_keys,
+            "action_keys": self.args.action_keys,
+            "camera_names": self.args.camera_names,
+            "skip": self.args.skip,
+        }
+
+    def make_dataloader(self, filenames):
+        dataset = RmbActDataset(
+            filenames,
+            self.args.state_keys,
+            self.args.action_keys,
+            self.args.camera_names,
+            self.dataset_stats,
+            self.args.skip,
+            self.args.chunk_size,
+        )
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.args.batch_size,
+            shuffle=True,
+            pin_memory=True,
+            num_workers=1,
+            prefetch_factor=1,
+        )
+
+        return dataloader
 
     def setup_policy(self):
         set_seed(self.args.seed)
