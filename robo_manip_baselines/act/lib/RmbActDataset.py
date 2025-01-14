@@ -10,7 +10,7 @@ class RmbActDataset(torch.utils.data.Dataset):
         self,
         filenames,
         state_keys,
-        action_key,
+        action_keys,
         camera_names,
         dataset_stats,
         skip,
@@ -19,7 +19,7 @@ class RmbActDataset(torch.utils.data.Dataset):
         super().__init__()
 
         self.filenames = filenames
-        self.action_key = action_key
+        self.action_keys = action_keys
         self.state_keys = state_keys
         self.camera_names = camera_names
         self.dataset_stats = dataset_stats
@@ -46,7 +46,13 @@ class RmbActDataset(torch.utils.data.Dataset):
                 )
 
             # Load action
-            action = h5file[self.action_key][:: self.skip][start_time_idx:]
+            action = np.concatenate(
+                [
+                    h5file[action_key][:: self.skip][start_time_idx:]
+                    for action_key in self.action_keys
+                ],
+                axis=1,
+            )
 
             # Load images
             images = np.stack(
