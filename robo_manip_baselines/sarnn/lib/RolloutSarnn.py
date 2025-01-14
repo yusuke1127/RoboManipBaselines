@@ -13,6 +13,7 @@ from eipl.utils import (
     resize_img,
 )
 from robo_manip_baselines.common.rollout import RolloutBase
+from robo_manip_baselines.common import DataKey
 
 
 class RolloutSarnn(RolloutBase):
@@ -93,7 +94,7 @@ class RolloutSarnn(RolloutBase):
         front_image_input = self.obs_front_image.transpose(2, 0, 1)
         front_image_input = normalization(front_image_input, (0, 255), self.v_min_max)
         front_image_input = torch.Tensor(np.expand_dims(front_image_input, 0))
-        joint_input = self.motion_manager.get_action()
+        joint_input = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
         joint_input = normalization(joint_input, self.joint_bounds, self.v_min_max)
         joint_input = torch.Tensor(np.expand_dims(joint_input, 0))
 

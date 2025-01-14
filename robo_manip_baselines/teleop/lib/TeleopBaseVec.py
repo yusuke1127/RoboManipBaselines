@@ -79,7 +79,8 @@ class TeleopBaseVec(TeleopBase):
                 self.motion_manager.draw_markers()
                 self.motion_manager.inverse_kinematics()
 
-                action = self.motion_manager.get_action()
+                # Set action
+                action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
                 update_fluctuation = self.data_manager.status == MotionStatus.TELEOP
                 action_list = self.env.unwrapped.get_fluctuated_action_list(
                     action, update_fluctuation
@@ -101,6 +102,7 @@ class TeleopBaseVec(TeleopBase):
                 for key in (
                     DataKey.MEASURED_JOINT_POS,
                     DataKey.MEASURED_JOINT_VEL,
+                    DataKey.MEASURED_GRIPPER_JOINT_POS,
                     DataKey.MEASURED_EEF_POSE,
                     DataKey.MEASURED_EEF_WRENCH,
                 ):
@@ -113,15 +115,19 @@ class TeleopBaseVec(TeleopBase):
                     )
 
                 # Add command data
-                self.data_manager.append_single_data(
-                    DataKey.COMMAND_JOINT_POS, action_list
-                )
-                # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
-                self.data_manager.append_single_data(
+                for key in (
+                    DataKey.COMMAND_JOINT_POS,
+                    DataKey.COMMAND_GRIPPER_JOINT_POS,
+                    # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
                     DataKey.COMMAND_EEF_POSE,
-                    [self.motion_manager.get_command_eef_pose()]
-                    * self.env.unwrapped.num_envs,
-                )
+                ):
+                    self.data_manager.append_single_data(
+                        key,
+                        [
+                            self.motion_manager.get_command_data(key)
+                            for action in action_list
+                        ],
+                    )
 
                 # Add relative data
                 for key in (

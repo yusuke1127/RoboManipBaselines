@@ -91,7 +91,8 @@ class TeleopBase(metaclass=ABCMeta):
                 self.motion_manager.draw_markers()
                 self.motion_manager.inverse_kinematics()
 
-                action = self.motion_manager.get_action()
+                # Set action
+                action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
 
             # Record data
             if (
@@ -245,6 +246,7 @@ class TeleopBase(metaclass=ABCMeta):
         for key in (
             DataKey.MEASURED_JOINT_POS,
             DataKey.MEASURED_JOINT_VEL,
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
             DataKey.MEASURED_EEF_POSE,
             DataKey.MEASURED_EEF_WRENCH,
         ):
@@ -253,10 +255,14 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
         # Add command data
-        self.data_manager.append_single_data(DataKey.COMMAND_JOINT_POS, action)
-        self.data_manager.append_single_data(
-            DataKey.COMMAND_EEF_POSE, self.motion_manager.get_command_eef_pose()
-        )
+        for key in (
+            DataKey.COMMAND_JOINT_POS,
+            DataKey.COMMAND_GRIPPER_JOINT_POS,
+            DataKey.COMMAND_EEF_POSE,
+        ):
+            self.data_manager.append_single_data(
+                key, self.motion_manager.get_command_data(key)
+            )
 
         # Add relative data
         for key in (

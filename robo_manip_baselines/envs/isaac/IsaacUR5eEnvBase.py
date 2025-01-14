@@ -460,19 +460,13 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         """Get the number of the Isaac Gym parallel environments."""
         return len(self.env_list)
 
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_pos_from_obs(self, obs):
         """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_joint_idxes]
-        else:
-            return obs["joint_pos"]
+        return obs["joint_pos"]
 
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_joint_idxes]
-        else:
-            return obs["joint_vel"]
+        return obs["joint_vel"]
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
