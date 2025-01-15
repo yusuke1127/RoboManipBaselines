@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from robo_manip_baselines.common import DataKey, DataManager
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--in_dir", type=str, required=True)
 parser.add_argument("--out_dir", type=str, required=True)
 parser.add_argument("--skip", type=int, default=3)

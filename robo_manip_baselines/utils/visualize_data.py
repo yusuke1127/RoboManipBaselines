@@ -9,7 +9,7 @@ from robo_manip_baselines.common import (
     convert_depth_image_to_point_cloud,
 )
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("teleop_filename", type=str)
 parser.add_argument("--skip", default=10, type=int, help="skip", required=False)
 args = parser.parse_args()

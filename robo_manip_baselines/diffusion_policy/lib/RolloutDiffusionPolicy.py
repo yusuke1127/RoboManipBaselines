@@ -18,7 +18,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 class RolloutDiffusionPolicy(RolloutBase):
     def setup_args(self, parser=None):
         if parser is None:
-            parser = argparse.ArgumentParser()
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
 
         parser.add_argument(
             "--checkpoint",

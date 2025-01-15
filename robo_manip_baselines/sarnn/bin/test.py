@@ -16,7 +16,7 @@ from eipl.utils import deprocess_img, normalization, restore_args, tensor2numpy
 from tqdm import tqdm
 
 # argument parser
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument(
     "--filename",
     type=str,

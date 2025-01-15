@@ -18,7 +18,9 @@ from robo_manip_baselines.common.rollout import RolloutBase
 class RolloutAct(RolloutBase):
     def setup_args(self, parser=None):
         if parser is None:
-            parser = argparse.ArgumentParser()
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
 
         parser.add_argument(
             "--checkpoint",

@@ -3,7 +3,7 @@ import os
 
 from robo_manip_baselines.common import DataManager
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("in_filename", type=str)
 parser.add_argument("--out_filename", type=str, default=None)
 parser.add_argument("--demo_name", type=str, default=None)
