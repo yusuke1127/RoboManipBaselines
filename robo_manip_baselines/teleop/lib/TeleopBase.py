@@ -146,7 +146,9 @@ class TeleopBase(metaclass=ABCMeta):
 
     def setup_args(self, parser=None, argv=None):
         if parser is None:
-            parser = argparse.ArgumentParser()
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
 
         parser.add_argument(
             "--demo_name", type=str, default=None, help="demonstration name"

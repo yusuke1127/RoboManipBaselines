@@ -8,7 +8,7 @@ from PIL import Image, ImageOps
 
 from robo_manip_baselines.common import DataKey, DataManager
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("out_video_filename", type=str)
 parser.add_argument("in_npz_dir", type=str)
 parser.add_argument("--column_num", type=int, required=False)

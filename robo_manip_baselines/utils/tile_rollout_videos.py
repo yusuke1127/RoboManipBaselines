@@ -24,7 +24,9 @@ NUM_SAMPLE_FRAMES_FOR_MARGIN_REMOVAL = 5
 
 
 def parse_arg():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument("input_file_name", type=str)
     parser.add_argument("--task_period_list", "-p", nargs="*", default=[])
     parser.add_argument("--task_success_list", "-s", nargs="*", default=[])

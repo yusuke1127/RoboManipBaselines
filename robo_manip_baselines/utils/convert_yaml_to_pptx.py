@@ -40,7 +40,9 @@ CAPTURE_TRIM_COLOR_THRESHOLD = 128
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
     parser.add_argument(
         "--max_video_width",

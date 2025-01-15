@@ -21,7 +21,7 @@ def normalization(data, indata_range, outdata_range):
     return data
 
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("--idx", type=int, default=0)
 parser.add_argument("--in_dir", type=str, default="./data/")
 parser.add_argument("--measured_joints", action="store_true")

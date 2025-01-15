@@ -30,7 +30,10 @@ class TrainSarnn(object):
         self.setup_policy()
 
     def setup_args(self):
-        parser = argparse.ArgumentParser(description="Train SARNN")
+        parser = argparse.ArgumentParser(
+            description="Train SARNN",
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        )
 
         parser.add_argument("--data_dir", type=str, required=True)
         parser.add_argument("--model", type=str, default="sarnn")
