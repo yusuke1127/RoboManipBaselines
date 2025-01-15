@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.common import Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -20,13 +20,13 @@ class TeleopMujocoAlohaCable(TeleopBase):
         self.demo_name = self.args.demo_name or "MujocoAlohaCable"
 
     def set_arm_command(self):
-        if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
+        if self.phase_manager.phase in (Phase.PRE_REACH, Phase.REACH):
             target_pos = self.env.unwrapped.get_body_pose("B0")[0:3]
             target_pos[1] += 0.05  # [m]
-            if self.data_manager.status == MotionStatus.PRE_REACH:
+            if self.phase_manager.phase == Phase.PRE_REACH:
                 target_pos[2] = 0.3  # [m]
                 target_rpy = np.array([0.0, np.deg2rad(30), -np.pi / 2])
-            elif self.data_manager.status == MotionStatus.REACH:
+            elif self.phase_manager.phase == Phase.REACH:
                 target_pos[2] = 0.2  # [m]
                 target_rpy = np.array([0.0, np.deg2rad(60), -np.pi / 2])
             self.motion_manager.target_se3 = pin.SE3(

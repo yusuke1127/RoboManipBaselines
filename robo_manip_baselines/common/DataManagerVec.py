@@ -1,7 +1,7 @@
 import h5py
 
 from .DataKey import DataKey
-from .DataManager import DataManager, MotionStatus
+from .DataManager import DataManager
 
 
 class DataManagerVec(DataManager):
@@ -9,8 +9,6 @@ class DataManagerVec(DataManager):
 
     def reset(self):
         """Reset."""
-        self.status = MotionStatus(0)
-
         self.all_data_seq_list = [{} for env_idx in range(self.env.unwrapped.num_envs)]
 
     def append_single_data(self, key, data_list):

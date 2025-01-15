@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.common import Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -20,11 +20,11 @@ class TeleopMujocoUR5eParticle(TeleopBase):
         self.demo_name = self.args.demo_name or "MujocoUR5eParticle"
 
     def set_arm_command(self):
-        if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
+        if self.phase_manager.phase in (Phase.PRE_REACH, Phase.REACH):
             target_pos = self.env.unwrapped.get_geom_pose("scoop_handle")[0:3]
-            if self.data_manager.status == MotionStatus.PRE_REACH:
+            if self.phase_manager.phase == Phase.PRE_REACH:
                 target_pos += np.array([0.0, 0.0, 0.2])  # [m]
-            elif self.data_manager.status == MotionStatus.REACH:
+            elif self.phase_manager.phase == Phase.REACH:
                 target_pos += np.array([0.0, 0.0, 0.15])  # [m]
             self.motion_manager.target_se3 = pin.SE3(
                 pin.rpy.rpyToMatrix(np.pi, 0.0, np.pi / 2), target_pos
