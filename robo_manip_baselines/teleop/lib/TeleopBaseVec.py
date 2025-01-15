@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pyspacemouse
 
-from robo_manip_baselines.common import DataKey, DataManagerVec, MotionStatus
+from robo_manip_baselines.common import DataKey, DataManagerVec, Phase
 
 from .TeleopBase import TeleopBase
 
@@ -25,6 +25,7 @@ class TeleopBaseVec(TeleopBase):
             # Reset
             if self.reset_flag:
                 self.motion_manager.reset()
+                self.phase_manager.reset()
                 if self.args.replay_log is None:
                     self.data_manager.reset()
                     if self.args.world_idx_list is None:
@@ -60,15 +61,15 @@ class TeleopBaseVec(TeleopBase):
                 self.reset_flag = False
 
             # Read spacemouse
-            if self.data_manager.status == MotionStatus.TELEOP:
-                # Empirically, you can call read repeatedly to get the latest device status
+            if self.phase_manager.phase == Phase.TELEOP:
+                # Empirically, you can call read repeatedly to get the latest device state
                 for i in range(10):
                     self.spacemouse_state = pyspacemouse.read()
 
             # Get action
-            if self.args.replay_log is not None and self.data_manager.status in (
-                MotionStatus.TELEOP,
-                MotionStatus.END,
+            if self.args.replay_log is not None and self.phase_manager.phase in (
+                Phase.TELEOP,
+                Phase.END,
             ):
                 action = self.data_manager.get_single_data(
                     DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
@@ -84,20 +85,20 @@ class TeleopBaseVec(TeleopBase):
 
                 # Set action
                 action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-                update_fluctuation = self.data_manager.status == MotionStatus.TELEOP
+                update_fluctuation = self.phase_manager.phase == Phase.TELEOP
                 action_list = self.env.unwrapped.get_fluctuated_action_list(
                     action, update_fluctuation
                 )
 
             # Record data
             if (
-                self.data_manager.status == MotionStatus.TELEOP
+                self.phase_manager.phase == Phase.TELEOP
                 and self.args.replay_log is None
             ):
                 # Add time
                 self.data_manager.append_single_data(
                     DataKey.TIME,
-                    [self.data_manager.status_elapsed_duration]
+                    [self.phase_manager.get_phase_elapsed_duration()]
                     * self.env.unwrapped.num_envs,
                 )
 
@@ -167,13 +168,13 @@ class TeleopBaseVec(TeleopBase):
             if self.args.enable_3d_plot:
                 self.draw_point_cloud(info_list[[self.env.unwrapped.rep_env_idx]])
 
-            # Manage status
-            self.manage_status()
+            # Manage phase
+            self.manage_phase()
             if self.quit_flag:
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.data_manager.status == MotionStatus.TELEOP:
+            if self.phase_manager.phase == Phase.TELEOP:
                 iteration_duration_list.append(iteration_duration)
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)

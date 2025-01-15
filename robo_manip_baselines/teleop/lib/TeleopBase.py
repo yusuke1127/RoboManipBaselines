@@ -13,7 +13,9 @@ from robo_manip_baselines.common import (
     DataKey,
     DataManager,
     MotionManager,
-    MotionStatus,
+    Phase,
+    PhaseManager,
+    PhaseOrder,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
 )
@@ -37,6 +39,10 @@ class TeleopBase(metaclass=ABCMeta):
         self.data_manager = DataManagerClass(self.env, demo_name=self.demo_name)
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
+
+        # Setup phase manager
+        PhaseManagerClass = getattr(self, "PhaseManagerClass", PhaseManager)
+        self.phase_manager = PhaseManagerClass(self.env, PhaseOrder.TELEOP)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -71,15 +77,15 @@ class TeleopBase(metaclass=ABCMeta):
                 self.reset_flag = False
 
             # Read spacemouse
-            if self.data_manager.status == MotionStatus.TELEOP:
-                # Empirically, you can call read repeatedly to get the latest device status
+            if self.phase_manager.phase == Phase.TELEOP:
+                # Empirically, you can call read repeatedly to get the latest device state
                 for i in range(10):
                     self.spacemouse_state = pyspacemouse.read()
 
             # Get action
-            if self.args.replay_log is not None and self.data_manager.status in (
-                MotionStatus.TELEOP,
-                MotionStatus.END,
+            if self.args.replay_log is not None and self.phase_manager.phase in (
+                Phase.TELEOP,
+                Phase.END,
             ):
                 action = self.data_manager.get_single_data(
                     DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
@@ -98,7 +104,7 @@ class TeleopBase(metaclass=ABCMeta):
 
             # Record data
             if (
-                self.data_manager.status == MotionStatus.TELEOP
+                self.phase_manager.phase == Phase.TELEOP
                 and self.args.replay_log is None
             ):
                 self.record_data(obs, action, info)  # noqa: F821
@@ -113,13 +119,13 @@ class TeleopBase(metaclass=ABCMeta):
             if self.args.enable_3d_plot:
                 self.draw_point_cloud(info)
 
-            # Manage status
-            self.manage_status()
+            # Manage phase
+            self.manage_phase()
             if self.quit_flag:
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.data_manager.status == MotionStatus.TELEOP:
+            if self.phase_manager.phase == Phase.TELEOP:
                 iteration_duration_list.append(iteration_duration)
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
@@ -171,6 +177,7 @@ class TeleopBase(metaclass=ABCMeta):
 
     def reset(self):
         self.motion_manager.reset()
+        self.phase_manager.reset()
         if self.args.replay_log is None:
             self.data_manager.reset()
             if self.args.world_idx_list is None:
@@ -197,7 +204,7 @@ class TeleopBase(metaclass=ABCMeta):
         print("[TeleopBase] Press the 'n' key to start automatic grasping.")
 
     def set_arm_command(self):
-        if self.data_manager.status == MotionStatus.TELEOP:
+        if self.phase_manager.phase == Phase.TELEOP:
             delta_pos = self.command_pos_scale * np.array(
                 [
                     -1.0 * self.spacemouse_state.y,
@@ -217,11 +224,11 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
     def set_gripper_command(self):
-        if self.data_manager.status == MotionStatus.GRASP:
+        if self.phase_manager.phase == Phase.GRASP:
             self.motion_manager.gripper_joint_pos = self.env.action_space.high[
                 self.env.unwrapped.gripper_joint_idxes
             ]
-        elif self.data_manager.status == MotionStatus.TELEOP:
+        elif self.phase_manager.phase == Phase.TELEOP:
             if (
                 self.spacemouse_state.buttons[0] > 0
                 and self.spacemouse_state.buttons[-1] <= 0
@@ -241,7 +248,7 @@ class TeleopBase(metaclass=ABCMeta):
     def record_data(self, obs, action, info):
         # Add time
         self.data_manager.append_single_data(
-            DataKey.TIME, self.data_manager.status_elapsed_duration
+            DataKey.TIME, self.phase_manager.get_phase_elapsed_duration()
         )
 
         # Add measured data
@@ -289,13 +296,13 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
     def draw_image(self, info):
-        status_image = self.data_manager.get_status_image()
+        phase_image = self.phase_manager.get_phase_image()
         rgb_images = []
         depth_images = []
         for camera_name in self.env.unwrapped.camera_names:
             rgb_image = info["rgb_images"][camera_name]
             image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
-            resized_image_width = status_image.shape[1] / 2
+            resized_image_width = phase_image.shape[1] / 2
             resized_image_size = (
                 int(resized_image_width),
                 int(resized_image_width / image_ratio),
@@ -308,7 +315,7 @@ class TeleopBase(metaclass=ABCMeta):
         window_image = cv2.vconcat(
             (
                 cv2.hconcat((cv2.vconcat(rgb_images), cv2.vconcat(depth_images))),
-                status_image,
+                phase_image,
             )
         )
         cv2.namedWindow(
@@ -364,23 +371,23 @@ class TeleopBase(metaclass=ABCMeta):
         plt.draw()
         plt.pause(0.001)
 
-    def manage_status(self):
+    def manage_phase(self):
         key = cv2.waitKey(1)
-        if self.data_manager.status == MotionStatus.INITIAL:
+        if self.phase_manager.phase == Phase.INITIAL:
             if key == ord("n"):
-                self.data_manager.go_to_next_status()
-        elif self.data_manager.status == MotionStatus.PRE_REACH:
+                self.phase_manager.set_next_phase()
+        elif self.phase_manager.phase == Phase.PRE_REACH:
             pre_reach_duration = 0.7  # [s]
-            if self.data_manager.status_elapsed_duration > pre_reach_duration:
-                self.data_manager.go_to_next_status()
-        elif self.data_manager.status == MotionStatus.REACH:
+            if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
+                self.phase_manager.set_next_phase()
+        elif self.phase_manager.phase == Phase.REACH:
             reach_duration = 0.3  # [s]
-            if self.data_manager.status_elapsed_duration > reach_duration:
+            if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
                 print(
                     "[TeleopBase] Press the 'n' key to start teleoperation after the gripper is closed."
                 )
-                self.data_manager.go_to_next_status()
-        elif self.data_manager.status == MotionStatus.GRASP:
+                self.phase_manager.set_next_phase()
+        elif self.phase_manager.phase == Phase.GRASP:
             if key == ord("n"):
                 # Setup spacemouse
                 if (self.args.replay_log is None) and (not self._spacemouse_connected):
@@ -391,26 +398,26 @@ class TeleopBase(metaclass=ABCMeta):
                     print("[TeleopBase] Press the 'n' key to finish teleoperation.")
                 else:
                     print("[TeleopBase] Start to replay the log motion.")
-                self.data_manager.go_to_next_status()
-        elif self.data_manager.status == MotionStatus.TELEOP:
+                self.phase_manager.set_next_phase()
+        elif self.phase_manager.phase == Phase.TELEOP:
             self.teleop_time_idx += 1
             if self.args.replay_log is None:
                 if key == ord("n"):
                     print(
                         "[TeleopBase] Press the 's' key if the teleoperation succeeded,"
                         " or the 'f' key if it failed. (duration: {:.1f} [s])".format(
-                            self.data_manager.status_elapsed_duration
+                            self.phase_manager.get_phase_elapsed_duration()
                         )
                     )
-                    self.data_manager.go_to_next_status()
+                    self.phase_manager.set_next_phase()
             else:
                 if self.teleop_time_idx == len(self.data_manager.get_data("time")):
                     self.teleop_time_idx -= 1
                     print(
                         "[TeleopBase] The log motion has finished replaying. Press the 'n' key to exit."
                     )
-                    self.data_manager.go_to_next_status()
-        elif self.data_manager.status == MotionStatus.END:
+                    self.phase_manager.set_next_phase()
+        elif self.phase_manager.phase == Phase.END:
             if self.args.replay_log is None:
                 if key == ord("s"):
                     # Save data

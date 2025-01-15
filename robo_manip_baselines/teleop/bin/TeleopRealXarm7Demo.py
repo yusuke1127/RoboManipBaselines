@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 
-from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.common import Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -23,14 +23,14 @@ class TeleopRealXarm7Demo(TeleopBase):
         self.demo_name = self.args.demo_name or "RealXarm7Demo"
 
     def set_arm_command(self):
-        if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
+        if self.phase_manager.phase in (Phase.PRE_REACH, Phase.REACH):
             # No action is required in pre-reach or reach phases
             pass
         else:
             super().set_arm_command()
 
     def set_gripper_command(self):
-        if self.data_manager.status == MotionStatus.GRASP:
+        if self.phase_manager.phase == Phase.GRASP:
             self.motion_manager.gripper_joint_pos = np.array([800.0])
         else:
             super().set_gripper_command()

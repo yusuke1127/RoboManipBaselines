@@ -11,17 +11,6 @@ from robo_manip_baselines import __version__
 from .DataKey import DataKey
 
 
-class MotionStatus(Enum):
-    """Motion status."""
-
-    INITIAL = 0
-    PRE_REACH = 1
-    REACH = 2
-    GRASP = 3
-    TELEOP = 4
-    END = 5
-
-
 class DataManager(object):
     """Data manager."""
 
@@ -46,8 +35,6 @@ class DataManager(object):
 
     def reset(self):
         """Reset."""
-        self.status = MotionStatus(0)
-
         self.all_data_seq = {}
 
     def append_single_data(self, key, data):
@@ -143,40 +130,6 @@ class DataManager(object):
                 )  # For backward compatibility
                 self.all_data_seq[new_key] = h5file.attrs[orig_key]
 
-    def go_to_next_status(self):
-        """Go to the next status."""
-        if self.status == MotionStatus(len(MotionStatus) - 1):
-            raise ValueError("Cannot go from the last status to the next.")
-        self.status = MotionStatus(self.status.value + 1)
-
-    def get_status_image(self):
-        """Get the image corresponding to the current status."""
-        status_image = np.zeros((50, 320, 3), dtype=np.uint8)
-        if self.status == MotionStatus.INITIAL:
-            status_image[:, :] = np.array([200, 255, 200])
-        elif self.status in (
-            MotionStatus.PRE_REACH,
-            MotionStatus.REACH,
-            MotionStatus.GRASP,
-        ):
-            status_image[:, :] = np.array([255, 255, 200])
-        elif self.status == MotionStatus.TELEOP:
-            status_image[:, :] = np.array([255, 200, 200])
-        elif self.status == MotionStatus.END:
-            status_image[:, :] = np.array([200, 200, 255])
-        else:
-            raise ValueError("Unknown status: {}".format(self.status))
-        cv2.putText(
-            status_image,
-            self.status.name,
-            (5, 35),
-            cv2.FONT_HERSHEY_DUPLEX,
-            0.8,
-            (0, 0, 0),
-            2,
-        )
-        return status_image
-
     def setup_sim_world(self, world_idx=None):
         """Setup the simulation world."""
         if world_idx is None:
@@ -193,22 +146,3 @@ class DataManager(object):
             self.camera_info[depth_key + "_fovy"] = self.env.unwrapped.get_camera_fovy(
                 camera_name
             )
-
-    @property
-    def status(self):
-        """Get the status."""
-        return self._status
-
-    @status.setter
-    def status(self, new_status):
-        """Set the status."""
-        self._status = new_status
-        if self.env is None:
-            self.status_start_time = 0.0
-        else:
-            self.status_start_time = self.env.unwrapped.get_time()
-
-    @property
-    def status_elapsed_duration(self):
-        """Get the elapsed duration of the current status."""
-        return self.env.unwrapped.get_time() - self.status_start_time

@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 
-from robo_manip_baselines.common import MotionStatus
+from robo_manip_baselines.common import Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -13,11 +13,11 @@ class TeleopIsaacUR5eCabinet(TeleopBase):
         self.demo_name = self.args.demo_name or "IsaacUR5eCabinet"
 
     def set_arm_command(self):
-        if self.data_manager.status in (MotionStatus.PRE_REACH, MotionStatus.REACH):
+        if self.phase_manager.phase in (Phase.PRE_REACH, Phase.REACH):
             target_pos = self.env.unwrapped.get_link_pose("ur5e", "base_link")[0:3]
-            if self.data_manager.status == MotionStatus.PRE_REACH:
+            if self.phase_manager.phase == Phase.PRE_REACH:
                 target_pos += np.array([0.33, 0.0, 0.3])  # [m]
-            elif self.data_manager.status == MotionStatus.REACH:
+            elif self.phase_manager.phase == Phase.REACH:
                 target_pos += np.array([0.33, 0.0, 0.3])  # [m]
             self.motion_manager.target_se3.translation = target_pos
         else:

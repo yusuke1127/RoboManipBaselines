@@ -12,9 +12,10 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from robo_manip_baselines.common import (
     DataKey,
-    DataManager,
     MotionManager,
-    MotionStatus,
+    Phase,
+    PhaseManager,
+    PhaseOrder,
 )
 
 
@@ -30,18 +31,16 @@ class RolloutBase(metaclass=ABCMeta):
 
         # Setup motion manager
         self.motion_manager = MotionManager(self.env)
-        MotionStatus.TELEOP._name_ = "AUTO"
 
-        # Setup data manager
-        self.data_manager = DataManager(self.env)
-        self.data_manager.setup_sim_world(self.args.world_idx)
+        # Setup phase manager
+        self.phase_manager = PhaseManager(self.env, PhaseOrder.ROLLOUT)
 
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
         inference_duration_list = []
         while True:
-            if self.data_manager.status == MotionStatus.TELEOP:
+            if self.phase_manager.phase == Phase.ROLLOUT:
                 inference_start_time = time.time()
                 inference_called = self.infer_policy()
                 inference_duration = time.time() - inference_start_time
@@ -54,33 +53,34 @@ class RolloutBase(metaclass=ABCMeta):
             action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
             self.obs, _, _, _, self.info = self.env.step(action)
 
-            if self.data_manager.status == MotionStatus.TELEOP:
+            if self.phase_manager.phase == Phase.ROLLOUT:
                 self.draw_plot()
 
-            # Manage status
+            # Manage phase
             key = cv2.waitKey(1)
-            if self.data_manager.status == MotionStatus.INITIAL:
+            if self.phase_manager.phase == Phase.INITIAL:
                 initial_duration = 1.0  # [s]
                 if (
                     not self.args.wait_before_start
-                    and self.data_manager.status_elapsed_duration > initial_duration
+                    and self.phase_manager.get_phase_elapsed_duration()
+                    > initial_duration
                 ) or (self.args.wait_before_start and key == ord("n")):
-                    self.data_manager.go_to_next_status()
-            elif self.data_manager.status == MotionStatus.PRE_REACH:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.PRE_REACH:
                 pre_reach_duration = 0.7  # [s]
-                if self.data_manager.status_elapsed_duration > pre_reach_duration:
-                    self.data_manager.go_to_next_status()
-            elif self.data_manager.status == MotionStatus.REACH:
+                if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.REACH:
                 reach_duration = 0.3  # [s]
-                if self.data_manager.status_elapsed_duration > reach_duration:
-                    self.data_manager.go_to_next_status()
-            elif self.data_manager.status == MotionStatus.GRASP:
+                if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.GRASP:
                 grasp_duration = 0.5  # [s]
-                if self.data_manager.status_elapsed_duration > grasp_duration:
+                if self.phase_manager.get_phase_elapsed_duration() > grasp_duration:
                     self.auto_time_idx = 0
                     print("[RolloutBase] Press the 'n' key to finish policy rollout.")
-                    self.data_manager.go_to_next_status()
-            elif self.data_manager.status == MotionStatus.TELEOP:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.ROLLOUT:
                 self.auto_time_idx += 1
                 if key == ord("n"):
                     print("[RolloutBase] Statistics on policy inference")
@@ -99,8 +99,8 @@ class RolloutBase(metaclass=ABCMeta):
                         f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}"
                     )
                     print("[RolloutBase] Press the 'n' key to exit.")
-                    self.data_manager.go_to_next_status()
-            elif self.data_manager.status == MotionStatus.END:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.END:
                 if key == ord("n"):
                     break
             if key == 27:  # escape key
@@ -194,17 +194,17 @@ class RolloutBase(metaclass=ABCMeta):
         return param_size + buffer_size
 
     def set_arm_command(self):
-        if self.data_manager.status == MotionStatus.TELEOP:
+        if self.phase_manager.phase == Phase.ROLLOUT:
             self.motion_manager.arm_joint_pos = self.pred_action[
                 self.env.unwrapped.arm_joint_idxes
             ]
 
     def set_gripper_command(self):
-        if self.data_manager.status == MotionStatus.GRASP:
+        if self.phase_manager.phase == Phase.GRASP:
             self.motion_manager.gripper_joint_pos = self.env.action_space.high[
                 self.env.unwrapped.gripper_joint_idxes
             ]
-        elif self.data_manager.status == MotionStatus.TELEOP:
+        elif self.phase_manager.phase == Phase.ROLLOUT:
             self.motion_manager.gripper_joint_pos = np.clip(
                 self.pred_action[self.env.unwrapped.gripper_joint_idxes],
                 self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
