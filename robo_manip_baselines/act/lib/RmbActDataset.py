@@ -2,7 +2,7 @@ import h5py
 import numpy as np
 import torch
 
-from robo_manip_baselines.common import DataKey
+from robo_manip_baselines.common import DataKey, get_skipped_data_seq
 
 
 class RmbActDataset(torch.utils.data.Dataset):
@@ -40,7 +40,14 @@ class RmbActDataset(torch.utils.data.Dataset):
             else:
                 state = np.concatenate(
                     [
-                        h5file[state_key][start_time_idx * self.skip]
+                        get_skipped_data_seq(
+                            h5file[state_key][
+                                start_time_idx * self.skip : (start_time_idx + 1)
+                                * self.skip
+                            ],
+                            state_key,
+                            self.skip,
+                        )[0]
                         for state_key in self.state_keys
                     ]
                 )
@@ -48,7 +55,11 @@ class RmbActDataset(torch.utils.data.Dataset):
             # Load action
             action = np.concatenate(
                 [
-                    h5file[action_key][:: self.skip][start_time_idx:]
+                    get_skipped_data_seq(
+                        h5file[action_key][start_time_idx * self.skip :],
+                        action_key,
+                        self.skip,
+                    )
                     for action_key in self.action_keys
                 ],
                 axis=1,

@@ -20,7 +20,7 @@ from policy import ACTPolicy
 from utils import compute_dict_mean, detach_dict, set_seed
 
 from robo_manip_baselines.act import RmbActDataset
-from robo_manip_baselines.common import DataKey
+from robo_manip_baselines.common import DataKey, get_skipped_data_seq
 
 
 class TrainAct(object):
@@ -148,14 +148,18 @@ class TrainAct(object):
                 else:
                     state = np.concatenate(
                         [
-                            h5file[state_key][:: self.args.skip][()]
+                            get_skipped_data_seq(
+                                h5file[state_key][()], state_key, self.args.skip
+                            )
                             for state_key in self.args.state_keys
                         ],
                         axis=1,
                     )
                 action = np.concatenate(
                     [
-                        h5file[action_key][:: self.args.skip][()]
+                        get_skipped_data_seq(
+                            h5file[action_key][()], action_key, self.args.skip
+                        )
                         for action_key in self.args.action_keys
                     ],
                     axis=1,
@@ -221,7 +225,7 @@ class TrainAct(object):
             "[TrainAct] Construct ACT policy.\n"
             f"  - state dim: {state_dim}, action dim: {action_dim}\n"
             f"  - state keys: {self.args.state_keys}\n"
-            f"  - action key: {self.args.action_keys}\n"
+            f"  - action keys: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}"
         )
 
