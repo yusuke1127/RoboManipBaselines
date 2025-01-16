@@ -137,7 +137,7 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
         point_cloud_skip = 10
         small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
         small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-        fovy = data_manager.get_data_seq(f"{depth_key}_fovy").tolist()
+        fovy = data_manager.get_meta_data(f"{depth_key}_fovy")
         xyz_array, rgb_array = convert_depth_image_to_point_cloud(
             small_depth_image,
             fovy=fovy,

@@ -59,7 +59,7 @@ class PhaseManager(object):
         elif self.phase == Phase.END:
             phase_image[:, :] = np.array([200, 200, 255])
         else:
-            raise ValueError("[PhaseManager] Unknown phase: {}".format(self.phase))
+            raise ValueError(f"[PhaseManager] Unknown phase: {self.phase}")
 
         cv2.putText(
             phase_image,

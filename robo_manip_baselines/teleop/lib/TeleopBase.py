@@ -193,7 +193,7 @@ class TeleopBase(metaclass=ABCMeta):
             print(
                 "[TeleopBase] Load teleoperation data: {}".format(self.args.replay_log)
             )
-            world_idx = self.data_manager.get_data_seq("world_idx").tolist()
+            world_idx = self.data_manager.get_meta_data("world_idx")
         self.data_manager.setup_sim_world(world_idx)
         obs, info = self.env.reset()
         print(
@@ -336,9 +336,9 @@ class TeleopBase(metaclass=ABCMeta):
             small_rgb_image = info["rgb_images"][camera_name][
                 ::point_cloud_skip, ::point_cloud_skip
             ]
-            fovy = self.data_manager.camera_info[
+            fovy = self.data_manager.get_meta_data(
                 DataKey.get_depth_image_key(camera_name) + "_fovy"
-            ]
+            )
             xyz_array, rgb_array = convert_depth_image_to_point_cloud(
                 small_depth_image,
                 fovy=fovy,
@@ -366,7 +366,7 @@ class TeleopBase(metaclass=ABCMeta):
             else:
                 self.point_cloud_scatter_list[camera_idx].remove()
             self.ax[camera_idx].axis("off")
-            self.ax[camera_idx].set_box_aspect(xyz_array.ptp(axis=0))
+            self.ax[camera_idx].set_box_aspect(np.ptp(xyz_array, axis=0))
             self.point_cloud_scatter_list[camera_idx] = self.ax[camera_idx].scatter(
                 xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
             )
