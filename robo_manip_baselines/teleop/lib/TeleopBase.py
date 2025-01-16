@@ -193,7 +193,7 @@ class TeleopBase(metaclass=ABCMeta):
             print(
                 "[TeleopBase] Load teleoperation data: {}".format(self.args.replay_log)
             )
-            world_idx = self.data_manager.get_data("world_idx").tolist()
+            world_idx = self.data_manager.get_data_seq("world_idx").tolist()
         self.data_manager.setup_sim_world(world_idx)
         obs, info = self.env.reset()
         print(
@@ -413,7 +413,9 @@ class TeleopBase(metaclass=ABCMeta):
                     )
                     self.phase_manager.set_next_phase()
             else:
-                if self.teleop_time_idx == len(self.data_manager.get_data("time")):
+                if self.teleop_time_idx == len(
+                    self.data_manager.get_data_seq(DataKey.TIME)
+                ):
                     self.teleop_time_idx -= 1
                     print(
                         "[TeleopBase] The log motion has finished replaying. Press the 'n' key to exit."

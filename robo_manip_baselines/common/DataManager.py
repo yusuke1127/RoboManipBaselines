@@ -50,7 +50,7 @@ class DataManager(object):
         data = self.all_data_seq[key][time_idx]
         return data
 
-    def get_data(self, key):
+    def get_data_seq(self, key):
         """Get a data sequence."""
         key = DataKey.replace_deprecated_key(key)  # For backward compatibility
         data_seq = self.all_data_seq[key]

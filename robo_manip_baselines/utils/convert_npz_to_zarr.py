@@ -37,9 +37,11 @@ def get_data(in_file_name):
     print(" " * 4 + f"{in_file_name}")
     data_manager = DataManager(env=None)
     data_manager.load_data(in_file_name)
-    _actions = data_manager.get_data(DataKey.COMMAND_JOINT_POS)[:: args.skip]
-    _joints = data_manager.get_data(DataKey.MEASURED_JOINT_POS)[:: args.skip]
-    _images = data_manager.get_data(DataKey.get_rgb_image_key("front"))[:: args.skip]
+    _actions = data_manager.get_data_seq(DataKey.COMMAND_JOINT_POS)[:: args.skip]
+    _joints = data_manager.get_data_seq(DataKey.MEASURED_JOINT_POS)[:: args.skip]
+    _images = data_manager.get_data_seq(DataKey.get_rgb_image_key("front"))[
+        :: args.skip
+    ]
     return (_actions, _joints, _images)
 
 

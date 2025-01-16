@@ -53,10 +53,12 @@ def load_skip_resize_data(file_info):
     data_manager = DataManager(env=None)
     data_manager.load_data(filename)
     try:
-        _front_images = data_manager.get_data(DataKey.get_rgb_image_key("front"))[
+        _front_images = data_manager.get_data_seq(DataKey.get_rgb_image_key("front"))[
             ::skip
         ]
-        _side_images = data_manager.get_data(DataKey.get_rgb_image_key("side"))[::skip]
+        _side_images = data_manager.get_data_seq(DataKey.get_rgb_image_key("side"))[
+            ::skip
+        ]
         if args.cropped_img_size is not None:
             [fro_lef, fro_top, sid_lef, sid_top] = [
                 (images_shape[ax] - args.cropped_img_size) // 2
@@ -82,9 +84,9 @@ def load_skip_resize_data(file_info):
                     for image in _side_images
                 ]
             )
-        _wrenches = data_manager.get_data(DataKey.MEASURED_EEF_WRENCH)[::skip]
-        _joints = data_manager.get_data(DataKey.MEASURED_JOINT_POS)[::skip]
-        _actions = data_manager.get_data(DataKey.COMMAND_JOINT_POS)[::skip]
+        _wrenches = data_manager.get_data_seq(DataKey.MEASURED_EEF_WRENCH)[::skip]
+        _joints = data_manager.get_data_seq(DataKey.MEASURED_JOINT_POS)[::skip]
+        _actions = data_manager.get_data_seq(DataKey.COMMAND_JOINT_POS)[::skip]
     except KeyError as e:
         print(f"{e.__class__.__name__}: filename={filename}")
         raise
