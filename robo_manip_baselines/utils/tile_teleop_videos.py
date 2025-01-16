@@ -36,7 +36,7 @@ for e in args.envs:
     data_manager.load_data(files[0])
 
     front_images.append(
-        data_manager.get_data(DataKey.get_rgb_image_key("front"))[:, ::2, ::2, :]
+        data_manager.get_data_seq(DataKey.get_rgb_image_key("front"))[:, ::2, ::2, :]
     )
     img_l = front_images[-1].shape[0] if img_l < front_images[-1].shape[0] else img_l
 

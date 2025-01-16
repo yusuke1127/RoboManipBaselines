@@ -26,24 +26,24 @@ data_manager = DataManager(env=None)
 data_manager.load_data(args.teleop_filename)
 
 time_range = (
-    data_manager.get_data(DataKey.TIME)[0],
-    data_manager.get_data(DataKey.TIME)[-1],
+    data_manager.get_data_seq(DataKey.TIME)[0],
+    data_manager.get_data_seq(DataKey.TIME)[-1],
 )
 ax[0, 0].set_xlim(*time_range)
 ax[0, 1].set_xlim(*time_range)
 ax[0, 2].set_xlim(*time_range)
-action_data = data_manager.get_data(DataKey.COMMAND_JOINT_POS)
-joint_pos_data = data_manager.get_data(DataKey.MEASURED_JOINT_POS)
+action_data = data_manager.get_data_seq(DataKey.COMMAND_JOINT_POS)
+joint_pos_data = data_manager.get_data_seq(DataKey.MEASURED_JOINT_POS)
 q_data = np.concatenate([action_data, joint_pos_data])
 ax[0, 0].set_ylim(q_data[:, :-1].min(), q_data[:, :-1].max())
 ax00_twin = ax[0, 0].twinx()
 ax00_twin.set_ylim(q_data[:, -1].min(), q_data[:, -1].max())
-joint_vel_data = data_manager.get_data(DataKey.MEASURED_JOINT_VEL)
+joint_vel_data = data_manager.get_data_seq(DataKey.MEASURED_JOINT_VEL)
 ax[0, 1].set_ylim(joint_vel_data.min(), joint_vel_data.max())
-wrench_data = data_manager.get_data(DataKey.MEASURED_EEF_WRENCH)
+wrench_data = data_manager.get_data_seq(DataKey.MEASURED_EEF_WRENCH)
 ax[0, 2].set_ylim(wrench_data.min(), wrench_data.max())
-measured_eef_data = data_manager.get_data(DataKey.MEASURED_EEF_POSE)
-command_eef_data = data_manager.get_data(DataKey.COMMAND_EEF_POSE)
+measured_eef_data = data_manager.get_data_seq(DataKey.MEASURED_EEF_POSE)
+command_eef_data = data_manager.get_data_seq(DataKey.COMMAND_EEF_POSE)
 eef_data = np.concatenate([measured_eef_data, command_eef_data])
 ax[0, 3].set_ylim(eef_data[:, 0:3].min(), eef_data[:, 0:3].max())
 ax03_twin = ax[0, 3].twinx()
@@ -67,7 +67,7 @@ def key_event(event):
         break_flag = True
 
 
-for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
+for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip):
     if break_flag:
         break
 
@@ -137,7 +137,7 @@ for time_idx in range(0, len(data_manager.get_data(DataKey.TIME)), args.skip):
         point_cloud_skip = 10
         small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
         small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-        fovy = data_manager.get_data(f"{depth_key}_fovy").tolist()
+        fovy = data_manager.get_data_seq(f"{depth_key}_fovy").tolist()
         xyz_array, rgb_array = convert_depth_image_to_point_cloud(
             small_depth_image,
             fovy=fovy,

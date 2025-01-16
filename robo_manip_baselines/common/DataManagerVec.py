@@ -28,7 +28,7 @@ class DataManagerVec(DataManager):
             data_list.append(data)
         return data_list
 
-    def get_data(self, key):
+    def get_data_seq(self, key):
         """Get a data sequence."""
         key = DataKey.replace_deprecated_key(key)  # For backward compatibility
         data_seq_list = []
