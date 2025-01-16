@@ -17,19 +17,16 @@ class DataManager(object):
     def __init__(self, env, demo_name=""):
         self.env = env
 
-        self.general_info = {
+        self.meta_data = {
             "format": "RoboManipBaselines-TeleopData-HDF5",
             "demo": demo_name,
             "version": __version__,
         }
         if self.env is not None:
-            self.general_info["env"] = self.env.spec.name
+            self.meta_data["env"] = self.env.spec.name
 
         self.episode_idx = 0
         self.world_idx = 0
-        self.world_info = {}
-
-        self.camera_info = {}
 
         self.reset()
 
@@ -51,10 +48,14 @@ class DataManager(object):
         return data
 
     def get_data_seq(self, key):
-        """Get a data sequence."""
+        """Get data sequence."""
         key = DataKey.replace_deprecated_key(key)  # For backward compatibility
         data_seq = self.all_data_seq[key]
         return data_seq
+
+    def get_meta_data(self, key):
+        """Get meta data."""
+        return self.meta_data[key]
 
     def calc_relative_data(self, key, all_data_seq=None):
         """Calculate relative data."""
@@ -85,21 +86,20 @@ class DataManager(object):
                 )
                 return np.concatenate([rel_pos, rel_rpy])
 
-    def save_data(self, filename, all_data_seq=None, increment_episode_idx=True):
+    def save_data(
+        self, filename, all_data_seq=None, meta_data=None, increment_episode_idx=True
+    ):
         """Save data."""
         if all_data_seq is None:
             all_data_seq = self.all_data_seq
+        if meta_data is None:
+            meta_data = self.meta_data
 
         # For backward compatibility
         for orig_key in all_data_seq.keys():
             new_key = DataKey.replace_deprecated_key(orig_key)
             if orig_key != new_key:
                 all_data_seq[new_key] = all_data_seq.pop(orig_key)
-
-        # Set meta data
-        all_data_seq.update(self.general_info)
-        all_data_seq.update(self.world_info)
-        all_data_seq.update(self.camera_info)
 
         # Dump to a file
         os.makedirs(os.path.dirname(filename), exist_ok=True)
@@ -110,7 +110,11 @@ class DataManager(object):
                 elif isinstance(all_data_seq[key], np.ndarray):
                     h5file.create_dataset(key, data=all_data_seq[key])
                 else:
-                    h5file.attrs[key] = all_data_seq[key]
+                    raise ValueError(
+                        f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
+                    )
+            for key in meta_data.keys():
+                h5file.attrs[key] = meta_data[key]
 
         if increment_episode_idx:
             self.episode_idx += 1
@@ -118,17 +122,15 @@ class DataManager(object):
     def load_data(self, filename):
         """Load data."""
         self.all_data_seq = {}
+        self.meta_data = {}
         with h5py.File(filename, "r") as h5file:
             for orig_key in h5file.keys():
                 new_key = DataKey.replace_deprecated_key(
                     orig_key
                 )  # For backward compatibility
                 self.all_data_seq[new_key] = h5file[orig_key][()]
-            for orig_key in h5file.attrs.keys():
-                new_key = DataKey.replace_deprecated_key(
-                    orig_key
-                )  # For backward compatibility
-                self.all_data_seq[new_key] = h5file.attrs[orig_key]
+            for key in h5file.attrs.keys():
+                self.meta_data[key] = h5file.attrs[key]
 
     def setup_sim_world(self, world_idx=None):
         """Setup the simulation world."""
@@ -137,12 +139,12 @@ class DataManager(object):
         else:
             kwargs = {"world_idx": world_idx}
         self.world_idx = self.env.unwrapped.modify_world(**kwargs)
-        self.world_info = {"world_idx": self.world_idx}
+        self.meta_data["world_idx"] = self.world_idx
 
     def setup_camera_info(self):
         """Set camera info."""
         for camera_name in self.env.unwrapped.camera_names:
             depth_key = DataKey.get_depth_image_key(camera_name)
-            self.camera_info[depth_key + "_fovy"] = self.env.unwrapped.get_camera_fovy(
+            self.meta_data[depth_key + "_fovy"] = self.env.unwrapped.get_camera_fovy(
                 camera_name
             )

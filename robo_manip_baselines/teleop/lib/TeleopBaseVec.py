@@ -45,7 +45,7 @@ class TeleopBaseVec(TeleopBase):
                             self.args.replay_log
                         )
                     )
-                    world_idx = self.data_manager.get_data_seq("world_idx").tolist()
+                    world_idx = self.data_manager.get_meta_data("world_idx")
                 self.data_manager.setup_sim_world(world_idx)
                 self.env.reset()
                 obs_list = self.env.unwrapped.obs_list
