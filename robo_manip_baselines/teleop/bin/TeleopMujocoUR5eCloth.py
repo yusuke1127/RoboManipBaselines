@@ -27,6 +27,7 @@ class TeleopMujocoUR5eCloth(TeleopBase):
             elif self.phase_manager.phase == Phase.REACH:
                 target_se3 *= pin.SE3(np.identity(3), np.array([0.0, -0.2, -0.3]))
             self.motion_manager.target_se3 = target_se3
+            self.motion_manager.inverse_kinematics()
         else:
             super().set_arm_command()
 

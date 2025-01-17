@@ -32,6 +32,7 @@ class TeleopMujocoAlohaCable(TeleopBase):
             self.motion_manager.target_se3 = pin.SE3(
                 pin.rpy.rpyToMatrix(*target_rpy), target_pos
             )
+            self.motion_manager.inverse_kinematics()
         else:
             super().set_arm_command()
 

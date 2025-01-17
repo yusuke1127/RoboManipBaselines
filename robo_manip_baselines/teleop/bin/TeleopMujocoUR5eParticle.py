@@ -29,6 +29,7 @@ class TeleopMujocoUR5eParticle(TeleopBase):
             self.motion_manager.target_se3 = pin.SE3(
                 pin.rpy.rpyToMatrix(np.pi, 0.0, np.pi / 2), target_pos
             )
+            self.motion_manager.inverse_kinematics()
         else:
             super().set_arm_command()
 

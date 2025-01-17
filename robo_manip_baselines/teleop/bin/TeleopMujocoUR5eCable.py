@@ -23,6 +23,7 @@ class TeleopMujocoUR5eCable(TeleopBase):
             self.motion_manager.target_se3 = pin.SE3(
                 np.diag([-1.0, 1.0, -1.0]), target_pos
             )
+            self.motion_manager.inverse_kinematics()
         else:
             super().set_arm_command()
 
