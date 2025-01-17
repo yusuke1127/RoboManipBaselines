@@ -95,8 +95,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.set_arm_command()
                 self.set_gripper_command()
 
-                # Solve IK
-                self.motion_manager.inverse_kinematics()
+                # Draw markers
                 self.motion_manager.draw_markers()
 
                 # Set action
@@ -224,6 +223,7 @@ class TeleopBase(metaclass=ABCMeta):
             self.motion_manager.set_relative_target_se3(
                 delta_pos, delta_rpy=delta_rpy, is_delta_rpy_in_world_frame=True
             )
+            self.motion_manager.inverse_kinematics()
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:

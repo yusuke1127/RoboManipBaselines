@@ -20,8 +20,9 @@ class TeleopIsaacUR5eCabinetVec(TeleopBaseVec):
             if self.phase_manager.phase == Phase.PRE_REACH:
                 target_pos += np.array([0.33, 0.0, 0.3])  # [m]
             elif self.phase_manager.phase == Phase.REACH:
-                target_pos += np.array([0.33, 0.0, 0.3])  # [m]
+                target_pos += np.array([0.38, 0.0, 0.3])  # [m]
             self.motion_manager.target_se3.translation = target_pos
+            self.motion_manager.inverse_kinematics()
         else:
             super().set_arm_command()
 
