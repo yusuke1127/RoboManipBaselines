@@ -80,8 +80,8 @@ class TeleopBaseVec(TeleopBase):
                 self.set_gripper_command()
 
                 # Solve IK
-                self.motion_manager.draw_markers()
                 self.motion_manager.inverse_kinematics()
+                self.motion_manager.draw_markers()
 
                 # Set action
                 action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
