@@ -141,7 +141,7 @@ class TeleopBaseVec(TeleopBase):
                     DataKey.COMMAND_EEF_POSE_REL,
                 ):
                     self.data_manager.append_single_data(
-                        key, self.data_manager.calc_relative_data(key)
+                        key, self.data_manager.calc_rel_data(key)
                     )
 
                 # Add image

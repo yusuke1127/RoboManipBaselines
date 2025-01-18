@@ -37,10 +37,10 @@ class DataManagerVec(DataManager):
             data_seq_list.append(data_seq)
         return data_seq_list
 
-    def calc_relative_data(self, key):
+    def calc_rel_data(self, key):
         """Calculate relative data."""
         return [
-            super(DataManagerVec, self).calc_relative_data(key, all_data_seq)
+            super(DataManagerVec, self).calc_rel_data(key, all_data_seq)
             for all_data_seq in self.all_data_seq_list
         ]
 
