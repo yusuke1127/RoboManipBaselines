@@ -27,61 +27,62 @@ class MotionManager(object):
         self.pin_data = self.pin_model.createData()
         self.pin_data_obs = self.pin_model.createData()
 
-        # Setup arm
-        self.arm_joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.arm_joint_idxes
-        ].copy()
+        # Setup robot state
+        self.joint_pos = np.concatenate(
+            [
+                self.env.unwrapped.init_qpos[self.env.unwrapped.arm_joint_idxes],
+                self.env.unwrapped.init_qpos[self.env.unwrapped.gripper_joint_idxes],
+            ]
+        )
         self.forward_kinematics()
         self._original_target_se3 = self.pin_data.oMi[
             self.env.unwrapped.ik_eef_joint_id
         ].copy()
         self.target_se3 = self._original_target_se3.copy()
 
-        # Setup gripper
-        self.gripper_joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_joint_idxes
-        ]
-
     def reset(self):
         """Reset states of arm and gripper."""
-        # Reset arm
-        self.arm_joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.arm_joint_idxes
-        ].copy()
+        # Reset robot state
+        self.joint_pos = np.concatenate(
+            [
+                self.env.unwrapped.init_qpos[self.env.unwrapped.arm_joint_idxes],
+                self.env.unwrapped.init_qpos[self.env.unwrapped.gripper_joint_idxes],
+            ]
+        )
         self.forward_kinematics()
         self.target_se3 = self._original_target_se3.copy()
 
-        # Reset gripper
-        self.gripper_joint_pos = self.env.unwrapped.init_qpos[
-            self.env.unwrapped.gripper_joint_idxes
-        ]
-
     def forward_kinematics(self):
         """Solve forward kinematics."""
-        pin.forwardKinematics(self.pin_model, self.pin_data, self.arm_joint_pos)
+        pin.forwardKinematics(
+            self.pin_model,
+            self.pin_data,
+            self.joint_pos[self.env.unwrapped.arm_joint_idxes],
+        )
 
     def inverse_kinematics(self):
         """Solve inverse kinematics."""
         # https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_b-examples_d-inverse-kinematics.html
         error_se3 = self.current_se3.actInv(self.target_se3)
         error_vec = pin.log(error_se3).vector  # in joint frame
+        arm_joint_pos = self.joint_pos[self.env.unwrapped.arm_joint_idxes]
         J = pin.computeJointJacobian(
             self.pin_model,
             self.pin_data,
-            self.arm_joint_pos,
+            arm_joint_pos,
             self.env.unwrapped.ik_eef_joint_id,
         )  # in joint frame
         J = -1 * np.dot(pin.Jlog6(error_se3.inverse()), J)
         damping_scale = 1e-6
-        delta_joint_pos = -1 * J.T.dot(
+        delta_arm_joint_pos = -1 * J.T.dot(
             np.linalg.solve(
                 J.dot(J.T)
                 + (np.dot(error_vec, error_vec) + damping_scale) * np.identity(6),
                 error_vec,
             )
         )
-        self.arm_joint_pos = pin.integrate(
-            self.pin_model, self.arm_joint_pos, delta_joint_pos
+        self.joint_pos[self.env.unwrapped.arm_joint_idxes] = pin.integrate(
+            self.pin_model, arm_joint_pos, delta_arm_joint_pos
         )
         self.forward_kinematics()
 
@@ -90,21 +91,29 @@ class MotionManager(object):
         """Get the current pose of the end-effector."""
         return self.pin_data.oMi[self.env.unwrapped.ik_eef_joint_id]
 
-    def set_relative_target_se3(
-        self, delta_pos=None, delta_rpy=None, is_delta_rpy_in_world_frame=True
-    ):
-        """Set the target pose of the end-effector relatively."""
-        if delta_pos is not None:
-            self.target_se3.translation += delta_pos
-        if delta_rpy is not None:
-            if is_delta_rpy_in_world_frame:
-                self.target_se3.rotation = (
-                    pin.rpy.rpyToMatrix(*delta_rpy) @ self.target_se3.rotation
-                )
-            else:
-                self.target_se3.rotation = (
-                    self.target_se3.rotation @ pin.rpy.rpyToMatrix(*delta_rpy)
-                )
+    def set_command_data(self, key, command):
+        """Set command data."""
+        if key == DataKey.COMMAND_JOINT_POS:
+            self.joint_pos[self.env.unwrapped.arm_joint_idxes] = command[
+                self.env.unwrapped.arm_joint_idxes
+            ]
+            self.forward_kinematics()
+            self.target_se3 = self.current_se3.copy()
+            self.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS,
+                command[self.env.unwrapped.gripper_joint_idxes],
+            )
+        elif key == DataKey.COMMAND_GRIPPER_JOINT_POS:
+            self.joint_pos[self.env.unwrapped.gripper_joint_idxes] = np.clip(
+                command,
+                self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
+                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
+            )
+        elif key == DataKey.COMMAND_EEF_POSE:
+            self.target_se3 = command
+            self.inverse_kinematics()
+        else:
+            raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
 
     def get_measured_data(self, key, obs):
         """Get measured data of the specified key from observation."""
@@ -138,9 +147,9 @@ class MotionManager(object):
     def get_command_data(self, key):
         """Get command data of the specified key."""
         if key == DataKey.COMMAND_JOINT_POS:
-            return np.concatenate([self.arm_joint_pos, self.gripper_joint_pos])
+            return self.joint_pos.copy()
         elif key == DataKey.COMMAND_GRIPPER_JOINT_POS:
-            return self.gripper_joint_pos
+            return self.joint_pos[self.env.unwrapped.gripper_joint_idxes].copy()
         elif key == DataKey.COMMAND_EEF_POSE:
             return np.concatenate(
                 [
