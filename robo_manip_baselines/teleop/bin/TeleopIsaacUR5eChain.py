@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import Phase
+from robo_manip_baselines.common import DataKey, Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -20,16 +20,16 @@ class TeleopIsaacUR5eChain(TeleopBase):
                 target_pos[2] += 0.22  # [m]
             elif self.phase_manager.phase == Phase.REACH:
                 target_pos[2] += 0.14  # [m]
-            self.motion_manager.target_se3 = pin.SE3(
-                np.diag([-1.0, 1.0, -1.0]), target_pos
-            )
-            self.motion_manager.inverse_kinematics()
+            target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
+            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
             super().set_arm_command()
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.gripper_joint_pos = np.array([150.0])
+            self.motion_manager.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS, np.array([150.0])
+            )
         else:
             super().set_gripper_command()
 

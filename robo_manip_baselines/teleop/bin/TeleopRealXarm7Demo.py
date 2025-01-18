@@ -31,7 +31,9 @@ class TeleopRealXarm7Demo(TeleopBase):
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.gripper_joint_pos = np.array([800.0])
+            self.motion_manager.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS, np.array([800.0])
+            )
         else:
             super().set_gripper_command()
 

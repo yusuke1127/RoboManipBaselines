@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import Phase
+from robo_manip_baselines.common import DataKey, Phase
 from robo_manip_baselines.teleop import TeleopBase
 
 
@@ -23,10 +23,10 @@ class TeleopMujocoXarm7Ring(TeleopBase):
                 target_pos += np.array([-0.2, 0.05, -0.05])  # [m]
             elif self.phase_manager.phase == Phase.REACH:
                 target_pos += np.array([-0.15, 0.05, -0.05])  # [m]
-            self.motion_manager.target_se3 = pin.SE3(
+            target_se3 = pin.SE3(
                 pin.rpy.rpyToMatrix(0.0, 1.5 * np.pi, np.pi), target_pos
             )
-            self.motion_manager.inverse_kinematics()
+            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
             super().set_arm_command()
 

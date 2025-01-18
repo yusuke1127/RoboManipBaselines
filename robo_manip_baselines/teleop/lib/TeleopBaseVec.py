@@ -75,12 +75,9 @@ class TeleopBaseVec(TeleopBase):
                     DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
                 )
             else:
-                # Set commands
+                # Set command
                 self.set_arm_command()
                 self.set_gripper_command()
-
-                # Solve IK
-                self.motion_manager.inverse_kinematics()
                 self.motion_manager.draw_markers()
 
                 # Set action
@@ -219,7 +216,7 @@ class TeleopBaseVec(TeleopBase):
         num_success = sum(filename is not None for filename in filename_list)
         if num_success > 0:
             print(
-                "[TeleopBaseVec] Teleoperation succeeded: Save the {} data such as {}, etc.".format(
+                "[TeleopBaseVec] Teleoperation succeeded: Save the {} data such as {} etc.".format(
                     sum(filename is not None for filename in filename_list),
                     next(
                         filename for filename in filename_list if filename is not None
