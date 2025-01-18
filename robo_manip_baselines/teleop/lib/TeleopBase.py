@@ -19,6 +19,7 @@ from robo_manip_baselines.common import (
     PhaseOrder,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
+    get_se3_from_pose,
 )
 
 
@@ -88,6 +89,39 @@ class TeleopBase(metaclass=ABCMeta):
                 Phase.TELEOP,
                 Phase.END,
             ):
+                # self.motion_manager.set_command_data(
+                #     DataKey.COMMAND_EEF_POSE_REL,
+                #     self.data_manager.get_single_data(
+                #         DataKey.COMMAND_EEF_POSE_REL, self.teleop_time_idx
+                #     ),
+                # )
+                # self.motion_manager.set_command_data(
+                #     DataKey.COMMAND_GRIPPER_JOINT_POS,
+                #     self.data_manager.get_single_data(
+                #         DataKey.COMMAND_GRIPPER_JOINT_POS, self.teleop_time_idx
+                #     ),
+                # )
+
+                # self.motion_manager.set_command_data(
+                #     DataKey.COMMAND_EEF_POSE,
+                #     self.data_manager.get_single_data(
+                #         DataKey.COMMAND_EEF_POSE, self.teleop_time_idx
+                #     ),
+                # )
+                # self.motion_manager.set_command_data(
+                #     DataKey.COMMAND_GRIPPER_JOINT_POS,
+                #     self.data_manager.get_single_data(
+                #         DataKey.COMMAND_GRIPPER_JOINT_POS, self.teleop_time_idx
+                #     ),
+                # )
+
+                # self.motion_manager.set_command_data(
+                #     DataKey.COMMAND_JOINT_POS_REL,
+                #     self.data_manager.get_single_data(
+                #         DataKey.COMMAND_JOINT_POS_REL, self.teleop_time_idx
+                #     ),
+                # )
+
                 self.motion_manager.set_command_data(
                     DataKey.COMMAND_JOINT_POS,
                     self.data_manager.get_single_data(
@@ -288,7 +322,7 @@ class TeleopBase(metaclass=ABCMeta):
             DataKey.COMMAND_EEF_POSE_REL,
         ):
             self.data_manager.append_single_data(
-                key, self.data_manager.calc_relative_data(key)
+                key, self.data_manager.calc_rel_data(key)
             )
 
         # Add image

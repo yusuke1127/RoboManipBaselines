@@ -9,6 +9,7 @@ import pinocchio as pin
 from robo_manip_baselines import __version__
 
 from .DataKey import DataKey
+from .MathUtils import get_rel_pose_from_se3, get_se3_from_pose
 
 
 class DataManager(object):
@@ -57,7 +58,7 @@ class DataManager(object):
         """Get meta data."""
         return self.meta_data[key]
 
-    def calc_relative_data(self, key, all_data_seq=None):
+    def calc_rel_data(self, key, all_data_seq=None):
         """Calculate relative data."""
         if all_data_seq is None:
             all_data_seq = self.all_data_seq
@@ -75,16 +76,9 @@ class DataManager(object):
             if len(all_data_seq[abs_key]) < 2:
                 return np.zeros(6)
             else:
-                current_pose = all_data_seq[abs_key][-1]
-                prev_pose = all_data_seq[abs_key][-2]
-                rel_pos = current_pose[0:3] - prev_pose[0:3]
-                rel_rpy = pin.rpy.matrixToRpy(
-                    (
-                        pin.Quaternion(*prev_pose[3:7]).inverse()
-                        * pin.Quaternion(*current_pose[3:7])
-                    ).toRotationMatrix()
-                )
-                return np.concatenate([rel_pos, rel_rpy])
+                current_se3 = get_se3_from_pose(all_data_seq[abs_key][-1])
+                prev_se3 = get_se3_from_pose(all_data_seq[abs_key][-2])
+                return get_rel_pose_from_se3(prev_se3.actInv(current_se3))
 
     def save_data(
         self, filename, all_data_seq=None, meta_data=None, increment_episode_idx=True

@@ -2,6 +2,7 @@ import numpy as np
 import pinocchio as pin
 
 from .DataKey import DataKey
+from .MathUtils import get_pose_from_se3, get_se3_from_pose, get_se3_from_rel_pose
 
 
 class MotionManager(object):
@@ -17,11 +18,8 @@ class MotionManager(object):
         # Setup pinocchio model and data
         self.pin_model = pin.buildModelFromUrdf(self.env.unwrapped.arm_urdf_path)
         if self.env.unwrapped.arm_root_pose is not None:
-            root_se3 = pin.SE3(
-                pin.Quaternion(self.env.unwrapped.arm_root_pose[[4, 5, 6, 3]]),
-                self.env.unwrapped.arm_root_pose[0:3],
-            )
-            self.pin_model.jointPlacements[1] = root_se3.act(
+            arm_root_se3 = get_se3_from_pose(self.env.unwrapped.arm_root_pose)
+            self.pin_model.jointPlacements[1] = arm_root_se3.act(
                 self.pin_model.jointPlacements[1]
             )
         self.pin_data = self.pin_model.createData()
@@ -103,6 +101,8 @@ class MotionManager(object):
                 DataKey.COMMAND_GRIPPER_JOINT_POS,
                 command[self.env.unwrapped.gripper_joint_idxes],
             )
+        elif key == DataKey.COMMAND_JOINT_POS_REL:
+            self.set_command_data(DataKey.COMMAND_JOINT_POS, self.joint_pos + command)
         elif key == DataKey.COMMAND_GRIPPER_JOINT_POS:
             self.joint_pos[self.env.unwrapped.gripper_joint_idxes] = np.clip(
                 command,
@@ -110,8 +110,16 @@ class MotionManager(object):
                 self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
         elif key == DataKey.COMMAND_EEF_POSE:
-            self.target_se3 = command
+            if isinstance(command, pin.SE3):
+                self.target_se3 = command
+            else:
+                self.target_se3 = get_se3_from_pose(command)
             self.inverse_kinematics()
+        elif key == DataKey.COMMAND_EEF_POSE_REL:
+            self.set_command_data(
+                DataKey.COMMAND_EEF_POSE,
+                self.target_se3 * get_se3_from_rel_pose(command),
+            )
         else:
             raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
 
@@ -133,12 +141,7 @@ class MotionManager(object):
                 self.pin_model, self.pin_data_obs, measured_arm_joint_pos
             )
             measured_se3 = self.pin_data_obs.oMi[self.env.unwrapped.ik_eef_joint_id]
-            return np.concatenate(
-                [
-                    measured_se3.translation,
-                    pin.Quaternion(measured_se3.rotation).coeffs()[[3, 0, 1, 2]],
-                ]
-            )
+            return get_pose_from_se3(measured_se3)
         elif key == DataKey.MEASURED_EEF_WRENCH:
             return self.env.unwrapped.get_eef_wrench_from_obs(obs)
         else:
@@ -151,12 +154,7 @@ class MotionManager(object):
         elif key == DataKey.COMMAND_GRIPPER_JOINT_POS:
             return self.joint_pos[self.env.unwrapped.gripper_joint_idxes].copy()
         elif key == DataKey.COMMAND_EEF_POSE:
-            return np.concatenate(
-                [
-                    self.target_se3.translation,
-                    pin.Quaternion(self.target_se3.rotation).coeffs()[[3, 0, 1, 2]],
-                ]
-            )
+            return get_pose_from_se3(self.target_se3)
         else:
             raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
 
