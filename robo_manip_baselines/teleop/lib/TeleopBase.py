@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 import cv2
 import matplotlib.pylab as plt
 import numpy as np
+import pinocchio as pin
 import pyspacemouse
 
 from robo_manip_baselines.common import (
@@ -82,24 +83,24 @@ class TeleopBase(metaclass=ABCMeta):
                 for i in range(10):
                     self.spacemouse_state = pyspacemouse.read()
 
-            # Get action
+            # Set command
             if self.args.replay_log is not None and self.phase_manager.phase in (
                 Phase.TELEOP,
                 Phase.END,
             ):
-                action = self.data_manager.get_single_data(
-                    DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
+                self.motion_manager.set_command_data(
+                    DataKey.COMMAND_JOINT_POS,
+                    self.data_manager.get_single_data(
+                        DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
+                    ),
                 )
             else:
-                # Set commands
                 self.set_arm_command()
                 self.set_gripper_command()
-
-                # Draw markers
                 self.motion_manager.draw_markers()
 
-                # Set action
-                action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            # Set action
+            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
 
             # Record data
             if (
@@ -220,31 +221,35 @@ class TeleopBase(metaclass=ABCMeta):
                     -2.0 * self.spacemouse_state.yaw,
                 ]
             )
-            self.motion_manager.set_relative_target_se3(
-                delta_pos, delta_rpy=delta_rpy, is_delta_rpy_in_world_frame=True
-            )
-            self.motion_manager.inverse_kinematics()
+
+            target_se3 = self.motion_manager.target_se3.copy()
+            target_se3.translation += delta_pos
+            target_se3.rotation = pin.rpy.rpyToMatrix(*delta_rpy) @ target_se3.rotation
+
+            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.gripper_joint_pos = self.env.action_space.high[
-                self.env.unwrapped.gripper_joint_idxes
-            ]
+            self.motion_manager.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS,
+                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
+            )
         elif self.phase_manager.phase == Phase.TELEOP:
+            gripper_joint_pos = self.motion_manager.get_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS
+            )
             if (
                 self.spacemouse_state.buttons[0] > 0
                 and self.spacemouse_state.buttons[-1] <= 0
             ):
-                self.motion_manager.gripper_joint_pos += self.gripper_scale
+                gripper_joint_pos += self.gripper_scale
             elif (
                 self.spacemouse_state.buttons[-1] > 0
                 and self.spacemouse_state.buttons[0] <= 0
             ):
-                self.motion_manager.gripper_joint_pos -= self.gripper_scale
-            self.motion_manager.gripper_joint_pos = np.clip(
-                self.motion_manager.gripper_joint_pos,
-                self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
-                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
+                gripper_joint_pos -= self.gripper_scale
+            self.motion_manager.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS, gripper_joint_pos
             )
 
     def record_data(self, obs, action, info):
