@@ -89,45 +89,13 @@ class TeleopBase(metaclass=ABCMeta):
                 Phase.TELEOP,
                 Phase.END,
             ):
-                # self.motion_manager.set_command_data(
-                #     DataKey.COMMAND_EEF_POSE_REL,
-                #     self.data_manager.get_single_data(
-                #         DataKey.COMMAND_EEF_POSE_REL, self.teleop_time_idx
-                #     ),
-                # )
-                # self.motion_manager.set_command_data(
-                #     DataKey.COMMAND_GRIPPER_JOINT_POS,
-                #     self.data_manager.get_single_data(
-                #         DataKey.COMMAND_GRIPPER_JOINT_POS, self.teleop_time_idx
-                #     ),
-                # )
-
-                # self.motion_manager.set_command_data(
-                #     DataKey.COMMAND_EEF_POSE,
-                #     self.data_manager.get_single_data(
-                #         DataKey.COMMAND_EEF_POSE, self.teleop_time_idx
-                #     ),
-                # )
-                # self.motion_manager.set_command_data(
-                #     DataKey.COMMAND_GRIPPER_JOINT_POS,
-                #     self.data_manager.get_single_data(
-                #         DataKey.COMMAND_GRIPPER_JOINT_POS, self.teleop_time_idx
-                #     ),
-                # )
-
-                # self.motion_manager.set_command_data(
-                #     DataKey.COMMAND_JOINT_POS_REL,
-                #     self.data_manager.get_single_data(
-                #         DataKey.COMMAND_JOINT_POS_REL, self.teleop_time_idx
-                #     ),
-                # )
-
-                self.motion_manager.set_command_data(
-                    DataKey.COMMAND_JOINT_POS,
-                    self.data_manager.get_single_data(
-                        DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
-                    ),
-                )
+                for replay_key in self.args.replay_keys:
+                    self.motion_manager.set_command_data(
+                        replay_key,
+                        self.data_manager.get_single_data(
+                            replay_key, self.teleop_time_idx
+                        ),
+                    )
             else:
                 self.set_arm_command()
                 self.set_gripper_command()
@@ -200,7 +168,20 @@ class TeleopBase(metaclass=ABCMeta):
             "--replay_log",
             type=str,
             default=None,
-            help="log file path when replay log motion",
+            help="log file path when replaying log motion",
+        )
+        parser.add_argument(
+            "--replay_keys",
+            nargs="+",
+            choices=[
+                DataKey.COMMAND_JOINT_POS,
+                DataKey.COMMAND_JOINT_POS_REL,
+                DataKey.COMMAND_GRIPPER_JOINT_POS,
+                DataKey.COMMAND_EEF_POSE,
+                DataKey.COMMAND_EEF_POSE_REL,
+            ],
+            default=[DataKey.COMMAND_JOINT_POS],
+            help="Command data keys when replaying log motion",
         )
 
         if argv is None:
@@ -225,7 +206,8 @@ class TeleopBase(metaclass=ABCMeta):
         else:
             self.data_manager.load_data(self.args.replay_log)
             print(
-                "[TeleopBase] Load teleoperation data: {}".format(self.args.replay_log)
+                f"[TeleopBase] Load teleoperation data: {self.args.replay_log}\n"
+                f"  - replay keys: {self.args.replay_keys}"
             )
             world_idx = self.data_manager.get_meta_data("world_idx")
         self.data_manager.setup_sim_world(world_idx)
@@ -486,6 +468,4 @@ class TeleopBase(metaclass=ABCMeta):
                 self.data_manager.episode_idx,
             )
         self.data_manager.save_data(filename)
-        print(
-            "[TeleopBase] Teleoperation succeeded: Save the data as {}".format(filename)
-        )
+        print(f"[TeleopBase] Teleoperation succeeded: Save the data as {filename}")
