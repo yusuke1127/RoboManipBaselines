@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import Phase
+from robo_manip_baselines.common import DataKey, Phase
 
 from .RolloutBase import RolloutBase
 
@@ -20,9 +20,7 @@ class RolloutMujocoUR5eCable(RolloutBase):
                 target_pos[2] = 1.02  # [m]
             elif self.phase_manager.phase == Phase.REACH:
                 target_pos[2] = 0.995  # [m]
-            self.motion_manager.target_se3 = pin.SE3(
-                np.diag([-1.0, 1.0, -1.0]), target_pos
-            )
-            self.motion_manager.inverse_kinematics()
+            target_se3 = pin.SE3(np.diag([-1.0, 1.0, -1.0]), target_pos)
+            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
             super().set_arm_command()

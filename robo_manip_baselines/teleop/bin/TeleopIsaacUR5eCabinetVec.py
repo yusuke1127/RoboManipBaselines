@@ -1,7 +1,8 @@
 import gymnasium as gym
 import numpy as np
+import pinocchio as pin
 
-from robo_manip_baselines.common import Phase
+from robo_manip_baselines.common import DataKey, Phase
 from robo_manip_baselines.teleop import TeleopBaseVec
 
 
@@ -21,8 +22,8 @@ class TeleopIsaacUR5eCabinetVec(TeleopBaseVec):
                 target_pos += np.array([0.33, 0.0, 0.3])  # [m]
             elif self.phase_manager.phase == Phase.REACH:
                 target_pos += np.array([0.38, 0.0, 0.3])  # [m]
-            self.motion_manager.target_se3.translation = target_pos
-            self.motion_manager.inverse_kinematics()
+            target_se3 = pin.SE3(self.motion_manager.target_se3.rotation, target_pos)
+            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
             super().set_arm_command()
 
