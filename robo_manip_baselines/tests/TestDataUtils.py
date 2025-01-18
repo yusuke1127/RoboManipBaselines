@@ -4,7 +4,13 @@ import h5py
 import numpy as np
 import pinocchio as pin
 
-from robo_manip_baselines.common import DataKey, get_skipped_data_seq
+from robo_manip_baselines.common import (
+    DataKey,
+    get_pose_from_se3,
+    get_se3_from_pose,
+    get_se3_from_rel_pose,
+    get_skipped_data_seq,
+)
 
 
 def add_arrays_to_smaller_length(arr1, arr2):
@@ -53,13 +59,11 @@ def test_get_skipped_data_seq_eef_pose(filename, skip=3):
 
     skipped_eef_abs_seq2 = []
     for eef_abs, eef_rel in zip(eef_abs_seq[::skip][:-1], skipped_eef_rel_seq):
-        new_eef_abs = np.zeros_like(eef_abs)
-        new_eef_abs[0:3] = eef_abs[0:3] + eef_rel[0:3]
-        new_eef_abs[3:7] = pin.Quaternion(
-            pin.Quaternion(*eef_abs[3:7]).toRotationMatrix()
-            @ pin.rpy.rpyToMatrix(eef_rel[3:6])
-        ).coeffs()[[3, 0, 1, 2]]
-        skipped_eef_abs_seq2.append(new_eef_abs)
+        skipped_eef_abs_seq2.append(
+            get_pose_from_se3(
+                get_se3_from_pose(eef_abs) * get_se3_from_rel_pose(eef_rel)
+            )
+        )
     skipped_eef_abs_seq2 = np.array(skipped_eef_abs_seq2)
 
     error = np.sum(
