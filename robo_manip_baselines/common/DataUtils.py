@@ -4,6 +4,7 @@ import numpy as np
 import pinocchio as pin
 
 from .DataKey import DataKey
+from .MathUtils import get_rel_pose_from_se3, get_se3_from_rel_pose
 
 
 def aggregate_data_seq_with_skip(data_seq, skip, agg_func):
@@ -52,19 +53,15 @@ def get_skipped_data_seq(data_seq, key, skip):
         DataKey.COMMAND_EEF_POSE_REL,
     ):
 
-        def sum_pose_rel(arr):
-            def add_pose_rel(pose_rel1, pose_rel2):
-                new_pose_rel = np.empty_like(pose_rel1)
-                new_pose_rel[0:3] = pose_rel1[0:3] + pose_rel2[0:3]
-                new_pose_rel[3:6] = pin.rpy.matrixToRpy(
-                    pin.rpy.rpyToMatrix(pose_rel1[3:6])
-                    @ pin.rpy.rpyToMatrix(pose_rel2[3:6])
+        def sum_rel_pose(arr):
+            def add_rel_pose(rel_pose1, rel_pose2):
+                return get_rel_pose_from_se3(
+                    get_se3_from_rel_pose(rel_pose1) * get_se3_from_rel_pose(rel_pose2)
                 )
-                return new_pose_rel
 
-            return reduce(add_pose_rel, arr)
+            return reduce(add_rel_pose, arr)
 
-        skipped_data_seq = aggregate_data_seq_with_skip(data_seq, skip, sum_pose_rel)
+        skipped_data_seq = aggregate_data_seq_with_skip(data_seq, skip, sum_rel_pose)
     else:
         skipped_data_seq = data_seq[::skip]
 
