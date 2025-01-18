@@ -48,6 +48,7 @@ class MotionManager(object):
         self.arm_joint_pos = self.env.unwrapped.init_qpos[
             self.env.unwrapped.arm_joint_idxes
         ].copy()
+        self.forward_kinematics()
         self.target_se3 = self._original_target_se3.copy()
 
         # Reset gripper
