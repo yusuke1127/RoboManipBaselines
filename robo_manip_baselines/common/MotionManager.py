@@ -89,7 +89,7 @@ class MotionManager(object):
         """Get the current pose of the end-effector."""
         return self.pin_data.oMi[self.env.unwrapped.ik_eef_joint_id]
 
-    def set_command_data(self, key, command):
+    def set_command_data(self, key, command, is_skip=False):
         """Set command data."""
         if key == DataKey.COMMAND_JOINT_POS:
             self.joint_pos[self.env.unwrapped.arm_joint_idxes] = command[
@@ -102,7 +102,10 @@ class MotionManager(object):
                 command[self.env.unwrapped.gripper_joint_idxes],
             )
         elif key == DataKey.COMMAND_JOINT_POS_REL:
-            self.set_command_data(DataKey.COMMAND_JOINT_POS, self.joint_pos + command)
+            joint_pos = self.joint_pos.copy()
+            if not is_skip:
+                joint_pos += command
+            self.set_command_data(DataKey.COMMAND_JOINT_POS, joint_pos)
         elif key == DataKey.COMMAND_GRIPPER_JOINT_POS:
             self.joint_pos[self.env.unwrapped.gripper_joint_idxes] = np.clip(
                 command,
@@ -116,10 +119,10 @@ class MotionManager(object):
                 self.target_se3 = get_se3_from_pose(command)
             self.inverse_kinematics()
         elif key == DataKey.COMMAND_EEF_POSE_REL:
-            self.set_command_data(
-                DataKey.COMMAND_EEF_POSE,
-                self.target_se3 * get_se3_from_rel_pose(command),
-            )
+            target_se3 = self.target_se3.copy()
+            if not is_skip:
+                target_se3 = target_se3 * get_se3_from_rel_pose(command)
+            self.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
             raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
 

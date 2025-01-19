@@ -63,7 +63,8 @@ class RolloutAct(RolloutBase):
             f"  - state dim: {self.state_dim}, action dim: {self.action_dim}\n"
             f"  - state keys: {self.dataset_stats['state_keys']}\n"
             f"  - action keys: {self.dataset_stats['action_keys']}\n"
-            f"  - camera names: {self.dataset_stats['camera_names']}"
+            f"  - camera names: {self.dataset_stats['camera_names']}\n"
+            f"  - skip: {self.args.skip}"
         )
 
         # Construct policy

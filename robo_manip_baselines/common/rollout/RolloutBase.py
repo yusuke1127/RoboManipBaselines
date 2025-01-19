@@ -199,11 +199,14 @@ class RolloutBase(metaclass=ABCMeta):
 
     def set_command(self):
         if self.phase_manager.phase == Phase.ROLLOUT:
+            is_skip = self.auto_time_idx % self.args.skip != 0
             action_idx = 0
             for action_key in self.policy_action_keys:
                 action_dim = DataKey.get_dim(action_key, self.env)
                 self.motion_manager.set_command_data(
-                    action_key, self.policy_action[action_idx : action_idx + action_dim]
+                    action_key,
+                    self.policy_action[action_idx : action_idx + action_dim],
+                    is_skip,
                 )
                 action_idx += action_dim
         else:
