@@ -225,7 +225,7 @@ class TrainAct(object):
         DETRVAE.set_action_dim(action_dim)
         print(
             "[TrainAct] Construct ACT policy.\n"
-            f"  - state dim: {state_dim}, action dim: {action_dim}\n"
+            f"  - state dim: {state_dim}, action dim: {action_dim}, camera num: {len(self.args.camera_names)}\n"
             f"  - state keys: {self.args.state_keys}\n"
             f"  - action keys: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}\n"

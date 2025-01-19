@@ -189,7 +189,7 @@ class RolloutBase(metaclass=ABCMeta):
         self.action_plot_scale = np.concatenate(
             [
                 DataKey.get_plot_scale(action_key, self.env)
-                for action_key in self.policy_action_keys
+                for action_key in self.action_keys
             ]
         )
 
@@ -208,7 +208,7 @@ class RolloutBase(metaclass=ABCMeta):
         if self.phase_manager.phase == Phase.ROLLOUT:
             is_skip = self.rollout_time_idx % self.args.skip != 0
             action_idx = 0
-            for action_key in self.policy_action_keys:
+            for action_key in self.action_keys:
                 action_dim = DataKey.get_dim(action_key, self.env)
                 self.motion_manager.set_command_data(
                     action_key,
