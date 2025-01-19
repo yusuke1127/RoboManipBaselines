@@ -63,7 +63,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         super().setup_plot(fig_ax=fig_ax)
 
     def infer_policy(self):
-        if self.auto_time_idx % self.args.skip != 0:
+        if self.rollout_time_idx % self.args.skip != 0:
             return False
 
         # Set observation history
@@ -123,7 +123,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         return inference_called
 
     def draw_plot(self):
-        if self.auto_time_idx % self.args.skip_draw != 0:
+        if self.rollout_time_idx % self.args.skip_draw != 0:
             return
 
         for _ax in np.ravel(self.ax):
