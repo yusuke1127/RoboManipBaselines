@@ -1,5 +1,7 @@
 import warnings
 
+import numpy as np
+
 
 class DataKey(object):
     """Data key."""
@@ -53,6 +55,57 @@ class DataKey(object):
     MEASURED_EEF_WRENCH = "measured_eef_wrench"
     # Command end-effector wrench (fx, fy, fz, nx, ny, nz)
     COMMAND_EEF_WRENCH = "command_eef_wrench"
+
+    @classmethod
+    def get_dim(cls, key, env):
+        """Get the dimension of the data specified by key."""
+
+        def calc_dim_from_idxes(idxes):
+            if isinstance(idxes, list) or isinstance(idxes, np.ndarray):
+                return len(idxes)
+            elif isinstance(idxes, slice):
+                start = idxes.start if idxes.start is not None else 0
+                stop = idxes.stop
+                step = idxes.step if idxes.step is not None else 1
+                if stop is None:
+                    raise ValueError(
+                        f"[DataKey] The stop of slice must be specified: {idxes}"
+                    )
+                if step > 0:
+                    return max(0, (stop - start + step - 1) // step)
+                else:
+                    return max(0, (start - stop - step - 1) // -step)
+            else:
+                raise ValueError(f"[DataKey] Unsupported type of idxes: {type(idxes)}")
+
+        if key == DataKey.TIME:
+            return 1
+        elif key in (
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.COMMAND_JOINT_POS,
+            DataKey.MEASURED_JOINT_POS_REL,
+            DataKey.COMMAND_JOINT_POS_REL,
+            DataKey.MEASURED_JOINT_VEL,
+            DataKey.COMMAND_JOINT_VEL,
+            DataKey.MEASURED_JOINT_TORQUE,
+            DataKey.COMMAND_JOINT_TORQUE,
+        ):
+            return calc_dim_from_idxes(
+                env.unwrapped.arm_joint_idxes
+            ) + calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
+        elif key in (
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
+            DataKey.COMMAND_GRIPPER_JOINT_POS,
+        ):
+            return calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
+        elif key in (DataKey.MEASURED_EEF_POSE, DataKey.COMMAND_EEF_POSE):
+            return 7
+        elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
+            return 6
+        elif key in (DataKey.MEASURED_EEF_VEL, DataKey.COMMAND_EEF_VEL):
+            return 6
+        elif key in (DataKey.MEASURED_EEF_WRENCH, DataKey.COMMAND_EEF_WRENCH):
+            return 6
 
     @classmethod
     def get_rel_key(cls, key):
