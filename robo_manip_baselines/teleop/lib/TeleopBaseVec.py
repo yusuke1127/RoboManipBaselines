@@ -14,6 +14,11 @@ class TeleopBaseVec(TeleopBase):
 
         super().__init__()
 
+        if self.args.replay_log is not None:
+            raise NotImplementedError(
+                '[TeleopBaseVec] The "replay_log" option is not supported.'
+            )
+
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
@@ -26,26 +31,13 @@ class TeleopBaseVec(TeleopBase):
             if self.reset_flag:
                 self.motion_manager.reset()
                 self.phase_manager.reset()
-                if self.args.replay_log is None:
-                    self.data_manager.reset()
-                    if self.args.world_idx_list is None:
-                        world_idx = None
-                    else:
-                        world_idx = self.args.world_idx_list[
-                            self.data_manager.episode_idx
-                            % len(self.args.world_idx_list)
-                        ]
+                self.data_manager.reset()
+                if self.args.world_idx_list is None:
+                    world_idx = None
                 else:
-                    raise NotImplementedError(
-                        '[TeleopBaseVec] The "replay_log" option is not supported.'
-                    )
-                    self.data_manager.load_data(self.args.replay_log)
-                    print(
-                        "[TeleopBaseVec] Load teleoperation data: {}".format(
-                            self.args.replay_log
-                        )
-                    )
-                    world_idx = self.data_manager.get_meta_data("world_idx")
+                    world_idx = self.args.world_idx_list[
+                        self.data_manager.episode_idx % len(self.args.world_idx_list)
+                    ]
                 self.data_manager.setup_sim_world(world_idx)
                 self.env.reset()
                 obs_list = self.env.unwrapped.obs_list
@@ -66,32 +58,18 @@ class TeleopBaseVec(TeleopBase):
                 for i in range(10):
                     self.spacemouse_state = pyspacemouse.read()
 
-            # Get action
-            if self.args.replay_log is not None and self.phase_manager.phase in (
-                Phase.TELEOP,
-                Phase.END,
-            ):
-                action = self.data_manager.get_single_data(
-                    DataKey.COMMAND_JOINT_POS, self.teleop_time_idx
-                )
-            else:
-                # Set command
-                self.set_arm_command()
-                self.set_gripper_command()
-                self.motion_manager.draw_markers()
+            # Set command
+            self.set_command()
 
-                # Set action
-                action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-                update_fluctuation = self.phase_manager.phase == Phase.TELEOP
-                action_list = self.env.unwrapped.get_fluctuated_action_list(
-                    action, update_fluctuation
-                )
+            # Set action
+            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            update_fluctuation = self.phase_manager.phase == Phase.TELEOP
+            action_list = self.env.unwrapped.get_fluctuated_action_list(
+                action, update_fluctuation
+            )
 
             # Record data
-            if (
-                self.phase_manager.phase == Phase.TELEOP
-                and self.args.replay_log is None
-            ):
+            if self.phase_manager.phase == Phase.TELEOP:
                 # Add time
                 self.data_manager.append_single_data(
                     DataKey.TIME,

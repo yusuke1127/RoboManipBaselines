@@ -85,21 +85,7 @@ class TeleopBase(metaclass=ABCMeta):
                     self.spacemouse_state = pyspacemouse.read()
 
             # Set command
-            if self.args.replay_log is not None and self.phase_manager.phase in (
-                Phase.TELEOP,
-                Phase.END,
-            ):
-                for replay_key in self.args.replay_keys:
-                    self.motion_manager.set_command_data(
-                        replay_key,
-                        self.data_manager.get_single_data(
-                            replay_key, self.teleop_time_idx
-                        ),
-                    )
-            else:
-                self.set_arm_command()
-                self.set_gripper_command()
-                self.motion_manager.draw_markers()
+            self.set_command()
 
             # Set action
             action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
@@ -220,6 +206,21 @@ class TeleopBase(metaclass=ABCMeta):
             )
         )
         print("[TeleopBase] Press the 'n' key to start automatic grasping.")
+
+    def set_command(self):
+        if self.args.replay_log is not None and self.phase_manager.phase in (
+            Phase.TELEOP,
+            Phase.END,
+        ):
+            for replay_key in self.args.replay_keys:
+                self.motion_manager.set_command_data(
+                    replay_key,
+                    self.data_manager.get_single_data(replay_key, self.teleop_time_idx),
+                )
+        else:
+            self.set_arm_command()
+            self.set_gripper_command()
+            self.motion_manager.draw_markers()
 
     def set_arm_command(self):
         if self.phase_manager.phase == Phase.TELEOP:
