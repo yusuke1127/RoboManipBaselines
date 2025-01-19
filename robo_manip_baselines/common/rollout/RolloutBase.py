@@ -79,11 +79,11 @@ class RolloutBase(metaclass=ABCMeta):
             elif self.phase_manager.phase == Phase.GRASP:
                 grasp_duration = 0.5  # [s]
                 if self.phase_manager.get_phase_elapsed_duration() > grasp_duration:
-                    self.auto_time_idx = 0
+                    self.rollout_time_idx = 0
                     print("[RolloutBase] Press the 'n' key to finish policy rollout.")
                     self.phase_manager.set_next_phase()
             elif self.phase_manager.phase == Phase.ROLLOUT:
-                self.auto_time_idx += 1
+                self.rollout_time_idx += 1
                 if key == ord("n"):
                     print("[RolloutBase] Statistics on policy inference")
                     policy_model_size = self.calc_model_size()
@@ -199,7 +199,7 @@ class RolloutBase(metaclass=ABCMeta):
 
     def set_command(self):
         if self.phase_manager.phase == Phase.ROLLOUT:
-            is_skip = self.auto_time_idx % self.args.skip != 0
+            is_skip = self.rollout_time_idx % self.args.skip != 0
             action_idx = 0
             for action_key in self.policy_action_keys:
                 action_dim = DataKey.get_dim(action_key, self.env)
