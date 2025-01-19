@@ -5,6 +5,7 @@ import sys
 
 import cv2
 import matplotlib.pylab as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import torch
 
@@ -174,6 +175,8 @@ class RolloutAct(RolloutBase):
         )
         joint_ax.set_title("scaled action", fontsize=20)
         joint_ax.set_xlim(0, 500 // self.args.skip)
+        joint_ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        joint_ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
         joint_ax.set_xlabel("step", fontsize=16)
         joint_ax.tick_params(axis="x", labelsize=16)
         joint_ax.tick_params(axis="y", labelsize=16)
