@@ -203,7 +203,7 @@ class RolloutBase(metaclass=ABCMeta):
             for action_key in self.policy_action_keys:
                 action_dim = DataKey.get_dim(action_key, self.env)
                 self.motion_manager.set_command_data(
-                    action_key, self.pred_action[action_idx : action_idx + action_dim]
+                    action_key, self.policy_action[action_idx : action_idx + action_dim]
                 )
                 action_idx += action_dim
         else:

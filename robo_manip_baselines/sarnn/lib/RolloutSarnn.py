@@ -53,7 +53,7 @@ class RolloutSarnn(RolloutBase):
         self.joint_scales = [1.0] * (self.joint_dim - 1) + [0.01]
         self.im_size = 64
         self.v_min_max = [self.params["vmin"], self.params["vmax"]]
-        self.pred_action_list = np.empty((0, self.joint_dim))
+        self.policy_action_list = np.empty((0, self.joint_dim))
         self.rnn_state = None
 
         # Define model
@@ -117,12 +117,12 @@ class RolloutSarnn(RolloutBase):
             self.pred_front_image, self.params["vmin"], self.params["vmax"]
         )
         self.pred_front_image = self.pred_front_image.transpose(1, 2, 0)
-        self.pred_action = tensor2numpy(joint_output[0])
-        self.pred_action = normalization(
-            self.pred_action, self.v_min_max, self.joint_bounds
+        self.policy_action = tensor2numpy(joint_output[0])
+        self.policy_action = normalization(
+            self.policy_action, self.v_min_max, self.joint_bounds
         )
-        self.pred_action_list = np.concatenate(
-            [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
+        self.policy_action_list = np.concatenate(
+            [self.policy_action_list, np.expand_dims(self.policy_action, 0)]
         )
         self.enc_front_pts = (
             tensor2numpy(enc_front_pts_output[0]).reshape(self.params["k_dim"], 2)
@@ -166,10 +166,10 @@ class RolloutSarnn(RolloutBase):
         xlim = 500 // self.args.skip
         self.ax[0, 2].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 2].set_xlim(0, xlim)
-        for joint_idx in range(self.pred_action_list.shape[1]):
+        for joint_idx in range(self.policy_action_list.shape[1]):
             self.ax[0, 2].plot(
-                np.arange(self.pred_action_list.shape[0]),
-                self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
+                np.arange(self.policy_action_list.shape[0]),
+                self.policy_action_list[:, joint_idx] * self.joint_scales[joint_idx],
             )
         self.ax[0, 2].set_xlabel("Step", fontsize=16)
         self.ax[0, 2].set_title("Joint", fontsize=20)

@@ -87,7 +87,7 @@ class RolloutAct(RolloutBase):
 
         # Set variables
         self.joint_scales = [1.0] * (self.action_dim - 1) + [0.01]
-        self.pred_action_list = np.empty((0, self.action_dim))
+        self.policy_action_list = np.empty((0, self.action_dim))
         self.all_actions_history = []
 
     def setup_plot(self):
@@ -147,12 +147,12 @@ class RolloutAct(RolloutBase):
         action = np.zeros(self.action_dim)
         for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
-        self.pred_action = (
+        self.policy_action = (
             action * self.dataset_stats["action_std"]
             + self.dataset_stats["action_mean"]
         )
-        self.pred_action_list = np.concatenate(
-            [self.pred_action_list, self.pred_action[np.newaxis]]
+        self.policy_action_list = np.concatenate(
+            [self.policy_action_list, self.policy_action[np.newaxis]]
         )
 
         return True
@@ -175,10 +175,10 @@ class RolloutAct(RolloutBase):
         xlim = 500 // self.args.skip
         joint_ax.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         joint_ax.set_xlim(0, xlim)
-        for joint_idx in range(self.pred_action_list.shape[1]):
+        for joint_idx in range(self.policy_action_list.shape[1]):
             joint_ax.plot(
-                np.arange(self.pred_action_list.shape[0]),
-                self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
+                np.arange(self.policy_action_list.shape[0]),
+                self.policy_action_list[:, joint_idx] * self.joint_scales[joint_idx],
             )
         joint_ax.set_xlabel("Step", fontsize=16)
         joint_ax.set_title("Joint", fontsize=20)
