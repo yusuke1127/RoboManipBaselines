@@ -6,37 +6,48 @@ See [here](../../doc/install.md#ACT) for installation.
 ## Dataset preparation
 Collect demonstration data by [teleoperation](../teleop).
 
-Generate a `npy` format dataset for learning from teleoperation data:
-```console
-$ python ../utils/make_dataset.py \
---in_dir ../teleop/teleop_data/<demo_name> --out_dir ./data/<demo_name> \
---train_ratio 0.8 --nproc `nproc` --skip 3
-```
-
-Visualize the generated data (optional):
-```console
-$ python ../utils/check_data.py --in_dir ./data/<demo_name> --idx 0
-```
-
 ## Model training
 Train a model:
 ```console
-$ python ./bin/TrainAct.py --dataset_dir ./data/<demo_name> --log_dir ./log/<demo_name>
+$ python bin/TrainAct.py --dataset_dir ../teleop/teleop_data/<name> --checkpoint_dir ./checkpoint/<name>
 ```
-The checkpoint file `SARNN.pth` is saved in the directory specified by the `--log_dir` option.
 
 **Note**: The following error will occur if the chunk_size is larger than the time series length of the training data.
-In such a case, either set the `--skip` option in `make_dataset.py` to a small value, or set the `--chunk_size` option in `TrainAct.py` to a small value.
+In such a case, either set the `--skip` option to a small value, or set the `--chunk_size` option to a small value.
 ```console
 RuntimeError: The size of tensor a (70) must match the size of tensor b (102) at non-singleton dimension 0
+```
+
+The `--state_keys`, `--action_keys`, and `--camera_names` options allow changing the policy input and output.
+
+Examples of `--state_keys`:
+```console
+# Set measured joint position as observed state (default)
+--state_keys measured_joint_pos
+
+# Leave observed state empty
+--state_keys # no arguments
+```
+
+Examples of `--action_keys`:
+```console
+# Set command joint position as action (default)
+--action_keys command_joint_pos
+
+# Set command joint position relative to previous step as action
+--action_keys command_joint_pos_rel
+
+# Set command end-effector pose as action
+--action_keys command_eef_pose command_gripper_joint_pos
+
+# Set command end-effector pose relative to previous step as action
+--action_keys command_eef_pose_rel command_gripper_joint_pos
 ```
 
 ## Policy rollout
 Run a trained policy:
 ```console
-$ python ./bin/rollout/RolloutActMujocoUR5eCable.py \
---checkpoint ./log/<demo_name>/policy_last.ckpt \
---skip 3 --world_idx 0
+$ python ./bin/rollout/RolloutActMujocoUR5eCable.py --checkpoint ./checkpoint/<name>/policy_last.ckpt --world_idx 0
 ```
 
 ## Technical Details
