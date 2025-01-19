@@ -20,8 +20,8 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
                 [
                     np.pi,
                     -np.pi / 2,
-                    -0.65 * np.pi,
-                    -0.35 * np.pi,
+                    -0.55 * np.pi,
+                    -0.45 * np.pi,
                     np.pi / 2,
                     np.pi / 2,
                     0.0,
@@ -33,12 +33,12 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
         self.original_hole_pos = self.model.body("hole").pos.copy()
         self.hole_pos_offsets = np.array(
             [
-                [-0.06, 0.0, 0.0],
-                [-0.03, 0.0, 0.0],
+                [0.0, -0.12, 0.0],
+                [0.0, -0.10, 0.0],
+                [0.0, -0.08, 0.0],
+                [0.0, -0.04, 0.0],
+                [0.0, -0.02, 0.0],
                 [0.0, 0.0, 0.0],
-                [0.03, 0.0, 0.0],
-                [0.06, 0.0, 0.0],
-                [0.09, 0.0, 0.0],
             ]
         )  # [m]
 
