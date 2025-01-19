@@ -53,17 +53,19 @@ class RolloutAct(RolloutBase):
             self.args.skip_draw = self.args.skip
 
         # Set dimensions of state and action
-        self.policy_action_keys = self.dataset_stats["action_keys"]
+        self.state_keys = self.dataset_stats["state_keys"]
+        self.action_keys = self.dataset_stats["action_keys"]
+        self.camera_names = self.dataset_stats["camera_names"]
         self.state_dim = len(self.dataset_stats["state_mean"])
         self.action_dim = len(self.dataset_stats["action_mean"])
         DETRVAE.set_state_dim(self.state_dim)
         DETRVAE.set_action_dim(self.action_dim)
         print(
             "[RolloutAct] Construct ACT policy.\n"
-            f"  - state dim: {self.state_dim}, action dim: {self.action_dim}\n"
-            f"  - state keys: {self.dataset_stats['state_keys']}\n"
-            f"  - action keys: {self.dataset_stats['action_keys']}\n"
-            f"  - camera names: {self.dataset_stats['camera_names']}\n"
+            f"  - state dim: {self.state_dim}, action dim: {self.action_dim}, camera num: {len(self.camera_names)}\n"
+            f"  - state keys: {self.state_keys}\n"
+            f"  - action keys: {self.action_keys}\n"
+            f"  - camera names: {self.camera_names}\n"
             f"  - skip: {self.args.skip}"
         )
 
@@ -93,10 +95,7 @@ class RolloutAct(RolloutBase):
     def setup_plot(self):
         fig_ax = plt.subplots(
             2,
-            max(
-                len(self.dataset_stats["camera_names"]) + 1,
-                self.policy_config["enc_layers"],
-            ),
+            max(len(self.camera_names) + 1, self.policy_config["enc_layers"]),
             figsize=(13.5, 6.0),
             dpi=60,
             squeeze=False,
@@ -109,10 +108,7 @@ class RolloutAct(RolloutBase):
 
         # Get images
         images = np.stack(
-            [
-                self.info["rgb_images"][camera_name]
-                for camera_name in self.dataset_stats["camera_names"]
-            ],
+            [self.info["rgb_images"][camera_name] for camera_name in self.camera_names],
             axis=0,
         )
         images = np.einsum("k h w c -> k c h w", images)
@@ -120,13 +116,13 @@ class RolloutAct(RolloutBase):
         images = torch.tensor(images[np.newaxis], dtype=torch.float32).cuda()
 
         # Get state
-        if len(self.dataset_stats["state_keys"]) == 0:
+        if len(self.state_keys) == 0:
             state = np.zeros(0, dtype=np.float32)
         else:
             state = np.concatenate(
                 [
                     self.motion_manager.get_measured_data(state_key, self.obs)
-                    for state_key in self.dataset_stats["state_keys"]
+                    for state_key in self.state_keys
                 ]
             )
         state = (state - self.dataset_stats["state_mean"]) / self.dataset_stats[
@@ -166,12 +162,12 @@ class RolloutAct(RolloutBase):
             _ax.axis("off")
 
         # Draw observed image
-        for camera_idx, camera_name in enumerate(self.dataset_stats["camera_names"]):
+        for camera_idx, camera_name in enumerate(self.camera_names):
             self.ax[0, camera_idx].imshow(self.info["rgb_images"][camera_name])
             self.ax[0, camera_idx].set_title(f"{camera_name} image", fontsize=20)
 
         # Plot joint
-        joint_ax = self.ax[0, len(self.dataset_stats["camera_names"])]
+        joint_ax = self.ax[0, len(self.camera_names)]
         joint_ax.plot(
             np.arange(self.policy_action_list.shape[0]),
             self.policy_action_list * self.action_plot_scale,
@@ -184,7 +180,7 @@ class RolloutAct(RolloutBase):
         joint_ax.axis("on")
 
         # Draw attention images
-        attention_shape = (15, 20 * len(self.dataset_stats["camera_names"]))
+        attention_shape = (15, 20 * len(self.camera_names))
         for layer_idx, layer in enumerate(self.policy.model.transformer.encoder.layers):
             if layer.self_attn.correlation_mat is None:
                 continue
