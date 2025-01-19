@@ -87,7 +87,6 @@ class RolloutAct(RolloutBase):
         self.policy.eval()
 
         # Set variables
-        self.joint_scales = [1.0] * (self.action_dim - 1) + [0.01]
         self.policy_action_list = np.empty((0, self.action_dim))
         self.all_actions_history = []
 
@@ -173,16 +172,13 @@ class RolloutAct(RolloutBase):
 
         # Plot joint
         joint_ax = self.ax[0, len(self.dataset_stats["camera_names"])]
-        xlim = 500 // self.args.skip
-        joint_ax.set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-        joint_ax.set_xlim(0, xlim)
-        for joint_idx in range(self.policy_action_list.shape[1]):
-            joint_ax.plot(
-                np.arange(self.policy_action_list.shape[0]),
-                self.policy_action_list[:, joint_idx] * self.joint_scales[joint_idx],
-            )
-        joint_ax.set_xlabel("Step", fontsize=16)
-        joint_ax.set_title("Joint", fontsize=20)
+        joint_ax.plot(
+            np.arange(self.policy_action_list.shape[0]),
+            self.policy_action_list * self.action_plot_scale,
+        )
+        joint_ax.set_title("scaled action", fontsize=20)
+        joint_ax.set_xlim(0, 500 // self.args.skip)
+        joint_ax.set_xlabel("step", fontsize=16)
         joint_ax.tick_params(axis="x", labelsize=16)
         joint_ax.tick_params(axis="y", labelsize=16)
         joint_ax.axis("on")
@@ -196,7 +192,7 @@ class RolloutAct(RolloutBase):
                 layer.self_attn.correlation_mat[2:, 1].reshape(attention_shape)
             )
             self.ax[1, layer_idx].set_title(
-                f"Attention image ({layer_idx})", fontsize=20
+                f"attention image ({layer_idx})", fontsize=20
             )
 
         self.fig.tight_layout()
