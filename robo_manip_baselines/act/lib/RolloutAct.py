@@ -53,6 +53,7 @@ class RolloutAct(RolloutBase):
             self.args.skip_draw = self.args.skip
 
         # Set dimensions of state and action
+        self.policy_action_keys = self.dataset_stats["action_keys"]
         self.state_dim = len(self.dataset_stats["state_mean"])
         self.action_dim = len(self.dataset_stats["action_mean"])
         DETRVAE.set_state_dim(self.state_dim)

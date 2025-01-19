@@ -35,6 +35,9 @@ class RolloutBase(metaclass=ABCMeta):
         # Setup phase manager
         self.phase_manager = PhaseManager(self.env, PhaseOrder.ROLLOUT)
 
+        # Setup environment
+        self.env.unwrapped.modify_world(world_idx=self.args.world_idx)
+
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
@@ -47,11 +50,10 @@ class RolloutBase(metaclass=ABCMeta):
                 if inference_called:
                     inference_duration_list.append(inference_duration)
 
-            self.set_arm_command()
-            self.set_gripper_command()
+            self.set_command()
 
-            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-            self.obs, _, _, _, self.info = self.env.step(action)
+            env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            self.obs, _, _, _, self.info = self.env.step(env_action)
 
             if self.phase_manager.phase == Phase.ROLLOUT:
                 self.draw_plot()
@@ -195,21 +197,26 @@ class RolloutBase(metaclass=ABCMeta):
             buffer_size += buffer.nelement() * buffer.element_size()
         return param_size + buffer_size
 
-    def set_arm_command(self):
+    def set_command(self):
         if self.phase_manager.phase == Phase.ROLLOUT:
-            self.motion_manager.arm_joint_pos = self.pred_action[
-                self.env.unwrapped.arm_joint_idxes
-            ]
+            action_idx = 0
+            for action_key in self.policy_action_keys:
+                action_dim = DataKey.get_dim(action_key, self.env)
+                self.motion_manager.set_command_data(
+                    action_key, self.pred_action[action_idx : action_idx + action_dim]
+                )
+                action_idx += action_dim
+        else:
+            self.set_arm_command()
+            self.set_gripper_command()
+
+    def set_arm_command(self):
+        pass
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.gripper_joint_pos = self.env.action_space.high[
-                self.env.unwrapped.gripper_joint_idxes
-            ]
-        elif self.phase_manager.phase == Phase.ROLLOUT:
-            self.motion_manager.gripper_joint_pos = np.clip(
-                self.pred_action[self.env.unwrapped.gripper_joint_idxes],
-                self.env.action_space.low[self.env.unwrapped.gripper_joint_idxes],
+            self.motion_manager.set_command_data(
+                DataKey.COMMAND_GRIPPER_JOINT_POS,
                 self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
 
