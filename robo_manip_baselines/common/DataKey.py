@@ -3,6 +3,23 @@ import warnings
 import numpy as np
 
 
+def _calc_dim_from_idxes(idxes):
+    if isinstance(idxes, list) or isinstance(idxes, np.ndarray):
+        return len(idxes)
+    elif isinstance(idxes, slice):
+        start = idxes.start if idxes.start is not None else 0
+        stop = idxes.stop
+        step = idxes.step if idxes.step is not None else 1
+        if stop is None:
+            raise ValueError(f"[DataKey] The stop of slice must be specified: {idxes}")
+        if step > 0:
+            return max(0, (stop - start + step - 1) // step)
+        else:
+            return max(0, (start - stop - step - 1) // -step)
+    else:
+        raise ValueError(f"[DataKey] Unsupported type of idxes: {type(idxes)}")
+
+
 class DataKey(object):
     """Data key."""
 
@@ -85,25 +102,6 @@ class DataKey(object):
     @classmethod
     def get_dim(cls, key, env):
         """Get the dimension of the data specified by key."""
-
-        def calc_dim_from_idxes(idxes):
-            if isinstance(idxes, list) or isinstance(idxes, np.ndarray):
-                return len(idxes)
-            elif isinstance(idxes, slice):
-                start = idxes.start if idxes.start is not None else 0
-                stop = idxes.stop
-                step = idxes.step if idxes.step is not None else 1
-                if stop is None:
-                    raise ValueError(
-                        f"[DataKey] The stop of slice must be specified: {idxes}"
-                    )
-                if step > 0:
-                    return max(0, (stop - start + step - 1) // step)
-                else:
-                    return max(0, (start - stop - step - 1) // -step)
-            else:
-                raise ValueError(f"[DataKey] Unsupported type of idxes: {type(idxes)}")
-
         if key == DataKey.TIME:
             return 1
         elif key in (
@@ -116,14 +114,14 @@ class DataKey(object):
             DataKey.MEASURED_JOINT_TORQUE,
             DataKey.COMMAND_JOINT_TORQUE,
         ):
-            return calc_dim_from_idxes(
+            return _calc_dim_from_idxes(
                 env.unwrapped.arm_joint_idxes
-            ) + calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
+            ) + _calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
         elif key in (
             DataKey.MEASURED_GRIPPER_JOINT_POS,
             DataKey.COMMAND_GRIPPER_JOINT_POS,
         ):
-            return calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
+            return _calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes)
         elif key in (DataKey.MEASURED_EEF_POSE, DataKey.COMMAND_EEF_POSE):
             return 7
         elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
@@ -170,6 +168,35 @@ class DataKey(object):
     def get_depth_image_key(cls, camera_name):
         """Get the depth image key from the camera name."""
         return camera_name.lower() + "_depth_image"
+
+    @classmethod
+    def get_plot_scale(cls, key, env):
+        """Get scale to plot data."""
+        if key in (
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.COMMAND_JOINT_POS,
+            DataKey.MEASURED_JOINT_POS_REL,
+            DataKey.COMMAND_JOINT_POS_REL,
+        ):
+            return np.concatenate(
+                [
+                    np.ones(_calc_dim_from_idxes(env.unwrapped.arm_joint_idxes)),
+                    np.full(
+                        _calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes), 0.01
+                    ),
+                ]
+            )
+        elif key in (
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
+            DataKey.COMMAND_GRIPPER_JOINT_POS,
+        ):
+            return np.full(
+                _calc_dim_from_idxes(env.unwrapped.gripper_joint_idxes), 0.01
+            )
+        elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
+            return np.full(6, 100.0)
+        else:
+            return np.ones(cls.get_dim(key, env))
 
     @classmethod
     def replace_deprecated_key(cls, orig_key):

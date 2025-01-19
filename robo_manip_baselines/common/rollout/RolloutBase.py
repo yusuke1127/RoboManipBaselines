@@ -186,6 +186,13 @@ class RolloutBase(metaclass=ABCMeta):
             cv2.moveWindow("Policy image", *self.args.win_xy_policy)
         cv2.waitKey(1)
 
+        self.action_plot_scale = np.concatenate(
+            [
+                DataKey.get_plot_scale(action_key, self.env)
+                for action_key in self.policy_action_keys
+            ]
+        )
+
     def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2
         model = self.policy
