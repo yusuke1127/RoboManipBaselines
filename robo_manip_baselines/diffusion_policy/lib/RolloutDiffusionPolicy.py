@@ -56,7 +56,7 @@ class RolloutDiffusionPolicy(RolloutBase):
         self.front_image_history = None
         self.obs_joint_history = None
         self.future_action_seq = []
-        self.pred_action_list = np.empty((0, self.joint_dim))
+        self.policy_action_list = np.empty((0, self.joint_dim))
 
     def setup_plot(self):
         fig_ax = plt.subplots(1, 2, figsize=(13.5, 6.0), dpi=60, squeeze=False)
@@ -115,9 +115,9 @@ class RolloutDiffusionPolicy(RolloutBase):
             inference_called = False
 
         # Store predicted action
-        self.pred_action = self.future_action_seq.pop(0)
-        self.pred_action_list = np.concatenate(
-            [self.pred_action_list, np.expand_dims(self.pred_action, 0)]
+        self.policy_action = self.future_action_seq.pop(0)
+        self.policy_action_list = np.concatenate(
+            [self.policy_action_list, np.expand_dims(self.policy_action, 0)]
         )
 
         return inference_called
@@ -138,10 +138,10 @@ class RolloutDiffusionPolicy(RolloutBase):
         xlim = 500 // self.args.skip
         self.ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
         self.ax[0, 1].set_xlim(0, xlim)
-        for joint_idx in range(self.pred_action_list.shape[1]):
+        for joint_idx in range(self.policy_action_list.shape[1]):
             self.ax[0, 1].plot(
-                np.arange(self.pred_action_list.shape[0]),
-                self.pred_action_list[:, joint_idx] * self.joint_scales[joint_idx],
+                np.arange(self.policy_action_list.shape[0]),
+                self.policy_action_list[:, joint_idx] * self.joint_scales[joint_idx],
             )
         self.ax[0, 1].set_xlabel("Step", fontsize=16)
         self.ax[0, 1].set_title("Joint", fontsize=20)
