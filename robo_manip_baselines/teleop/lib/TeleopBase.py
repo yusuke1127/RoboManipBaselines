@@ -159,13 +159,7 @@ class TeleopBase(metaclass=ABCMeta):
         parser.add_argument(
             "--replay_keys",
             nargs="+",
-            choices=[
-                DataKey.COMMAND_JOINT_POS,
-                DataKey.COMMAND_JOINT_POS_REL,
-                DataKey.COMMAND_GRIPPER_JOINT_POS,
-                DataKey.COMMAND_EEF_POSE,
-                DataKey.COMMAND_EEF_POSE_REL,
-            ],
+            choices=DataKey.COMMAND_DATA_KEYS,
             default=[DataKey.COMMAND_JOINT_POS],
             help="Command data keys when replaying log motion",
         )

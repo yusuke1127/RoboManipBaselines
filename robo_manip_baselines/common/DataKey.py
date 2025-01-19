@@ -56,6 +56,32 @@ class DataKey(object):
     # Command end-effector wrench (fx, fy, fz, nx, ny, nz)
     COMMAND_EEF_WRENCH = "command_eef_wrench"
 
+    # All keys of measured data
+    MEASURED_DATA_KEYS = [
+        MEASURED_JOINT_POS,
+        MEASURED_JOINT_POS_REL,
+        MEASURED_JOINT_VEL,
+        # MEASURED_JOINT_TORQUE,
+        MEASURED_GRIPPER_JOINT_POS,
+        MEASURED_EEF_POSE,
+        MEASURED_EEF_POSE_REL,
+        # MEASURED_EEF_VEL,
+        MEASURED_EEF_WRENCH,
+    ]
+
+    # All keys of command data
+    COMMAND_DATA_KEYS = [
+        COMMAND_JOINT_POS,
+        COMMAND_JOINT_POS_REL,
+        # COMMAND_JOINT_VEL,
+        # COMMAND_JOINT_TORQUE,
+        COMMAND_GRIPPER_JOINT_POS,
+        COMMAND_EEF_POSE,
+        COMMAND_EEF_POSE_REL,
+        # COMMAND_EEF_VEL,
+        # COMMAND_EEF_WRENCH,
+    ]
+
     @classmethod
     def get_dim(cls, key, env):
         """Get the dimension of the data specified by key."""

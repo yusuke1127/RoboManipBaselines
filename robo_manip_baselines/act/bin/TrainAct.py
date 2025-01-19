@@ -53,6 +53,7 @@ class TrainAct(object):
             "--state_keys",
             default=[DataKey.MEASURED_JOINT_POS],
             nargs="*",
+            choices=DataKey.MEASURED_DATA_KEYS,
             type=str,
             help="state data keys",
         )
@@ -60,6 +61,7 @@ class TrainAct(object):
             "--action_keys",
             default=[DataKey.COMMAND_JOINT_POS],
             nargs="+",
+            choices=DataKey.COMMAND_DATA_KEYS,
             type=str,
             help="action data keys",
         )
