@@ -111,7 +111,7 @@ class DataManager(object):
         if increment_episode_idx:
             self.episode_idx += 1
 
-    def load_data(self, filename):
+    def load_data(self, filename, load_keys=None):
         """Load data."""
         self.all_data_seq = {}
         self.meta_data = {}
@@ -120,6 +120,12 @@ class DataManager(object):
                 new_key = DataKey.replace_deprecated_key(
                     orig_key
                 )  # For backward compatibility
+                if (
+                    load_keys is not None
+                    and orig_key not in load_keys
+                    and new_key not in load_keys
+                ):
+                    continue
                 self.all_data_seq[new_key] = h5file[orig_key][()]
             for key in h5file.attrs.keys():
                 self.meta_data[key] = h5file.attrs[key]
