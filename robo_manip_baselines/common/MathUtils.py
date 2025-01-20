@@ -2,6 +2,16 @@ import numpy as np
 import pinocchio as pin
 
 
+def get_pose_from_pos_rot(pos, rot):
+    """Get pose (tx, ty, tz, qw, qx, qy, qz) from position (3D vector) and rotation (3D square matrix)."""
+    return np.concatenate([pos, pin.Quaternion(rot).coeffs()[[3, 0, 1, 2]]])
+
+
+def get_pos_rot_from_pose(pose):
+    """Get position (3D vector) and rotation (3D square matrix) from pose (tx, ty, tz, qw, qx, qy, qz)."""
+    return pose[0:3].copy(), pin.Quaternion(*pose[3:7]).toRotationMatrix()
+
+
 def get_pose_from_se3(se3):
     """Get pose (tx, ty, tz, qw, qx, qy, qz) from pinocchio SE3."""
     return np.concatenate(
