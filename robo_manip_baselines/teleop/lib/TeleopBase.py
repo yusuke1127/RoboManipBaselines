@@ -173,8 +173,11 @@ class TeleopBase(metaclass=ABCMeta):
         pass
 
     def reset(self):
+        # Reset managers
         self.motion_manager.reset()
         self.phase_manager.reset()
+
+        # Reset or load data
         if self.args.replay_log is None:
             self.data_manager.reset()
             if self.args.world_idx_list is None:
@@ -190,8 +193,11 @@ class TeleopBase(metaclass=ABCMeta):
                 f"  - replay keys: {self.args.replay_keys}"
             )
             world_idx = self.data_manager.get_meta_data("world_idx")
-        self.data_manager.setup_sim_world(world_idx)
+
+        # Reset environment
+        self.data_manager.setup_env_world(world_idx)
         obs, info = self.env.reset()
+
         print(
             "[{}] episode_idx: {}, world_idx: {}".format(
                 self.demo_name,

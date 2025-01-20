@@ -38,7 +38,7 @@ class TeleopBaseVec(TeleopBase):
                     world_idx = self.args.world_idx_list[
                         self.data_manager.episode_idx % len(self.args.world_idx_list)
                     ]
-                self.data_manager.setup_sim_world(world_idx)
+                self.data_manager.setup_env_world(world_idx)
                 self.env.reset()
                 obs_list = self.env.unwrapped.obs_list
                 info_list = self.env.unwrapped.info_list
