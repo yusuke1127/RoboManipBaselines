@@ -101,8 +101,6 @@ class DataManager(object):
             for key in all_data_seq.keys():
                 if isinstance(all_data_seq[key], list):
                     h5file.create_dataset(key, data=np.array(all_data_seq[key]))
-                elif isinstance(all_data_seq[key], np.ndarray):
-                    h5file.create_dataset(key, data=all_data_seq[key])
                 else:
                     raise ValueError(
                         f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
