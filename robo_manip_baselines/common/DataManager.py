@@ -126,8 +126,8 @@ class DataManager(object):
             for key in h5file.attrs.keys():
                 self.meta_data[key] = h5file.attrs[key]
 
-    def setup_sim_world(self, world_idx=None):
-        """Setup the simulation world."""
+    def setup_env_world(self, world_idx=None):
+        """Setup the environment world."""
         if world_idx is None:
             kwargs = {"cumulative_idx": self.episode_idx}
         else:
