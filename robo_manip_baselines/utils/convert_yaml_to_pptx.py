@@ -598,25 +598,25 @@ class PresentationHandler:
             font.color.rgb = RGBColor(*GRAY)
 
         # to video slide
-        shepe = self.presentation.slides[summary_id_num].shapes.add_textbox(
+        shape = self.presentation.slides[summary_id_num].shapes.add_textbox(
             *self.jump_pos_size.as_tuple()
         )
-        run = shepe.text_frame.paragraphs[0].add_run()
+        run = shape.text_frame.paragraphs[0].add_run()
         set_font(run.font)
         run.text = "▽動画スライドにジャンプ"
-        shepe.click_action.target_slide = self.presentation.slides[
+        shape.click_action.target_slide = self.presentation.slides[
             min(video_id_num_list)
         ]
 
         # to summary slide
         for video_id_num in video_id_num_list:
-            shepe = self.presentation.slides[video_id_num].shapes.add_textbox(
+            shape = self.presentation.slides[video_id_num].shapes.add_textbox(
                 *self.jump_pos_size.as_tuple()
             )
-            run = shepe.text_frame.paragraphs[0].add_run()
+            run = shape.text_frame.paragraphs[0].add_run()
             set_font(run.font)
             run.text = "△サマリースライドに戻る"
-            shepe.click_action.target_slide = self.presentation.slides[summary_id_num]
+            shape.click_action.target_slide = self.presentation.slides[summary_id_num]
 
     def follow_index_for_append(self, index, new_slideinfo):
         assert isinstance(index, dict), f"{type(index)=}"
