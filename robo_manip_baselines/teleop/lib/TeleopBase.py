@@ -194,6 +194,15 @@ class TeleopBase(metaclass=ABCMeta):
             )
             world_idx = self.data_manager.get_meta_data("world_idx")
 
+            # Set initial joint position for relative command
+            if not set(self.args.replay_keys).isdisjoint(
+                [DataKey.COMMAND_JOINT_POS_REL, DataKey.COMMAND_EEF_POSE_REL]
+            ):
+                self.motion_manager.set_command_data(
+                    DataKey.COMMAND_JOINT_POS,
+                    self.data_manager.get_single_data(DataKey.COMMAND_JOINT_POS, 0),
+                )
+
         # Reset environment
         self.data_manager.setup_env_world(world_idx)
         obs, info = self.env.reset()
