@@ -9,7 +9,7 @@ import pinocchio as pin
 from robo_manip_baselines import __version__
 
 from .DataKey import DataKey
-from .MathUtils import get_rel_pose_from_se3, get_se3_from_pose
+from .MathUtils import get_rel_pose_from_se3, get_se3_from_pose, get_se3_from_rel_pose
 
 
 class DataManager(object):
@@ -123,6 +123,36 @@ class DataManager(object):
                 self.all_data_seq[new_key] = h5file[orig_key][()]
             for key in h5file.attrs.keys():
                 self.meta_data[key] = h5file.attrs[key]
+
+    def reverse_data(self, all_data_seq=None):
+        """Reverse sequence data."""
+        if all_data_seq is None:
+            all_data_seq = self.all_data_seq
+
+        for key in all_data_seq.keys():
+            if key == DataKey.TIME:
+                continue
+            elif isinstance(all_data_seq[key], list):
+                all_data_seq[key].reverse()
+            else:
+                raise ValueError(
+                    f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
+                )
+
+            if key in (
+                DataKey.MEASURED_JOINT_VEL,
+                DataKey.COMMAND_JOINT_VEL,
+                DataKey.MEASURED_EEF_VEL,
+                DataKey.COMMAND_EEF_VEL,
+                DataKey.MEASURED_JOINT_POS_REL,
+                DataKey.COMMAND_JOINT_POS_REL,
+            ):
+                all_data_seq[key] = [-1.0 * data for data in all_data_seq[key]]
+            if key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
+                all_data_seq[key] = [
+                    get_rel_pose_from_se3(get_se3_from_rel_pose(data).inverse())
+                    for data in all_data_seq[key]
+                ]
 
     def setup_env_world(self, world_idx=None):
         """Setup the environment world."""
