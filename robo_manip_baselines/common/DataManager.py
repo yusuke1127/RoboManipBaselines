@@ -154,7 +154,7 @@ class DataManager(object):
                 DataKey.COMMAND_JOINT_POS_REL,
             ):
                 all_data_seq[key] = [-1.0 * data for data in all_data_seq[key]]
-            if key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
+            elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
                 all_data_seq[key] = [
                     get_rel_pose_from_se3(get_se3_from_rel_pose(data).inverse())
                     for data in all_data_seq[key]
