@@ -229,7 +229,7 @@ class TrainAct(object):
             f"  - state keys: {self.args.state_keys}\n"
             f"  - action keys: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}"
+            f"  - skip: {self.args.skip}, chunk size: {self.args.chunk_size}"
         )
 
         # Set policy config

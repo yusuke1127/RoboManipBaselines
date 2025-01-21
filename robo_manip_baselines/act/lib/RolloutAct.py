@@ -67,7 +67,7 @@ class RolloutAct(RolloutBase):
             f"  - state keys: {self.state_keys}\n"
             f"  - action keys: {self.action_keys}\n"
             f"  - camera names: {self.camera_names}\n"
-            f"  - skip: {self.args.skip}"
+            f"  - skip: {self.args.skip}, chunk size: {self.policy_config['num_queries']}"
         )
 
         # Construct policy
