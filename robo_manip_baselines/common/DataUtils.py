@@ -39,6 +39,9 @@ def aggregate_data_seq_with_skip(data_seq, skip, agg_func):
 
 def get_skipped_data_seq(data_seq, key, skip):
     """Get skipped data sequence."""
+    if skip == 1:
+        return data_seq
+
     if key in (
         DataKey.MEASURED_JOINT_POS_REL,
         DataKey.COMMAND_JOINT_POS_REL,
