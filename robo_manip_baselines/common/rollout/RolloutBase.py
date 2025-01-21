@@ -36,7 +36,10 @@ class RolloutBase(metaclass=ABCMeta):
         self.phase_manager = PhaseManager(self.env, PhaseOrder.ROLLOUT)
 
         # Setup environment
-        self.env.unwrapped.modify_world(world_idx=self.args.world_idx)
+        self.env.unwrapped.modify_world(
+            world_idx=self.args.world_idx,
+            world_random_scale=self.args.world_random_scale,
+        )
 
     def run(self):
         self.obs, self.info = self.env.reset(seed=self.args.seed)
@@ -121,6 +124,13 @@ class RolloutBase(metaclass=ABCMeta):
             type=int,
             default=0,
             help="index of the simulation world (0-5)",
+        )
+        parser.add_argument(
+            "--world_random_scale",
+            nargs="+",
+            type=float,
+            default=None,
+            help="random scale of simulation world (no randomness by default)",
         )
         parser.add_argument(
             "--skip",

@@ -42,10 +42,15 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
             ]
         )  # [m]
 
-    def modify_world(self, world_idx=None, cumulative_idx=None):
+    def modify_world(
+        self, world_idx=None, cumulative_idx=None, world_random_scale=None
+    ):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.hole_pos_offsets)
-        self.model.body("hole").pos = (
-            self.original_hole_pos + self.hole_pos_offsets[world_idx]
-        )
+
+        hole_pos = self.original_hole_pos + self.hole_pos_offsets[world_idx]
+        if world_random_scale is not None:
+            hole_pos += np.random.normal(scale=world_random_scale, size=3)
+        self.model.body("hole").pos = hole_pos
+
         return world_idx
