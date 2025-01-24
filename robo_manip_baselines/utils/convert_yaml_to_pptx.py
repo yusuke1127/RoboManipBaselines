@@ -50,68 +50,58 @@ def parse_args():
         "--plot_outline_position_and_size_in_inches",
         nargs=4,
         default=[1.57, 2.52, None, 4.92],
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
         help=(
             "specify the position and size of the plot summary of summaries "
-            "in inches: "
-            "left, top, width, height"
+            "in inches"
         ),
     )
     parser.add_argument(
         "--plot_summary_position_and_size_in_inches",
         nargs=4,
         default=[0.25, 3.6, 4.4, None],
-        help=(
-            "specify the position and size of the plot image in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of the plot image in inches"),
     )
     parser.add_argument(
         "--captured_start_end_img_pos_and_size_in_inches",
         nargs=4,
         default=[4.34, 4.25, 2.55, None],
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
         help=(
             "specify the position and size of the captured start/end images "
-            "in inches: "
-            "left, top, width, height"
+            "in inches"
         ),
     )
     parser.add_argument(
         "--video_position_and_size_in_inches",
         nargs=4,
         default=[0.15, 1.25, 9.75, 5.75],
-        help=(
-            "specify the position and size of video in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of video in inches"),
     )
     parser.add_argument(
         "--video_caption_position_and_size_in_inches",
         nargs=4,
         default=[4, 7, 2, 2],
-        help=(
-            "specify the position and size of video caption in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of video caption in inches"),
     )
     parser.add_argument("--video_column_num", default=3)
     parser.add_argument(
         "--jump_position_and_size_in_inches",
         nargs=4,
         default=[0, 0, 2.2, 0.33],
-        help=(
-            "specify the position and size of jump in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of jump in inches"),
     )
     parser.add_argument("--jump_font_size_pt", type=float, default=14)
     parser.add_argument(
         "--pagenum_position_and_size_in_inches",
         nargs=4,
         default=[9, 0, 0.9, 0.3],
-        help=(
-            "specify the position and size of page number in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of page number in inches"),
     )
     parser.add_argument("--pagenum_font_size_pt", type=float, default=12)
     parser.add_argument(
