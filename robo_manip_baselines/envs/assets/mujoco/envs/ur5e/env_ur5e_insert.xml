@@ -3,14 +3,14 @@
 
   <include file="../../robots/ur5e/ur5e_integrated_config.xml"/>
 
-  <asset>
-    <texture name="random1" file="random/random1.png" type="2d"/>
-    <texture name="random2" file="random/random2.png" type="2d"/>
-    <material name="random1" texture="random1" specular="0.0" shininess="0.0"
-              rgba="1 1 1 0.5" texrepeat="0.5 0.5" texuniform="true"/>
-    <material name="random2" texture="random2" specular="0.0" shininess="0.0"
-              rgba="1 1 1 0.5" texrepeat="0.8 0.8" texuniform="true"/>
-  </asset>
+  <!-- <asset> -->
+  <!--   <texture name="random1" file="random/random1.png" type="2d"/> -->
+  <!--   <texture name="random2" file="random/random2.png" type="2d"/> -->
+  <!--   <material name="random1" texture="random1" specular="0.0" shininess="0.0" -->
+  <!--             rgba="1 1 1 0.5" texrepeat="0.5 0.5" texuniform="true"/> -->
+  <!--   <material name="random2" texture="random2" specular="0.0" shininess="0.0" -->
+  <!--             rgba="1 1 1 0.5" texrepeat="0.8 0.8" texuniform="true"/> -->
+  <!-- </asset> -->
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5" castshadow="false"/>
@@ -18,11 +18,11 @@
     <camera name="front" mode="fixed" pos="0.5 0.0 1.5" euler="0.0 0.785398 1.5708"/>
     <camera name="side" mode="fixed" pos="-0.1 -0.75 0.9" euler="1.5708 0.0 0.0"/>
 
-    <geom name="floor" size="0 0 0.05" type="plane" material="random1"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="floor"/>
 
     <body name="table">
       <geom type="box" size="0.275 0.5 0.4" pos="0 0 0.4" material="table_base"/>
-      <geom type="box" size="0.275 0.5 0.0075" pos="0 0 0.8075" material="random2"/>
+      <geom type="box" size="0.275 0.5 0.0075" pos="0 0 0.8075" material="table_plate"/>
     </body>
 
     <body name="stand">
