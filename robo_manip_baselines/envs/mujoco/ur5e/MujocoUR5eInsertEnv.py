@@ -50,7 +50,9 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
 
         hole_pos = self.original_hole_pos + self.hole_pos_offsets[world_idx]
         if world_random_scale is not None:
-            hole_pos += np.random.normal(scale=world_random_scale, size=3)
+            hole_pos += np.random.uniform(
+                low=-1.0 * world_random_scale, high=world_random_scale, size=3
+            )
         self.model.body("hole").pos = hole_pos
 
         return world_idx
