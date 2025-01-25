@@ -3,14 +3,16 @@
 
   <include file="../../robots/ur5e/ur5e_integrated_config.xml"/>
 
-  <!-- <asset> -->
-  <!--   <texture name="random1" file="random/random1.png" type="2d"/> -->
-  <!--   <texture name="random2" file="random/random2.png" type="2d"/> -->
-  <!--   <material name="random1" texture="random1" specular="0.0" shininess="0.0" -->
-  <!--             rgba="1 1 1 0.5" texrepeat="0.5 0.5" texuniform="true"/> -->
-  <!--   <material name="random2" texture="random2" specular="0.0" shininess="0.0" -->
-  <!--             rgba="1 1 1 0.5" texrepeat="0.8 0.8" texuniform="true"/> -->
-  <!-- </asset> -->
+  <asset>
+    <texture name="table_plate2" file="table/table2.png" type="2d"/>
+    <material name="table_plate2" texture="table_plate2" specular="0.0" shininess="0.0"/>
+    <!-- <texture name="random1" file="random/random1.png" type="2d"/> -->
+    <!-- <texture name="random2" file="random/random2.png" type="2d"/> -->
+    <!-- <material name="random1" texture="random1" specular="0.0" shininess="0.0" -->
+    <!--           rgba="1 1 1 0.5" texrepeat="0.5 0.5" texuniform="true"/> -->
+    <!-- <material name="random2" texture="random2" specular="0.0" shininess="0.0" -->
+    <!--           rgba="1 1 1 0.5" texrepeat="0.8 0.8" texuniform="true"/> -->
+  </asset>
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5" castshadow="false"/>
@@ -22,7 +24,7 @@
 
     <body name="table">
       <geom type="box" size="0.275 0.5 0.4" pos="0 0 0.4" material="table_base"/>
-      <geom type="box" size="0.275 0.5 0.0075" pos="0 0 0.8075" material="table_plate"/>
+      <geom type="box" size="0.275 0.5 0.0075" pos="0 0 0.8075" material="table_plate2"/>
     </body>
 
     <body name="stand">
@@ -39,12 +41,12 @@
       <geom type="box" size="0.015 0.015 0.02" pos="0.0 0.0 -0.02" rgba="0.8 0.5 0.1 1.0"/>
     </body>
 
-    <body name="hole" pos="-0.08 0.0 0.815">
+    <body name="hole" pos="-0.08 -0.08 0.815">
       <!-- <freejoint/> -->
-      <geom name="hole1" type="box" size="0.02 0.045 0.02" pos="0.045 -0.02 0.02" rgba="0.1 0.5 0.8 1.0"/>
-      <geom name="hole2" type="box" size="0.02 0.045 0.02" pos="-0.045 0.02 0.02" rgba="0.1 0.5 0.8 1.0"/>
-      <geom name="hole3" type="box" size="0.045 0.02 0.02" pos="0.02 0.045 0.02" rgba="0.1 0.5 0.8 1.0"/>
-      <geom name="hole4" type="box" size="0.045 0.02 0.02" pos="-0.02 -0.045 0.02" rgba="0.1 0.5 0.8 1.0"/>
+      <geom name="hole1" type="box" size="0.02 0.045 0.02" pos="0.045 -0.02 0.02" rgba="0.1 0.8 0.5 1.0"/>
+      <geom name="hole2" type="box" size="0.02 0.045 0.02" pos="-0.045 0.02 0.02" rgba="0.1 0.8 0.5 1.0"/>
+      <geom name="hole3" type="box" size="0.045 0.02 0.02" pos="0.02 0.045 0.02" rgba="0.1 0.8 0.5 1.0"/>
+      <geom name="hole4" type="box" size="0.045 0.02 0.02" pos="-0.02 -0.045 0.02" rgba="0.1 0.8 0.5 1.0"/>
     </body>
   </worldbody>
 
