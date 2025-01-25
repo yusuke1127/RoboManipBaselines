@@ -169,6 +169,9 @@ class RolloutBase(metaclass=ABCMeta):
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
 
+        if self.args.world_random_scale is not None:
+            self.args.world_random_scale = np.array(self.args.world_random_scale)
+
     @abstractmethod
     def setup_policy(self):
         pass
