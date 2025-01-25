@@ -13,7 +13,7 @@
     <camera name="front" mode="fixed" pos="0.65 0.0 1.5" euler="0.0 0.785398 1.5708"/>
     <camera name="side" mode="fixed" pos="0.0 -0.85 0.95" euler="1.5708 0.0 0.0"/>
 
-    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="floor" size="0 0 0.05" type="plane" material="floor"/>
 
     <body name="table">
       <geom type="box" size="0.3 0.45 0.019" pos="0 0 0.721" material="table"/>
