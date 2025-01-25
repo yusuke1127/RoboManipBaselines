@@ -20,7 +20,7 @@ def convert_depth_image_to_color_image(image):
 
 
 def convert_depth_image_to_point_cloud(
-    depth_image, fovy, rgb_image=None, dist_thre=None
+    depth_image, fovy, rgb_image=None, near_clip=0.0, far_clip=np.inf
 ):
     """Convert depth image (float type) to point cloud (array of 3D point)."""
     focal_scaling = (1.0 / np.tan(np.deg2rad(fovy) / 2.0)) * depth_image.shape[0] / 2.0
@@ -37,13 +37,18 @@ def convert_depth_image_to_point_cloud(
     ) / focal_scaling
     xyz_array *= depth_image.flatten()[:, np.newaxis]
     xyz_array = np.hstack((xyz_array[:, [1, 0]], depth_image.flatten()[:, np.newaxis]))
-    if dist_thre:
-        dist_thre_indices = np.argwhere(depth_image.flatten() < dist_thre)[:, 0]
-        xyz_array = xyz_array[dist_thre_indices]
-        if rgb_image is not None:
-            rgb_array = rgb_image.reshape(-1, 3)[dist_thre_indices]
+
+    if rgb_image is not None:
+        rgb_array = rgb_image.reshape(-1, 3).astype(np.float32) / 255.0
+
+    clip_indices = np.argwhere(
+        (near_clip < depth_image.flatten()) & (depth_image.flatten() < far_clip)
+    )[:, 0]
+    xyz_array = xyz_array[clip_indices]
+    if rgb_image is not None:
+        rgb_array = rgb_array[clip_indices]
+
     if rgb_image is None:
         return xyz_array
     else:
-        rgb_array = rgb_array.astype(np.float32) / 255.0
         return xyz_array, rgb_array

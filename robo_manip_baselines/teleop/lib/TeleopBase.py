@@ -358,7 +358,7 @@ class TeleopBase(metaclass=ABCMeta):
         cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
 
     def draw_point_cloud(self, info):
-        dist_thre_list = (3.0, 3.0, 0.8)  # [m]
+        far_clip_list = (3.0, 3.0, 0.8)  # [m]
         for camera_idx, camera_name in enumerate(self.env.unwrapped.camera_names):
             point_cloud_skip = 10
             small_depth_image = info["depth_images"][camera_name][
@@ -374,7 +374,7 @@ class TeleopBase(metaclass=ABCMeta):
                 small_depth_image,
                 fovy=fovy,
                 rgb_image=small_rgb_image,
-                dist_thre=dist_thre_list[camera_idx],
+                far_clip=far_clip_list[camera_idx],
             )
             if self.point_cloud_scatter_list[camera_idx] is None:
 

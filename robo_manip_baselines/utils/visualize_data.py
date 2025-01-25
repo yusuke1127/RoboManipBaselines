@@ -118,7 +118,7 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
     ax03_twin.set_prop_cycle(None)
     ax03_twin.plot(time_list, np.array(measured_eef_list)[:, 3:])
 
-    dist_thre_list = (3.0, 3.0, 0.8)  # [m]
+    far_clip_list = (3.0, 3.0, 0.8)  # [m]
     camera_names = ("front", "side", "hand")
     for ax_idx, camera_name in enumerate(camera_names, start=1):
         rgb_key = DataKey.get_rgb_image_key(camera_name)
@@ -142,7 +142,7 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
             small_depth_image,
             fovy=fovy,
             rgb_image=small_rgb_image,
-            dist_thre=dist_thre_list[ax_idx - 1],
+            far_clip=far_clip_list[ax_idx - 1],
         )
         if scatter_list[ax_idx - 1] is None:
 
