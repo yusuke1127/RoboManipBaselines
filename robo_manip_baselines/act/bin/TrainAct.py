@@ -76,6 +76,9 @@ class TrainAct(object):
             "--train_ratio", default=0.8, type=float, help="ratio of train data"
         )
         parser.add_argument(
+            "--val_ratio", default=None, type=float, help="ratio of validation data"
+        )
+        parser.add_argument(
             "--skip",
             default=3,
             type=int,
@@ -123,9 +126,17 @@ class TrainAct(object):
         # Get file list
         all_filenames = glob.glob(f"{self.args.dataset_dir}/**/*.hdf5", recursive=True)
         random.shuffle(all_filenames)
-        train_num = int(len(all_filenames) * self.args.train_ratio)
+        train_num = max(
+            int(np.clip(self.args.train_ratio, 0.0, 1.0) * len(all_filenames)), 1
+        )
+        if self.args.val_ratio is None:
+            val_num = max(len(all_filenames) - train_num, 1)
+        else:
+            val_num = max(
+                int(np.clip(self.args.val_ratio, 0.0, 1.0) * len(all_filenames)), 1
+            )
         train_filenames = all_filenames[:train_num]
-        val_filenames = all_filenames[train_num:]
+        val_filenames = all_filenames[-1 * val_num :]
 
         # Construct dataset stats
         self.dataset_stats = self.make_dataset_stats(all_filenames)
