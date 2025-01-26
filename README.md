@@ -32,7 +32,7 @@ See [the learned parameters](./doc/learned_parameters.md) for policies learned f
 ### Data collection by teleoperation
 See [teleop](./robo_manip_baselines/teleop).
 
-## Environments for robot manipulation
+## Environments
 See [the environment catalog](doc/environment_catalog.md) for a full list of environments.
 
 See [envs](./robo_manip_baselines/envs) for installation procedures for each environment.
