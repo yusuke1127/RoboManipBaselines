@@ -95,7 +95,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.phase_manager.phase == Phase.TELEOP
                 and self.args.replay_log is None
             ):
-                self.record_data(obs, action, info)  # noqa: F821
+                self.record_data(obs, info)  # noqa: F821
 
             # Step environment
             obs, _, _, _, info = self.env.step(action)
@@ -278,7 +278,7 @@ class TeleopBase(metaclass=ABCMeta):
                 DataKey.COMMAND_GRIPPER_JOINT_POS, gripper_joint_pos
             )
 
-    def record_data(self, obs, action, info):
+    def record_data(self, obs, info):
         # Add time
         self.data_manager.append_single_data(
             DataKey.TIME, self.phase_manager.get_phase_elapsed_duration()
