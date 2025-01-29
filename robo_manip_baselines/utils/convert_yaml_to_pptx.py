@@ -124,12 +124,16 @@ def parse_args():
     return parsed_args
 
 
+def to_inches_if_needed(a):
+    return Inches(float(a)) if a else a
+
+
 class PosSize:
     def __init__(self, left, top, width, height):
-        self.left = left
-        self.top = top
-        self.width = width
-        self.height = height
+        self.left = to_inches_if_needed(left)
+        self.top = to_inches_if_needed(top)
+        self.width = to_inches_if_needed(width)
+        self.height = to_inches_if_needed(height)
 
     def as_tuple(self):
         return (self.left, self.top, self.width, self.height)
@@ -260,6 +264,40 @@ def read_start_end_frame(video_path):
     return start_frame, end_frame
 
 
+def view_result(rdata):
+    assert isinstance(rdata, dict), f"{type(rdata)=}"
+    xlabels = []
+    policy_names = []
+    successes = {}
+    for xlabel, policies in rdata.items():
+        assert isinstance(xlabel, str), f"{type(xlabel)=}"
+        assert isinstance(policies, dict), f"{type(policies)=}"
+        if xlabel not in xlabels:
+            xlabels.append(xlabel)
+        if xlabel not in successes:
+            successes[xlabel] = {}
+        for policy_name, policy_val in policies.items():
+            assert isinstance(policy_name, str), f"{type(policy_name)=}"
+            assert isinstance(policy_val, list), f"{type(policy_val)=}"
+            if policy_name not in policy_names:
+                policy_names.append(policy_name)
+            if policy_name not in successes[xlabel]:
+                successes[xlabel][policy_name] = []
+            for results in policy_val:
+                assert isinstance(results, dict), f"{type(results)=}"
+                for result_name, result_val in results.items():
+                    assert isinstance(result_name, str), f"{type(result_name)=}"
+                    if result_name == "success":
+                        assert isinstance(result_val, list), f"{type(result_val)=}"
+                        successes[xlabel][policy_name].append(result_val)
+                    elif result_name == "video_url":
+                        # internal only information
+                        assert isinstance(result_val, str), f"{type(result_val)=}"
+                    else:
+                        raise AssertionError(f"{result_name=}")
+    return xlabels, policy_names, successes
+
+
 class PresentationHandler:
     def __init__(
         self,
@@ -337,39 +375,6 @@ class PresentationHandler:
         plt.savefig(out_fig_filename)
         plt.clf()
         plt.close()
-
-    def view_result(self, rdata):
-        assert isinstance(rdata, dict), f"{type(rdata)=}"
-        xlabels = []
-        policy_names = []
-        successes = {}
-        for xlabel, policies in rdata.items():
-            assert isinstance(xlabel, str), f"{type(xlabel)=}"
-            assert isinstance(policies, dict), f"{type(policies)=}"
-            if xlabel not in xlabels:
-                xlabels.append(xlabel)
-            if xlabel not in successes:
-                successes[xlabel] = {}
-            for policy_name, policy_val in policies.items():
-                assert isinstance(policy_name, str), f"{type(policy_name)=}"
-                assert isinstance(policy_val, list), f"{type(policy_val)=}"
-                if policy_name not in policy_names:
-                    policy_names.append(policy_name)
-                if policy_name not in successes[xlabel]:
-                    successes[xlabel][policy_name] = []
-                for results in policy_val:
-                    assert isinstance(results, dict), f"{type(results)=}"
-                    for result_name, result_val in results.items():
-                        assert isinstance(result_name, str), f"{type(result_name)=}"
-                        if result_name == "success":
-                            assert isinstance(result_val, list), f"{type(result_val)=}"
-                            successes[xlabel][policy_name].append(result_val)
-                        elif result_name == "video_url":
-                            # internal only information
-                            assert isinstance(result_val, str), f"{type(result_val)=}"
-                        else:
-                            raise AssertionError(f"{result_name=}")
-        return xlabels, policy_names, successes
 
     def layout_of(self, layout_name):
         for layout in self.presentation.slide_layouts:
@@ -493,9 +498,9 @@ class PresentationHandler:
             n_lines = p_holder.text.count("\n") + 1
             if n_lines >= self.max_agenda_lines:
                 continue  # next agenda slide
-
-            cat_str = f"{p_holder.text}\n{new_title_str}"
-            p_holder.text = cat_str.lstrip("\n")
+            p_holder.text = (
+                "\n".join([p_holder.text, new_title_str.replace("\n", " ")])
+            ).lstrip("\n ")
             return
 
         raise AssertionError()
@@ -642,7 +647,7 @@ class PresentationHandler:
                 if key == "results"
             ]
             assert len(result_list) == 1, f"{len(result_list)=}"
-            _, new_pol_names, new_successes = self.view_result(result_list[0])
+            _, new_pol_names, new_successes = view_result(result_list[0])
             if label not in new_slideinfo.xlabels:
                 new_slideinfo.xlabels.append(label)
             if label not in new_slideinfo.successes:
@@ -745,7 +750,7 @@ class PresentationHandler:
                         ]
                         continue
                     if key == "results":
-                        xlabels, pol_names, successes = self.view_result(val)
+                        xlabels, pol_names, successes = view_result(val)
                         assert not new_summary_slideinfo.xlabels
                         assert not new_summary_slideinfo.policy_names
                         assert not new_summary_slideinfo.successes
@@ -917,50 +922,15 @@ if __name__ == "__main__":
                 args.max_agenda_lines,
                 args.common_title_font_size_pt,
                 args.description_font_size_pt,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.plot_outline_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.plot_summary_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.captured_start_end_img_pos_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.video_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.video_caption_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.plot_outline_position_and_size_in_inches),
+                PosSize(*args.plot_summary_position_and_size_in_inches),
+                PosSize(*args.captured_start_end_img_pos_and_size_in_inches),
+                PosSize(*args.video_position_and_size_in_inches),
+                PosSize(*args.video_caption_position_and_size_in_inches),
                 args.video_column_num,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.jump_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.jump_position_and_size_in_inches),
                 args.jump_font_size_pt,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.pagenum_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.pagenum_position_and_size_in_inches),
                 args.pagenum_font_size_pt,
                 args.xlabel_rotation,
             )
