@@ -7,11 +7,11 @@ from .DataKey import DataKey
 from .MathUtils import get_rel_pose_from_se3, get_se3_from_rel_pose
 
 
-def aggregate_data_seq_with_skip(data_seq, skip, agg_func):
+def _aggregate_data_seq_with_skip(data_seq, skip, agg_func):
     """
     Aggregate elements along the first axis (axis=0) in chunks of skip.
 
-    Parameters:
+    Args:
         data_seq (np.ndarray): Input data sequence.
         skip (int): Group size.
         agg_func (callable): A function that takes a group (shape: (skip, ...)) as input and returns the aggregated result.
@@ -50,7 +50,7 @@ def get_skipped_data_seq(data_seq, key, skip):
         def sum_regular(arr):
             return np.sum(arr, axis=0)
 
-        skipped_data_seq = aggregate_data_seq_with_skip(data_seq, skip, sum_regular)
+        skipped_data_seq = _aggregate_data_seq_with_skip(data_seq, skip, sum_regular)
     elif key in (
         DataKey.MEASURED_EEF_POSE_REL,
         DataKey.COMMAND_EEF_POSE_REL,
@@ -64,8 +64,14 @@ def get_skipped_data_seq(data_seq, key, skip):
 
             return reduce(add_rel_pose, arr)
 
-        skipped_data_seq = aggregate_data_seq_with_skip(data_seq, skip, sum_rel_pose)
+        skipped_data_seq = _aggregate_data_seq_with_skip(data_seq, skip, sum_rel_pose)
     else:
         skipped_data_seq = data_seq[::skip]
 
     return skipped_data_seq
+
+
+def get_skipped_single_data(data_seq, time_idx, key, skip):
+    """Get skipped single data."""
+
+    return get_skipped_data_seq(data_seq[time_idx : time_idx + skip], key, skip)[0]
