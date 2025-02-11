@@ -32,3 +32,13 @@ def get_rel_pose_from_se3(se3):
 def get_se3_from_rel_pose(rel_pose):
     """Get pinocchio SE3 from relative pose (tx, ty, tz, roll, pitch, yaw)."""
     return pin.SE3(pin.rpy.rpyToMatrix(rel_pose[3:6]), rel_pose[0:3])
+
+
+def normalize_data(data, stats):
+    """Normalize data."""
+    return (data - stats["mean"]) / stats["std"]
+
+
+def denormalize_data(data, stats):
+    """Denormalize data."""
+    return data * stats["std"] + stats["mean"]

@@ -19,8 +19,8 @@ class RmbActDataset(torch.utils.data.Dataset):
         super().__init__()
 
         self.filenames = filenames
-        self.action_keys = action_keys
         self.state_keys = state_keys
+        self.action_keys = action_keys
         self.camera_names = camera_names
         self.dataset_stats = dataset_stats
         self.skip = skip
