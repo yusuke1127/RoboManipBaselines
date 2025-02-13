@@ -50,73 +50,64 @@ def parse_args():
         "--plot_outline_position_and_size_in_inches",
         nargs=4,
         default=[1.57, 2.52, None, 4.92],
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
         help=(
             "specify the position and size of the plot summary of summaries "
-            "in inches: "
-            "left, top, width, height"
+            "in inches"
         ),
     )
     parser.add_argument(
         "--plot_summary_position_and_size_in_inches",
         nargs=4,
         default=[0.25, 3.6, 4.4, None],
-        help=(
-            "specify the position and size of the plot image in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of the plot image in inches"),
     )
     parser.add_argument(
         "--captured_start_end_img_pos_and_size_in_inches",
         nargs=4,
         default=[4.34, 4.25, 2.55, None],
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
         help=(
             "specify the position and size of the captured start/end images "
-            "in inches: "
-            "left, top, width, height"
+            "in inches"
         ),
     )
     parser.add_argument(
         "--video_position_and_size_in_inches",
         nargs=4,
         default=[0.15, 1.25, 9.75, 5.75],
-        help=(
-            "specify the position and size of video in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of video in inches"),
     )
     parser.add_argument(
         "--video_caption_position_and_size_in_inches",
         nargs=4,
         default=[4, 7, 2, 2],
-        help=(
-            "specify the position and size of video caption in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of video caption in inches"),
     )
     parser.add_argument("--video_column_num", default=3)
     parser.add_argument(
         "--jump_position_and_size_in_inches",
         nargs=4,
-        default=[0.18, 0, 2, 0.33],
-        help=(
-            "specify the position and size of jump in inches: "
-            "left, top, width, height"
-        ),
+        default=[0, 0, 2.2, 0.33],
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of jump in inches"),
     )
     parser.add_argument("--jump_font_size_pt", type=float, default=14)
     parser.add_argument(
         "--pagenum_position_and_size_in_inches",
         nargs=4,
         default=[9, 0, 0.9, 0.3],
-        help=(
-            "specify the position and size of page number in inches: "
-            "left, top, width, height"
-        ),
+        metavar=("LEFT", "TOP", "WIDTH", "HEIGHT"),
+        help=("specify the position and size of page number in inches"),
     )
     parser.add_argument("--pagenum_font_size_pt", type=float, default=12)
     parser.add_argument(
         "--xlabel_rotation", type=float, dest="xlabel_rotation", default=10
     )
+    parser.add_argument("-l", "--language", choices=["EN", "JP"], default="EN")
 
     curr_dir = os.path.dirname(os.path.abspath(__file__))
     parser.add_argument(
@@ -125,9 +116,7 @@ def parse_args():
         default=os.path.join(curr_dir, "..", "report", "sample.yaml"),
     )
     parser.add_argument(
-        "-o",
-        "--out_pptx_filename",
-        default=os.path.join(curr_dir, ".", "output.pptx"),
+        "-o", "--out_pptx_filename", default=os.path.join(curr_dir, ".", "output.pptx")
     )
 
     parsed_args = parser.parse_args()
@@ -135,12 +124,16 @@ def parse_args():
     return parsed_args
 
 
+def to_inches_if_needed(a):
+    return Inches(float(a)) if a else a
+
+
 class PosSize:
     def __init__(self, left, top, width, height):
-        self.left = left
-        self.top = top
-        self.width = width
-        self.height = height
+        self.left = to_inches_if_needed(left)
+        self.top = to_inches_if_needed(top)
+        self.width = to_inches_if_needed(width)
+        self.height = to_inches_if_needed(height)
 
     def as_tuple(self):
         return (self.left, self.top, self.width, self.height)
@@ -162,16 +155,14 @@ class AbstractPlotSlideinfo(ABC):
 
     def get_video_root(self, media_dir, xlabel, policy_name):
         return os.path.join(
-            media_dir,
-            os.path.splitext(self.yaml_idx)[0],
-            f"{xlabel}_{policy_name}",
+            media_dir, os.path.splitext(self.yaml_idx)[0], f"{xlabel}_{policy_name}"
         )
 
     def lookup(self, c_dict):
         return c_dict[self.__class__.__name__]
 
     @abstractmethod
-    def generate_description(self):
+    def generate_description(self, language):
         raise NotImplementedError()
 
 
@@ -182,17 +173,16 @@ class OutlineSlideinfo(AbstractPlotSlideinfo):
         super().__init__(yaml_idx)
         self.description = ""
 
-    def generate_description(self):
+    def generate_description(self, language):
         return self.description
 
 
 class SummarySlideinfo(AbstractPlotSlideinfo):
     def __init__(self, yaml_idx):
         super().__init__(yaml_idx)
-        self.headline = ""  # <Env name>_<Val name>_<date>
         self.text_content_dict = {}  # robot, env, task, validation
 
-    def generate_description(self):
+    def generate_description(self, language):
         """description: robot, env, task, validation"""
         desc_texts = []
         robot_in_env = " in ".join(
@@ -206,11 +196,19 @@ class SummarySlideinfo(AbstractPlotSlideinfo):
             ]
         )
         if robot_in_env:
-            desc_texts.append(f"環境：{robot_in_env}")
+            desc_texts.append(
+                {"EN": "Environment: ", "JP": "環境："}[language] + robot_in_env
+            )
         if "task" in self.text_content_dict:
-            desc_texts.append(f"タスク：{self.text_content_dict['task']}")
+            desc_texts.append(
+                {"EN": "Task: ", "JP": "タスク："}[language]
+                + self.text_content_dict["task"]
+            )
         if "validation" in self.text_content_dict:
-            desc_texts.append("検証内容：" + self.text_content_dict["validation"])
+            desc_texts.append(
+                {"EN": "Validation details: ", "JP": "検証内容："}[language]
+                + self.text_content_dict["validation"]
+            )
         return "\n".join(desc_texts)
 
 
@@ -266,11 +264,46 @@ def read_start_end_frame(video_path):
     return start_frame, end_frame
 
 
+def view_result(rdata):
+    assert isinstance(rdata, dict), f"{type(rdata)=}"
+    xlabels = []
+    policy_names = []
+    successes = {}
+    for xlabel, policies in rdata.items():
+        assert isinstance(xlabel, str), f"{type(xlabel)=}"
+        assert isinstance(policies, dict), f"{type(policies)=}"
+        if xlabel not in xlabels:
+            xlabels.append(xlabel)
+        if xlabel not in successes:
+            successes[xlabel] = {}
+        for policy_name, policy_val in policies.items():
+            assert isinstance(policy_name, str), f"{type(policy_name)=}"
+            assert isinstance(policy_val, list), f"{type(policy_val)=}"
+            if policy_name not in policy_names:
+                policy_names.append(policy_name)
+            if policy_name not in successes[xlabel]:
+                successes[xlabel][policy_name] = []
+            for results in policy_val:
+                assert isinstance(results, dict), f"{type(results)=}"
+                for result_name, result_val in results.items():
+                    assert isinstance(result_name, str), f"{type(result_name)=}"
+                    if result_name == "success":
+                        assert isinstance(result_val, list), f"{type(result_val)=}"
+                        successes[xlabel][policy_name].append(result_val)
+                    elif result_name == "video_url":
+                        # internal only information
+                        assert isinstance(result_val, str), f"{type(result_val)=}"
+                    else:
+                        raise AssertionError(f"{result_name=}")
+    return xlabels, policy_names, successes
+
+
 class PresentationHandler:
     def __init__(
         self,
         in_yaml_filename,
         out_pptx_filename,
+        language,
         max_video_width,
         max_agenda_lines,
         common_title_font_size_pt,
@@ -289,6 +322,7 @@ class PresentationHandler:
     ):
         self.in_yaml_filename = in_yaml_filename
         self.out_pptx_filename = out_pptx_filename
+        self.language = language
         self.media_dir = os.path.dirname(in_yaml_filename)
         self.max_video_width = max_video_width
         self.max_agenda_lines = max_agenda_lines
@@ -342,39 +376,6 @@ class PresentationHandler:
         plt.clf()
         plt.close()
 
-    def view_result(self, rdata):
-        assert isinstance(rdata, dict), f"{type(rdata)=}"
-        xlabels = []
-        policy_names = []
-        successes = {}
-        for xlabel, policies in rdata.items():
-            assert isinstance(xlabel, str), f"{type(xlabel)=}"
-            assert isinstance(policies, dict), f"{type(policies)=}"
-            if xlabel not in xlabels:
-                xlabels.append(xlabel)
-            if xlabel not in successes:
-                successes[xlabel] = {}
-            for policy_name, policy_val in policies.items():
-                assert isinstance(policy_name, str), f"{type(policy_name)=}"
-                assert isinstance(policy_val, list), f"{type(policy_val)=}"
-                if policy_name not in policy_names:
-                    policy_names.append(policy_name)
-                if policy_name not in successes[xlabel]:
-                    successes[xlabel][policy_name] = []
-                for results in policy_val:
-                    assert isinstance(results, dict), f"{type(results)=}"
-                    for result_name, result_val in results.items():
-                        assert isinstance(result_name, str), f"{type(result_name)=}"
-                        if result_name == "success":
-                            assert isinstance(result_val, list), f"{type(result_val)=}"
-                            successes[xlabel][policy_name].append(result_val)
-                        elif result_name == "video_url":
-                            # internal only information
-                            assert isinstance(result_val, str), f"{type(result_val)=}"
-                        else:
-                            raise AssertionError(f"{result_name=}")
-        return xlabels, policy_names, successes
-
     def layout_of(self, layout_name):
         for layout in self.presentation.slide_layouts:
             if layout.name == layout_name:
@@ -409,9 +410,7 @@ class PresentationHandler:
         video_root, ind_row, ind_col, video_row_num = self.select_video_tile(slideinfo)
         if not video_root:
             return
-        start_frame, end_frame = read_start_end_frame(
-            os.path.join(self.media_dir, video_root + ".wmv")
-        )
+        start_frame, end_frame = read_start_end_frame(os.path.join(video_root + ".wmv"))
         vtile_h = start_frame.shape[0] // video_row_num
         vtile_w = start_frame.shape[1] // self.video_column_num
         ilef, itop, iwid, ihei = self.captu_img_pos_size.as_tuple()
@@ -499,9 +498,9 @@ class PresentationHandler:
             n_lines = p_holder.text.count("\n") + 1
             if n_lines >= self.max_agenda_lines:
                 continue  # next agenda slide
-
-            cat_str = f"{p_holder.text}\n{new_title_str}"
-            p_holder.text = cat_str.lstrip("\n")
+            p_holder.text = (
+                "\n".join([p_holder.text, new_title_str.replace("\n", " ")])
+            ).lstrip("\n ")
             return
 
         raise AssertionError()
@@ -517,17 +516,12 @@ class PresentationHandler:
         title_str,
     ):
         # title
-        video_path = os.path.join(self.media_dir, video_root) + ".wmv"
+        video_path = video_root + ".wmv"
         new_video_slide = self.presentation.slides.add_slide(
             self.layout_of("Title Only")
         )
-        new_video_slide.shapes.title.text = (
-            title_str
-            + "（"
-            + str(video_count)
-            + "/"
-            + str(len_xlabels * len_policy_names)
-            + "）"
+        new_video_slide.shapes.title.text = " ".join(
+            [title_str, f"({video_count}/{len_xlabels * len_policy_names})"]
         )
 
         # textbox
@@ -601,9 +595,14 @@ class PresentationHandler:
         shape = self.presentation.slides[summary_id_num].shapes.add_textbox(
             *self.jump_pos_size.as_tuple()
         )
-        run = shape.text_frame.paragraphs[0].add_run()
+        paragraph = shape.text_frame.paragraphs[0]
+        run = paragraph.add_run()
         set_font(run.font)
-        run.text = "▽動画スライドにジャンプ"
+        run.text = {"EN": "↓ Jump to Video Slide", "JP": "▽動画スライドにジャンプ"}[
+            self.language
+        ]
+        paragraph.alignment = PP_ALIGN.LEFT
+
         shape.click_action.target_slide = self.presentation.slides[
             min(video_id_num_list)
         ]
@@ -613,9 +612,14 @@ class PresentationHandler:
             shape = self.presentation.slides[video_id_num].shapes.add_textbox(
                 *self.jump_pos_size.as_tuple()
             )
-            run = shape.text_frame.paragraphs[0].add_run()
+            paragraph = shape.text_frame.paragraphs[0]
+            run = paragraph.add_run()
             set_font(run.font)
-            run.text = "△サマリースライドに戻る"
+            run.text = {
+                "EN": "↑ Back to Summary Slide",
+                "JP": "△サマリースライドに戻る",
+            }[self.language]
+            paragraph.alignment = PP_ALIGN.LEFT
             shape.click_action.target_slide = self.presentation.slides[summary_id_num]
 
     def follow_index_for_append(self, index, new_slideinfo):
@@ -643,7 +647,7 @@ class PresentationHandler:
                 if key == "results"
             ]
             assert len(result_list) == 1, f"{len(result_list)=}"
-            _, new_pol_names, new_successes = self.view_result(result_list[0])
+            _, new_pol_names, new_successes = view_result(result_list[0])
             if label not in new_slideinfo.xlabels:
                 new_slideinfo.xlabels.append(label)
             if label not in new_slideinfo.successes:
@@ -684,18 +688,24 @@ class PresentationHandler:
             new_outline_slideinfo = OutlineSlideinfo(yaml_idx)
             for item_type, item_val in rdata["Outline"].items():
                 if item_type == "title":
-                    assert isinstance(item_val, str), f"{type(item_val)=}"
+                    assert isinstance(item_val, dict), f"{type(item_val)=}"
+                    assert isinstance(
+                        item_val[self.language], str
+                    ), f"{type(item_val[self.language])=}"
                     assert (
                         not new_outline_slideinfo.title_str
                     ), f"{new_outline_slideinfo.title_str=}"
-                    new_outline_slideinfo.title_str = item_val
+                    new_outline_slideinfo.title_str = item_val[self.language]
                     continue
                 if item_type == "description":
-                    assert isinstance(item_val, str), f"{type(item_val)=}"
+                    assert isinstance(item_val, dict), f"{type(item_val)=}"
+                    assert isinstance(
+                        item_val[self.language], str
+                    ), f"{type(item_val[self.language])=}"
                     assert (
                         not new_outline_slideinfo.description
                     ), f"{new_outline_slideinfo.description=}"
-                    new_outline_slideinfo.description = item_val
+                    new_outline_slideinfo.description = item_val[self.language]
                     continue
                 if item_type == "index":
                     assert isinstance(item_val, list), f"{type(item_val)=}"
@@ -706,26 +716,41 @@ class PresentationHandler:
             self.slideinfo_list.append(new_outline_slideinfo)
             return
         new_summary_slideinfo = SummarySlideinfo(yaml_idx)
-        if not new_summary_slideinfo.headline:
+        if not new_summary_slideinfo.title_str:
             assert isinstance(rdata, dict), f"{type(rdata)=}"
-            for headline, rdata_val in rdata.items():
-                tqdm.write(f"- {headline}")
-                new_summary_slideinfo.headline = headline
+            for rdata_val in rdata.values():
                 for key, val in rdata_val.items():
                     if key == "title":
-                        assert isinstance(val, str), f"{type(val)=}"
+                        assert isinstance(val, dict), f"{type(val)=}"
+                        assert isinstance(
+                            val[self.language], str
+                        ), f"{type(val[self.language])=}"
                         assert not new_summary_slideinfo.title_str
-                        new_summary_slideinfo.title_str = val
+                        title_str = val[self.language]
+                        tqdm.write(f"- {title_str}")
+                        new_summary_slideinfo.title_str = title_str
                         continue
-                    if key in ["robot", "env", "task", "validation"]:
-                        assert isinstance(val, str), f"{type(val)=}"
+                    if key in ["robot", "env"]:
+                        assert isinstance(val, str), f"{(key, type(val))=}"
                         assert (
                             key not in new_summary_slideinfo.text_content_dict
                         ), f"{key=}"
                         new_summary_slideinfo.text_content_dict[key] = val
                         continue
+                    if key in ["task", "validation"]:
+                        assert isinstance(val, dict), f"{type(val)=}"
+                        assert isinstance(
+                            val[self.language], str
+                        ), f"{type(val[self.language])=}"
+                        assert (
+                            key not in new_summary_slideinfo.text_content_dict
+                        ), f"{key=}"
+                        new_summary_slideinfo.text_content_dict[key] = val[
+                            self.language
+                        ]
+                        continue
                     if key == "results":
-                        xlabels, pol_names, successes = self.view_result(val)
+                        xlabels, pol_names, successes = view_result(val)
                         assert not new_summary_slideinfo.xlabels
                         assert not new_summary_slideinfo.policy_names
                         assert not new_summary_slideinfo.successes
@@ -734,6 +759,7 @@ class PresentationHandler:
                         new_summary_slideinfo.successes = successes
                         continue
                     raise AssertionError(f"{key=}")
+            assert new_summary_slideinfo.title_str
             self.slideinfo_list.append(new_summary_slideinfo)
             return
         raise AssertionError(f"{(rdata, type(rdata))=}")
@@ -775,10 +801,13 @@ class PresentationHandler:
                     self.layout_of("Title and Content")
                 )
                 # title
-                agenda_slide.shapes.title.text = "目次"
+                agenda_slide.shapes.title.text = {
+                    "EN": "Table of Contents",
+                    "JP": "目次",
+                }[self.language]
                 if self.num_agenda_slides >= 2:
                     agenda_slide.shapes.title.text += (
-                        "（" + f"{i}/{self.num_agenda_slides}" + "）"
+                        " (" + f"{i}/{self.num_agenda_slides}" + ")"
                     )
                 # content
                 agenda_slide.placeholders[1].text = ""
@@ -798,8 +827,7 @@ class PresentationHandler:
                 self.add_agenda_content(new_slide_info.title_str)
                 # plot
                 if check_value(
-                    new_slide_info.policy_names,
-                    f"{new_slide_info.policy_names=}",
+                    new_slide_info.policy_names, f"{new_slide_info.policy_names=}"
                 ):
                     with tempfile.NamedTemporaryFile(
                         suffix=".png", delete=False
@@ -817,7 +845,7 @@ class PresentationHandler:
 
                 # description
                 placeholder = new_slide_entity.placeholders[1]
-                placeholder.text = new_slide_info.generate_description()
+                placeholder.text = new_slide_info.generate_description(self.language)
                 # font size
                 for paragraph in placeholder.text_frame.paragraphs:
                     for run in paragraph.runs:
@@ -831,7 +859,7 @@ class PresentationHandler:
                 if isinstance(slideinfo, OutlineSlideinfo):
                     continue  # video is not needed
                 assert isinstance(slideinfo, SummarySlideinfo)
-                tqdm.write(f"- {slideinfo.headline}")
+                tqdm.write(f"- {slideinfo.title_str}")
                 if (not slideinfo.xlabels) or (not slideinfo.policy_names):
                     continue  # cannot find video
 
@@ -889,65 +917,31 @@ if __name__ == "__main__":
             p = PresentationHandler(
                 args.in_yaml_filename,
                 args.out_pptx_filename,
+                args.language,
                 args.max_video_width,
                 args.max_agenda_lines,
                 args.common_title_font_size_pt,
                 args.description_font_size_pt,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.plot_outline_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.plot_summary_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.captured_start_end_img_pos_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.video_position_and_size_in_inches
-                    ]
-                ),
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.video_caption_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.plot_outline_position_and_size_in_inches),
+                PosSize(*args.plot_summary_position_and_size_in_inches),
+                PosSize(*args.captured_start_end_img_pos_and_size_in_inches),
+                PosSize(*args.video_position_and_size_in_inches),
+                PosSize(*args.video_caption_position_and_size_in_inches),
                 args.video_column_num,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.jump_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.jump_position_and_size_in_inches),
                 args.jump_font_size_pt,
-                PosSize(
-                    *[
-                        Inches(a) if a else a
-                        for a in args.pagenum_position_and_size_in_inches
-                    ]
-                ),
+                PosSize(*args.pagenum_position_and_size_in_inches),
                 args.pagenum_font_size_pt,
                 args.xlabel_rotation,
             )
             prog_bar.update(0.01)
 
-            tqdm.write(f"## {YAML.load.__name__}")
+            tqdm.write(f"## {p.parse_yaml_recursively.__name__}")
             with open(p.in_yaml_filename, "r", encoding="utf-8") as rtextio:
                 p.parse_yaml_recursively(YAML().load(rtextio), p.in_yaml_filename)
             prog_bar.update(0.01)
 
-            tqdm.write(f"## {Presentation.__module__}")
+            tqdm.write(f"## {p.create_slide.__name__}")
             p.create_slide()
             prog_bar.update(49.98)
 
