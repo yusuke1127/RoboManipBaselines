@@ -1,6 +1,9 @@
+import os
+import re
 import time
 from abc import ABCMeta, abstractmethod
 
+import cv2
 import gymnasium as gym
 import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
@@ -51,6 +54,33 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
             self.cameras[camera_name] = camera
 
+    def setup_gelsight(self, tactile_ids):
+        self.tactiles = {}
+
+        # get device ids
+        detected_tactile_ids = set()
+        for device_name in os.listdir("/sys/class/video4linux"):
+            real_device_name = os.path.realpath(
+                "/sys/class/video4linux/" + device_name + "/name"
+            )
+            with open(real_device_name, "rt") as device_name_file:
+                detected_tactile_id = device_name_file.read().rstrip()
+                detected_tactile_ids.add(detected_tactile_id)
+
+        for tactile_name, tactile_id in tactile_ids.items():
+            if tactile_id not in detected_tactile_id:
+                raise ValueError(
+                    f"Specified tactile (name: {tactile_name}, ID: {tactile_id}) not detected. Detected tactile IDs: {detected_tactile_ids}"
+                )
+
+            tactile_num = int(re.search("\d+$", device_name).group(0))
+            tactile = cv2.VideoCapture(tactile_num)
+            assert (
+                tactile is not None and tactile.isOpened()
+            ), f"Warning: unable to open video source: {tactile_num}"
+
+            self.tactiles[tactile_name] = tactile
+
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
 
@@ -92,10 +122,10 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def _get_info(self):
         info = {}
 
-        if len(self.camera_names) == 0:
+        if len(self.camera_names) + len(self.tactile_names) == 0:
             return info
 
-        # Get camera images
+        # Get images
         info["rgb_images"] = {}
         info["depth_images"] = {}
         for camera_name, camera in self.cameras.items():
@@ -111,6 +141,14 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
             rgb_image, depth_image = camera.read((640, 480))
             info["rgb_images"][camera_name] = rgb_image
             info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
+
+        for tactile_name, tactile in self.tactiles.items():
+            if type(tactile) is cv2.VideoCapture:
+                ret, rgb_image = tactile.read()
+                assert ret, "ERROR! reading image from tactile!"
+                info["rgb_images"][tactile_name] = rgb_image
+                info["depth_images"][tactile_name] = None
+                continue
 
         return info
 
@@ -134,6 +172,10 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def camera_names(self):
         """Camera names being measured."""
         return self.cameras.keys()
+
+    @property
+    def tactile_names(self):
+        return self.tactiles.keys()
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
