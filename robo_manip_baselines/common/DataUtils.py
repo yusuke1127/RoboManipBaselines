@@ -7,6 +7,16 @@ from .DataKey import DataKey
 from .MathUtils import get_rel_pose_from_se3, get_se3_from_rel_pose
 
 
+def normalize_data(data, stats):
+    """Normalize data."""
+    return (data - stats["mean"]) / stats["std"]
+
+
+def denormalize_data(data, stats):
+    """Denormalize data."""
+    return stats["std"] * data + stats["mean"]
+
+
 def _aggregate_data_seq_with_skip(data_seq, skip, agg_func):
     """
     Aggregate elements along the first axis (axis=0) in chunks of skip.

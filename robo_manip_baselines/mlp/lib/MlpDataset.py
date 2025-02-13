@@ -18,7 +18,8 @@ class MlpDataset(torch.utils.data.Dataset):
 
         self.filenames = filenames
         self.model_meta_info = model_meta_info
-        self.skip = self.model_meta_info["skip"]
+
+        self.skip = self.model_meta_info["data"]["skip"]
 
         self.accum_step_idxes = []
         for filename in self.filenames:
@@ -54,14 +55,17 @@ class MlpDataset(torch.utils.data.Dataset):
             assert step_idx_in_episode < episode_len
 
             # Load state
-            state = np.concatenate(
-                [
-                    get_skipped_single_data(
-                        h5file[key], step_idx_in_episode * self.skip, key, self.skip
-                    )
-                    for key in self.model_meta_info["state"]["keys"]
-                ]
-            )
+            if len(self.model_meta_info["state"]["keys"]) == 0:
+                state = np.zeros(0, dtype=np.float32)
+            else:
+                state = np.concatenate(
+                    [
+                        get_skipped_single_data(
+                            h5file[key], step_idx_in_episode * self.skip, key, self.skip
+                        )
+                        for key in self.model_meta_info["state"]["keys"]
+                    ]
+                )
 
             # Load action
             action = np.concatenate(
@@ -96,17 +100,13 @@ class MlpDataset(torch.utils.data.Dataset):
 
         # Augment data
         if "aug_std" in self.model_meta_info["state"]:
-            state_tensor += torch.normal(
-                mean=0.0,
-                std=self.model_meta_info["state"]["aug_std"],
-                size=state_tensor.shape,
+            state_tensor += self.model_meta_info["state"]["aug_std"] * torch.randn_like(
+                state_tensor
             )
         if "aug_std" in self.model_meta_info["action"]:
-            action_tensor += torch.normal(
-                mean=0.0,
-                std=self.model_meta_info["action"]["aug_std"],
-                size=action_tensor.shape,
-            )
+            action_tensor += self.model_meta_info["action"][
+                "aug_std"
+            ] * torch.randn_like(action_tensor)
         images_tensor = self.image_transforms(images_tensor)
 
         return state_tensor, action_tensor, images_tensor
