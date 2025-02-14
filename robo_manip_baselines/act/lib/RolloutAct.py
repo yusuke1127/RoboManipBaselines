@@ -7,6 +7,7 @@ import matplotlib.pylab as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import torch
+from torchvision.transforms import v2
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from detr.models.detr_vae import DETRVAE
@@ -79,6 +80,9 @@ class RolloutAct(RolloutBase):
         self.policy.cuda()
         self.policy.eval()
 
+        # Setup image transforms
+        self.image_transforms = v2.ToDtype(torch.float32, scale=True)
+
         # Set variables
         self.policy_action_list = np.empty((0, self.action_dim))
         self.all_actions_history = []
@@ -103,8 +107,8 @@ class RolloutAct(RolloutBase):
             axis=0,
         )
         images = np.einsum("k h w c -> k c h w", images)
-        images = images / 255.0
-        images = torch.tensor(images[np.newaxis], dtype=torch.float32).cuda()
+        images = torch.tensor(images, dtype=torch.uint8)
+        images = self.image_transforms(images)[np.newaxis].cuda()
 
         # Get state
         if len(self.state_keys) == 0:

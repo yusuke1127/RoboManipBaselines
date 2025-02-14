@@ -24,10 +24,10 @@ class DatasetBase(torch.utils.data.Dataset):
         """
         self.image_transforms = v2.Compose(
             [
-                v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05),
-                v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1)),
+                # v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05),
+                # v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1)),
                 v2.ToDtype(torch.float32, scale=True),
-                v2.GaussianNoise(sigma=0.1),
+                # v2.GaussianNoise(sigma=0.1),
             ]
         )
 

@@ -76,13 +76,13 @@ class TrainBase(metaclass=ABCMeta):
         parser.add_argument(
             "--state_aug_std",
             type=int,
-            default=0.1,
+            default=0.0,
             help="Standard deviation of random noise added to state",
         )
         parser.add_argument(
             "--action_aug_std",
             type=int,
-            default=0.1,
+            default=0.0,
             help="Standard deviation of random noise added to action",
         )
 
