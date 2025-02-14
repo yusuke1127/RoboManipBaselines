@@ -6,7 +6,7 @@ from robo_manip_baselines.teleop import TeleopBase
 
 
 class TeleopRealXarm7Demo(TeleopBase):
-    def __init__(self, robot_ip, camera_ids, gelsight_ids):
+    def __init__(self, robot_ip, camera_ids, gelsight_ids=None):
         self.robot_ip = robot_ip
         self.camera_ids = camera_ids
         self.gelsight_ids = gelsight_ids

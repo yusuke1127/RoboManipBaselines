@@ -57,29 +57,32 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def setup_gelsight(self, tactile_ids):
         self.tactiles = {}
 
-        # get device ids
-        detected_tactile_ids = set()
-        for device_name in os.listdir("/sys/class/video4linux"):
-            real_device_name = os.path.realpath(
-                "/sys/class/video4linux/" + device_name + "/name"
-            )
-            with open(real_device_name, "rt") as device_name_file:
-                detected_tactile_id = device_name_file.read().rstrip()
-                detected_tactile_ids.add(detected_tactile_id)
-
         for tactile_name, tactile_id in tactile_ids.items():
-            if tactile_id not in detected_tactile_id:
-                raise ValueError(
-                    f"Specified tactile (name: {tactile_name}, ID: {tactile_id}) not detected. Detected tactile IDs: {detected_tactile_ids}"
+            for device_name in os.listdir("/sys/class/video4linux"):
+                real_device_name = os.path.realpath(
+                    "/sys/class/video4linux/" + device_name + "/name"
                 )
-
-            tactile_num = int(re.search("\d+$", device_name).group(0))
-            tactile = cv2.VideoCapture(tactile_num)
-            assert (
-                tactile is not None and tactile.isOpened()
-            ), f"Warning: unable to open video source: {tactile_num}"
-
-            self.tactiles[tactile_name] = tactile
+                with (
+                    open(real_device_name, "rt") as device_name_file
+                ):  # "rt": read-text mode ("t" is default, so "r" alone is the same)
+                    detected_tactile_id = device_name_file.read().rstrip()
+                is_found = tactile_id in detected_tactile_id
+                print(
+                    "{} {} -> {}".format(
+                        "FOUND!" if is_found else "      ",
+                        device_name,
+                        detected_tactile_id,
+                    )
+                )
+                if not is_found:
+                    continue
+                tactile_num = int(re.search("\d+$", device_name).group(0))
+                tactile = cv2.VideoCapture(tactile_num)
+                if tactile is None or not tactile.isOpened():
+                    print(f"Warning: unable to open video source: {tactile_num}")
+                    continue
+                self.tactiles[tactile_name] = tactile
+                break
 
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
@@ -143,12 +146,11 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
             info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
 
         for tactile_name, tactile in self.tactiles.items():
-            if type(tactile) is cv2.VideoCapture:
-                ret, rgb_image = tactile.read()
-                assert ret, "ERROR! reading image from tactile!"
-                info["rgb_images"][tactile_name] = rgb_image
-                info["depth_images"][tactile_name] = None
-                continue
+            ret, rgb_image = tactile.read()
+            assert ret, "ERROR! reading image from tactile!"
+            info["rgb_images"][tactile_name] = rgb_image
+            info["depth_images"][tactile_name] = None
+            continue
 
         return info
 

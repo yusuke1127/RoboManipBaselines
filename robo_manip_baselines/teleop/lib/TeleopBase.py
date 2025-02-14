@@ -332,10 +332,6 @@ class TeleopBase(metaclass=ABCMeta):
                 DataKey.get_rgb_image_key(tactile_name),
                 info["rgb_images"][tactile_name],
             )
-            self.data_manager.append_single_data(
-                DataKey.get_depth_image_key(tactile_name),
-                info["depth_images"][tactile_name],
-            )
 
     def draw_image(self, info):
         phase_image = self.phase_manager.get_phase_image()
