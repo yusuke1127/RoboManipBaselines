@@ -41,9 +41,7 @@ def parse_args():
         "-w",
         type=int,
         default=1920,
-        help=(
-            "maximum width to which the video will be scaled down if it is " "too large"
-        ),
+        help="maximum width to which the video will be scaled down if it is too large",
     )
     parser.add_argument("--max_agenda_lines", type=int, default=13)
     parser.add_argument("--common_title_font_size_pt", type=float, default=24)
@@ -600,25 +598,25 @@ class PresentationHandler:
             font.color.rgb = RGBColor(*GRAY)
 
         # to video slide
-        shepe = self.presentation.slides[summary_id_num].shapes.add_textbox(
+        shape = self.presentation.slides[summary_id_num].shapes.add_textbox(
             *self.jump_pos_size.as_tuple()
         )
-        run = shepe.text_frame.paragraphs[0].add_run()
+        run = shape.text_frame.paragraphs[0].add_run()
         set_font(run.font)
         run.text = "▽動画スライドにジャンプ"
-        shepe.click_action.target_slide = self.presentation.slides[
+        shape.click_action.target_slide = self.presentation.slides[
             min(video_id_num_list)
         ]
 
         # to summary slide
         for video_id_num in video_id_num_list:
-            shepe = self.presentation.slides[video_id_num].shapes.add_textbox(
+            shape = self.presentation.slides[video_id_num].shapes.add_textbox(
                 *self.jump_pos_size.as_tuple()
             )
-            run = shepe.text_frame.paragraphs[0].add_run()
+            run = shape.text_frame.paragraphs[0].add_run()
             set_font(run.font)
             run.text = "△サマリースライドに戻る"
-            shepe.click_action.target_slide = self.presentation.slides[summary_id_num]
+            shape.click_action.target_slide = self.presentation.slides[summary_id_num]
 
     def follow_index_for_append(self, index, new_slideinfo):
         assert isinstance(index, dict), f"{type(index)=}"
