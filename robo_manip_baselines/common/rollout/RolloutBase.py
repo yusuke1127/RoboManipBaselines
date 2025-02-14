@@ -1,4 +1,6 @@
 import argparse
+import os
+import pickle
 import sys
 import time
 from abc import ABCMeta, abstractmethod
@@ -36,82 +38,8 @@ class RolloutBase(metaclass=ABCMeta):
         self.phase_manager = PhaseManager(self.env, PhaseOrder.ROLLOUT)
 
         # Setup environment
-        self.env.unwrapped.modify_world(
-            world_idx=self.args.world_idx,
-            world_random_scale=self.args.world_random_scale,
-        )
-
-    def run(self):
-        self.obs, self.info = self.env.reset(seed=self.args.seed)
-
-        inference_duration_list = []
-        while True:
-            if self.phase_manager.phase == Phase.ROLLOUT:
-                inference_start_time = time.time()
-                inference_called = self.infer_policy()
-                inference_duration = time.time() - inference_start_time
-                if inference_called:
-                    inference_duration_list.append(inference_duration)
-
-            self.set_command()
-
-            env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-            self.obs, _, _, _, self.info = self.env.step(env_action)
-
-            if self.phase_manager.phase == Phase.ROLLOUT:
-                self.draw_plot()
-
-            # Manage phase
-            key = cv2.waitKey(1)
-            if self.phase_manager.phase == Phase.INITIAL:
-                initial_duration = 1.0  # [s]
-                if (
-                    not self.args.wait_before_start
-                    and self.phase_manager.get_phase_elapsed_duration()
-                    > initial_duration
-                ) or (self.args.wait_before_start and key == ord("n")):
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.PRE_REACH:
-                pre_reach_duration = 0.7  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.REACH:
-                reach_duration = 0.3  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.GRASP:
-                grasp_duration = 0.5  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > grasp_duration:
-                    self.rollout_time_idx = 0
-                    print("[RolloutBase] Press the 'n' key to finish policy rollout.")
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.ROLLOUT:
-                self.rollout_time_idx += 1
-                if key == ord("n"):
-                    print("[RolloutBase] Statistics on policy inference")
-                    policy_model_size = self.calc_model_size()
-                    print(
-                        f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}"
-                    )
-                    gpu_memory_usage = torch.cuda.max_memory_reserved()
-                    print(
-                        f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}"
-                    )
-                    inference_duration_list = np.array(inference_duration_list)
-                    print(
-                        "  - Inference duration [s] | "
-                        f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
-                        f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}"
-                    )
-                    print("[RolloutBase] Press the 'n' key to exit.")
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.END:
-                if key == ord("n"):
-                    break
-            if key == 27:  # escape key
-                break
-
-        # self.env.close()
+        self.env.unwrapped.world_random_scale = self.args.world_random_scale
+        self.env.unwrapped.modify_world(world_idx=self.args.world_idx)
 
     def setup_args(self, parser=None, argv=None):
         if parser is None:
@@ -205,6 +133,85 @@ class RolloutBase(metaclass=ABCMeta):
                 for action_key in self.action_keys
             ]
         )
+
+    def load_model_meta_info(self):
+        checkpoint_dir = os.path.split(self.args.checkpoint)[0]
+        model_meta_info_path = os.path.join(checkpoint_dir, "model_meta_info.pkl")
+        with open(model_meta_info_path, "rb") as f:
+            self.model_meta_info = pickle.load(f)
+        print(f"[RolloutBase] Load model meta info: {model_meta_info_path}")
+
+    def run(self):
+        self.obs, self.info = self.env.reset(seed=self.args.seed)
+
+        inference_duration_list = []
+        while True:
+            if self.phase_manager.phase == Phase.ROLLOUT:
+                inference_start_time = time.time()
+                inference_called = self.infer_policy()
+                inference_duration = time.time() - inference_start_time
+                if inference_called:
+                    inference_duration_list.append(inference_duration)
+
+            self.set_command()
+
+            env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            self.obs, _, _, _, self.info = self.env.step(env_action)
+
+            if self.phase_manager.phase == Phase.ROLLOUT:
+                self.draw_plot()
+
+            # Manage phase
+            key = cv2.waitKey(1)
+            if self.phase_manager.phase == Phase.INITIAL:
+                initial_duration = 1.0  # [s]
+                if (
+                    not self.args.wait_before_start
+                    and self.phase_manager.get_phase_elapsed_duration()
+                    > initial_duration
+                ) or (self.args.wait_before_start and key == ord("n")):
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.PRE_REACH:
+                pre_reach_duration = 0.7  # [s]
+                if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.REACH:
+                reach_duration = 0.3  # [s]
+                if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.GRASP:
+                grasp_duration = 0.5  # [s]
+                if self.phase_manager.get_phase_elapsed_duration() > grasp_duration:
+                    self.rollout_time_idx = 0
+                    print("[RolloutBase] Press the 'n' key to finish policy rollout.")
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.ROLLOUT:
+                self.rollout_time_idx += 1
+                if key == ord("n"):
+                    print("[RolloutBase] Statistics on policy inference")
+                    policy_model_size = self.calc_model_size()
+                    print(
+                        f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}"
+                    )
+                    gpu_memory_usage = torch.cuda.max_memory_reserved()
+                    print(
+                        f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}"
+                    )
+                    inference_duration_list = np.array(inference_duration_list)
+                    print(
+                        "  - Inference duration [s] | "
+                        f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
+                        f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}"
+                    )
+                    print("[RolloutBase] Press the 'n' key to exit.")
+                    self.phase_manager.set_next_phase()
+            elif self.phase_manager.phase == Phase.END:
+                if key == ord("n"):
+                    break
+            if key == 27:  # escape key
+                break
+
+        # self.env.close()
 
     def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2

@@ -77,8 +77,8 @@ class TrainAct(TrainBase):
         set_random_seed(self.args.seed)
 
         # Set dimensions of state and action
-        state_dim = self.train_dataloader.dataset[0][0].shape[0]
-        action_dim = self.train_dataloader.dataset[0][1].shape[1]
+        state_dim = len(self.model_meta_info["state"]["example"])
+        action_dim = len(self.model_meta_info["action"]["example"])
         DETRVAE.set_state_dim(state_dim)
         DETRVAE.set_action_dim(action_dim)
         print(

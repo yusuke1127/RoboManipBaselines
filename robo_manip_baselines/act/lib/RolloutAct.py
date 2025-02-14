@@ -1,6 +1,5 @@
 import argparse
 import os
-import pickle
 import sys
 
 import cv2
@@ -13,6 +12,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/ac
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
+from robo_manip_baselines.common import denormalize_data, normalize_data
 from robo_manip_baselines.common.rollout import RolloutBase
 
 
@@ -33,32 +33,22 @@ class RolloutAct(RolloutBase):
         super().setup_args(parser)
 
     def setup_policy(self):
-        checkpoint_dir = os.path.split(self.args.checkpoint)[0]
-
-        # Load data statistics
-        dataset_stats_path = os.path.join(checkpoint_dir, "dataset_stats.pkl")
-        with open(dataset_stats_path, "rb") as f:
-            self.dataset_stats = pickle.load(f)
-        print(f"[RolloutAct] Load dataset stats: {dataset_stats_path}")
-
-        # Load policy config
-        policy_config_path = os.path.join(checkpoint_dir, "policy_config.pkl")
-        with open(policy_config_path, "rb") as f:
-            self.policy_config = pickle.load(f)
-        print(f"[RolloutAct] Load policy config: {policy_config_path}")
+        # Load model meta info
+        self.load_model_meta_info()
 
         # Set skip if not specified
         if self.args.skip is None:
-            self.args.skip = self.dataset_stats["skip"]
+            self.args.skip = self.model_meta_info["data"]["skip"]
         if self.args.skip_draw is None:
             self.args.skip_draw = self.args.skip
 
         # Set dimensions of state and action
-        self.state_keys = self.dataset_stats["state_keys"]
-        self.action_keys = self.dataset_stats["action_keys"]
-        self.camera_names = self.dataset_stats["camera_names"]
-        self.state_dim = len(self.dataset_stats["state_mean"])
-        self.action_dim = len(self.dataset_stats["action_mean"])
+        self.state_keys = self.model_meta_info["state"]["keys"]
+        self.action_keys = self.model_meta_info["action"]["keys"]
+        self.camera_names = self.model_meta_info["image"]["camera_names"]
+        self.state_dim = len(self.model_meta_info["state"]["example"])
+        self.action_dim = len(self.model_meta_info["action"]["example"])
+        self.policy_config = self.model_meta_info["policy_config"]
         DETRVAE.set_state_dim(self.state_dim)
         DETRVAE.set_action_dim(self.action_dim)
         print(
@@ -126,9 +116,8 @@ class RolloutAct(RolloutBase):
                     for state_key in self.state_keys
                 ]
             )
-        state = (state - self.dataset_stats["state_mean"]) / self.dataset_stats[
-            "state_std"
-        ]
+
+        state = normalize_data(state, self.model_meta_info["state"])
         state = torch.tensor(state[np.newaxis], dtype=torch.float32).cuda()
 
         # Infer
@@ -144,10 +133,7 @@ class RolloutAct(RolloutBase):
         action = np.zeros(self.action_dim)
         for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
             action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
-        self.policy_action = (
-            action * self.dataset_stats["action_std"]
-            + self.dataset_stats["action_mean"]
-        )
+        self.policy_action = denormalize_data(action, self.model_meta_info["action"])
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
         )

@@ -7,7 +7,6 @@ import sys
 import tempfile
 from abc import ABC, abstractmethod
 from datetime import datetime
-from glob import glob
 
 import cv2
 import imageio
@@ -21,11 +20,6 @@ from pptx.enum.text import PP_ALIGN
 from pptx.util import Inches, Pt
 from ruamel.yaml import YAML
 from tqdm import tqdm
-
-import cv2
-import imageio
-import matplotlib.pyplot as plt
-import numpy as np
 
 BAR_CHART_TOTAL_WIDTH = 0.8
 BAR_CHART_PLOT_CAPSIZE = 5
