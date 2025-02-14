@@ -3,7 +3,6 @@ import os
 import sys
 from copy import deepcopy
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -23,6 +22,7 @@ from robo_manip_baselines.common import (
 
 class TrainAct(TrainBase):
     policy_name = "ACT"
+    policy_dir = os.path.dirname(__file__)
 
     def setup_args(self):
         parser = argparse.ArgumentParser(
@@ -113,9 +113,7 @@ class TrainAct(TrainBase):
         # Construct optimizer
         self.optimizer = self.policy.configure_optimizers()
 
-    def train_loop(self, print_summary=False):
-        train_history = []
-        validation_history = []
+    def train_loop(self):
         min_val_loss = np.inf
         best_ckpt_info = None
         for epoch in tqdm(range(self.args.num_epochs)):
@@ -127,8 +125,10 @@ class TrainAct(TrainBase):
                     epoch_dict = self.infer_policy(data)
                     epoch_dicts.append(detach_dict(epoch_dict))
                 epoch_summary = compute_dict_mean(epoch_dicts)
-                validation_history.append(epoch_summary)
+                for k, v in epoch_summary.items():
+                    self.writer.add_scalar(f"{k}/val", v.item(), epoch)
 
+                # Check best
                 epoch_val_loss = epoch_summary["loss"]
                 if epoch_val_loss < min_val_loss:
                     min_val_loss = epoch_val_loss
@@ -137,28 +137,21 @@ class TrainAct(TrainBase):
                         "val_loss": min_val_loss,
                         "state_dict": deepcopy(self.policy.state_dict()),
                     }
-            if print_summary:
-                summary_string = "[TrainAct][val]"
-                for k, v in epoch_summary.items():
-                    summary_string += f" {k}: {v.item():.3f}"
-                print(summary_string)
 
             # Run train step
             self.policy.train()
             self.optimizer.zero_grad()
+            epoch_dicts = []
             for batch_idx, data in enumerate(self.train_dataloader):
                 epoch_dict = self.infer_policy(data)
                 loss = epoch_dict["loss"]
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                train_history.append(detach_dict(epoch_dict))
-            epoch_summary = compute_dict_mean(train_history[-1 * (batch_idx + 1) :])
-            if print_summary:
-                summary_string = "[TrainAct][train]"
-                for k, v in epoch_summary.items():
-                    summary_string += f" {k}: {v.item():.3f}"
-                print(summary_string)
+                epoch_dicts.append(detach_dict(epoch_dict))
+            epoch_summary = compute_dict_mean(epoch_dicts)
+            for k, v in epoch_summary.items():
+                self.writer.add_scalar(f"{k}/train", v.item(), epoch)
 
             if epoch % 100 == 0:
                 # Save current checkpoint
@@ -167,15 +160,9 @@ class TrainAct(TrainBase):
                 )
                 torch.save(self.policy.state_dict(), ckpt_path)
 
-                # Plot current status
-                self.plot_history(train_history, validation_history, epoch)
-
         # Save last checkpoint
         ckpt_path = os.path.join(self.args.checkpoint_dir, "ACT_last.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
-
-        # Plot last status
-        self.plot_history(train_history, validation_history, self.args.num_epochs)
 
         # Save best checkpoint
         best_epoch, min_val_loss, best_state_dict = best_ckpt_info
@@ -194,29 +181,8 @@ class TrainAct(TrainBase):
             is_pad_tensor.cuda(),
         )
 
-    def plot_history(self, train_history, validation_history, epoch):
-        for key in train_history[0]:
-            plot_path = os.path.join(self.args.checkpoint_dir, f"plot_{key}.png")
-            plt.figure()
-            train_values = [summary[key].item() for summary in train_history]
-            val_values = [summary[key].item() for summary in validation_history]
-            plt.plot(
-                np.linspace(0, epoch - 1, len(train_history)),
-                train_values,
-                label="train",
-            )
-            plt.plot(
-                np.linspace(0, epoch - 1, len(validation_history)),
-                val_values,
-                label="validation",
-            )
-            plt.tight_layout(rect=[0, 0, 1, 0.96])
-            plt.legend()
-            plt.title(key)
-            plt.savefig(plot_path)
-            plt.close()
-
 
 if __name__ == "__main__":
     train = TrainAct()
     train.run()
+    train.close()

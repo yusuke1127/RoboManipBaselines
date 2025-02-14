@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 
 import h5py
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 from .DataKey import DataKey
 from .DataUtils import get_skipped_data_seq
@@ -106,9 +107,7 @@ class TrainBase(metaclass=ABCMeta):
                 dataset_dirname, self.policy_name, datetime.datetime.now()
             )
             self.args.checkpoint_dir = os.path.normpath(
-                os.path.join(
-                    os.path.dirname(__file__), "../checkpoint/", checkpoint_dirname
-                )
+                os.path.join(self.policy_dir, "../checkpoint/", checkpoint_dirname)
             )
 
     def setup_dataset(self):
@@ -139,6 +138,9 @@ class TrainBase(metaclass=ABCMeta):
             f"[TrainBase] Load dataset from {self.args.dataset_dir}\n"
             f"  - train episodes: {len(train_filenames)}, val episodes: {len(val_filenames)}"
         )
+
+        # Setup tensorboard
+        self.writer = SummaryWriter(self.args.checkpoint_dir)
 
     @abstractmethod
     def setup_policy(self):
@@ -239,3 +241,6 @@ class TrainBase(metaclass=ABCMeta):
     @abstractmethod
     def train_loop(self):
         pass
+
+    def close(self):
+        self.writer.close()
