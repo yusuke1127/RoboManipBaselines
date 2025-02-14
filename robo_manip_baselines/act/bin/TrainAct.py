@@ -53,12 +53,15 @@ class TrainAct(TrainBase):
 
         super().setup_args(parser)
 
+    def make_model_meta_info(self, all_filenames):
+        model_meta_info = super().make_model_meta_info(all_filenames)
+
+        model_meta_info["data"]["chunk_size"] = self.args.chunk_size
+
+        return model_meta_info
+
     def make_dataloader(self, filenames):
-        dataset = RmbActDataset(
-            filenames,
-            self.model_meta_info,
-            self.args.chunk_size,
-        )
+        dataset = RmbActDataset(filenames, self.model_meta_info)
 
         dataloader = DataLoader(
             dataset,

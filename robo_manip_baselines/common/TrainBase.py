@@ -69,6 +69,19 @@ class TrainBase(metaclass=ABCMeta):
         )
 
         parser.add_argument(
+            "--state_aug_std",
+            type=int,
+            default=0.1,
+            help="Standard deviation of random noise added to state",
+        )
+        parser.add_argument(
+            "--action_aug_std",
+            type=int,
+            default=0.1,
+            help="Standard deviation of random noise added to action",
+        )
+
+        parser.add_argument(
             "--skip",
             type=int,
             default=3,
@@ -179,14 +192,14 @@ class TrainBase(metaclass=ABCMeta):
                 "keys": self.args.state_keys,
                 "mean": all_state.mean(axis=0),
                 "std": np.clip(all_state.std(axis=0), 1e-3, 1e10),
-                "aug_std": 0.1,
+                "aug_std": self.args.state_aug_std,
                 "example": all_state[0],
             },
             "action": {
                 "keys": self.args.action_keys,
                 "mean": all_action.mean(axis=0),
                 "std": np.clip(all_action.std(axis=0), 1e-3, 1e10),
-                "aug_std": 0.1,
+                "aug_std": self.args.action_aug_std,
                 "example": all_action[0],
             },
             "image": {

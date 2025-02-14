@@ -1,46 +1,26 @@
 import h5py
 import numpy as np
 import torch
-from torchvision.transforms import v2
 
 from robo_manip_baselines.common import (
     DataKey,
+    DatasetBase,
     get_skipped_data_seq,
     get_skipped_single_data,
     normalize_data,
 )
 
 
-class RmbActDataset(torch.utils.data.Dataset):
-    def __init__(
-        self,
-        filenames,
-        model_meta_info,
-        chunk_size,
-    ):
-        super().__init__()
-
-        self.filenames = filenames
-        self.model_meta_info = model_meta_info
-        self.chunk_size = chunk_size
-
-        self.skip = self.model_meta_info["data"]["skip"]
-
-        self.image_transforms = v2.Compose(
-            [
-                v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05),
-                v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1)),
-                v2.ToDtype(torch.float32, scale=True),
-                v2.GaussianNoise(sigma=0.1),
-            ]
-        )
-
+class RmbActDataset(DatasetBase):
     def __len__(self):
         return len(self.filenames)
 
     def __getitem__(self, episode_idx):
+        skip = self.model_meta_info["data"]["skip"]
+        chunk_size = self.model_meta_info["data"]["chunk_size"]
+
         with h5py.File(self.filenames[episode_idx], "r") as h5file:
-            episode_len = h5file[DataKey.TIME][:: self.skip].shape[0]
+            episode_len = h5file[DataKey.TIME][::skip].shape[0]
             start_time_idx = np.random.choice(episode_len)
 
             # Load state
@@ -50,7 +30,7 @@ class RmbActDataset(torch.utils.data.Dataset):
                 state = np.concatenate(
                     [
                         get_skipped_single_data(
-                            h5file[key], start_time_idx * self.skip, key, self.skip
+                            h5file[key], start_time_idx * skip, key, skip
                         )
                         for key in self.model_meta_info["state"]["keys"]
                     ]
@@ -60,9 +40,9 @@ class RmbActDataset(torch.utils.data.Dataset):
             action = np.concatenate(
                 [
                     get_skipped_data_seq(
-                        h5file[key][start_time_idx * self.skip :],
+                        h5file[key][start_time_idx * skip :],
                         key,
-                        self.skip,
+                        skip,
                     )
                     for key in self.model_meta_info["action"]["keys"]
                 ],
@@ -73,24 +53,24 @@ class RmbActDataset(torch.utils.data.Dataset):
             images = np.stack(
                 [
                     h5file[DataKey.get_rgb_image_key(camera_name)][
-                        start_time_idx * self.skip
+                        start_time_idx * skip
                     ]
                     for camera_name in self.model_meta_info["image"]["camera_names"]
                 ],
                 axis=0,
             )
 
-        # Set chunked action
+        # Chunk action
         action_len = action.shape[0]
-        action_chunked = np.zeros((self.chunk_size, action.shape[1]), dtype=np.float32)
-        action_chunked[:action_len] = action[: self.chunk_size]
-        is_pad = np.zeros(self.chunk_size, dtype=bool)
+        action_chunked = np.zeros((chunk_size, action.shape[1]), dtype=np.float32)
+        action_chunked[:action_len] = action[:chunk_size]
+        is_pad = np.zeros(chunk_size, dtype=bool)
         is_pad[action_len:] = True
 
         # Pre-convert data
-        state = normalize_data(state, self.model_meta_info["state"])
-        action_chunked = normalize_data(action_chunked, self.model_meta_info["action"])
-        images = np.einsum("k h w c -> k c h w", images)
+        state, action_chunked, images = self.pre_convert_data(
+            state, action_chunked, images
+        )
 
         # Convert to tensor
         state_tensor = torch.tensor(state, dtype=torch.float32)
@@ -99,14 +79,8 @@ class RmbActDataset(torch.utils.data.Dataset):
         is_pad_tensor = torch.tensor(is_pad, dtype=torch.bool)
 
         # Augment data
-        if "aug_std" in self.model_meta_info["state"]:
-            state_tensor += self.model_meta_info["state"]["aug_std"] * torch.randn_like(
-                state_tensor
-            )
-        if "aug_std" in self.model_meta_info["action"]:
-            action_tensor += self.model_meta_info["action"][
-                "aug_std"
-            ] * torch.randn_like(action_tensor)
-        images_tensor = self.image_transforms(images_tensor)
+        state_tensor, action_tensor, images_tensor = self.augment_data(
+            state_tensor, action_tensor, images_tensor
+        )
 
         return state_tensor, action_tensor, images_tensor, is_pad_tensor
