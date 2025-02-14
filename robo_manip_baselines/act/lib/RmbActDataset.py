@@ -11,6 +11,8 @@ from robo_manip_baselines.common import (
 
 
 class RmbActDataset(DatasetBase):
+    """Dataset to train ACT policy."""
+
     def __len__(self):
         return len(self.filenames)
 

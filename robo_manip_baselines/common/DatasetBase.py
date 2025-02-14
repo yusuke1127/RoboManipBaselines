@@ -16,6 +16,8 @@ class DatasetBase(torch.utils.data.Dataset):
 
         self.setup_image_transforms()
 
+        self.setup_variables()
+
     def setup_image_transforms(self):
         """
         Setup image transforms.
@@ -30,6 +32,10 @@ class DatasetBase(torch.utils.data.Dataset):
                 # v2.GaussianNoise(sigma=0.1),
             ]
         )
+
+    def setup_variables(self):
+        """Setup internal variables."""
+        pass
 
     def pre_convert_data(self, state, action, images):
         """Pre-convert data. Arguments must be numpy arrays (not torch tensors)."""
