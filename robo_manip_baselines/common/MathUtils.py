@@ -2,6 +2,7 @@ import random
 
 import numpy as np
 import pinocchio as pin
+import torch
 
 
 def set_random_seed(seed):

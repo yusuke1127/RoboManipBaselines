@@ -2,7 +2,6 @@ import argparse
 
 import h5py
 import numpy as np
-import pinocchio as pin
 
 from robo_manip_baselines.common import (
     DataKey,

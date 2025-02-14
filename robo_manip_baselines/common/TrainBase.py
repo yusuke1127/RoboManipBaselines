@@ -7,7 +7,12 @@ import random
 import sys
 from abc import ABCMeta, abstractmethod
 
-from robo_manip_baselines.common import set_random_seed
+import h5py
+import numpy as np
+
+from .DataKey import DataKey
+from .DataUtils import get_skipped_data_seq
+from .MathUtils import set_random_seed
 
 
 class TrainBase(metaclass=ABCMeta):
@@ -175,12 +180,14 @@ class TrainBase(metaclass=ABCMeta):
 
                 if rgb_image_example is None:
                     rgb_image_example = {
-                        camera_name: h5file[DataKey.get_rgb_image_key(camera_name)]
+                        camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][()]
                         for camera_name in self.args.camera_names
                     }
                 if depth_image_example is None:
                     depth_image_example = {
-                        camera_name: h5file[DataKey.get_depth_image_key(camera_name)]
+                        camera_name: h5file[DataKey.get_depth_image_key(camera_name)][
+                            ()
+                        ]
                         for camera_name in self.args.camera_names
                     }
 

@@ -3,7 +3,6 @@ import os
 import sys
 from copy import deepcopy
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -17,14 +16,14 @@ from utils import compute_dict_mean, detach_dict
 
 from robo_manip_baselines.act import RmbActDataset
 from robo_manip_baselines.common import (
-    DataKey,
     TrainBase,
-    get_skipped_data_seq,
     set_random_seed,
 )
 
 
 class TrainAct(TrainBase):
+    policy_name = "ACT"
+
     def setup_args(self):
         parser = argparse.ArgumentParser(
             description="Train ACT",
@@ -78,7 +77,7 @@ class TrainAct(TrainBase):
         set_random_seed(self.args.seed)
 
         # Set dimensions of state and action
-        state_dim = train_dataloader.dataset[0][0].shape[0]
+        state_dim = self.train_dataloader.dataset[0][0].shape[0]
         action_dim = self.train_dataloader.dataset[0][1].shape[1]
         DETRVAE.set_state_dim(state_dim)
         DETRVAE.set_action_dim(action_dim)

@@ -1,7 +1,6 @@
 from functools import reduce
 
 import numpy as np
-import pinocchio as pin
 
 from .DataKey import DataKey
 from .MathUtils import get_rel_pose_from_se3, get_se3_from_rel_pose

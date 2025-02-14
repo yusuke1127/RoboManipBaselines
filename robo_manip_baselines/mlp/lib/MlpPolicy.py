@@ -32,7 +32,7 @@ class MlpPolicy(nn.Module):
             weights=ResNet18_Weights.DEFAULT, norm_layer=FrozenBatchNorm2d
         )
         self.image_feature_extractor = nn.Sequential(
-            *list(resnet.children())[:-1]
+            *list(resnet_model.children())[:-1]
         )  # Remove last layer
         image_feature_dim = resnet_model.fc.in_features
 
