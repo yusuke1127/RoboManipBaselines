@@ -6,9 +6,11 @@ import pickle
 import random
 import sys
 from abc import ABCMeta, abstractmethod
+from copy import deepcopy
 
 import h5py
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -20,6 +22,8 @@ from .MathUtils import set_random_seed
 class TrainBase(metaclass=ABCMeta):
     def __init__(self):
         self.setup_args()
+
+        set_random_seed(self.args.seed)
 
         self.setup_dataset()
 
@@ -112,8 +116,6 @@ class TrainBase(metaclass=ABCMeta):
             )
 
     def setup_dataset(self):
-        set_random_seed(0)
-
         # Get file list
         all_filenames = glob.glob(f"{self.args.dataset_dir}/**/*.hdf5", recursive=True)
         random.shuffle(all_filenames)
@@ -136,8 +138,9 @@ class TrainBase(metaclass=ABCMeta):
         self.train_dataloader = self.make_dataloader(train_filenames, shuffle=True)
         self.val_dataloader = self.make_dataloader(val_filenames, shuffle=False)
         print(
-            f"[TrainBase] Load dataset from {self.args.dataset_dir}\n"
-            f"  - train episodes: {len(train_filenames)}, val episodes: {len(val_filenames)}"
+            f"[{self.__class__.__name__}] Load dataset from {self.args.dataset_dir}\n"
+            f"  - train size: {len(self.train_dataloader.dataset)}, files: {len(train_filenames)}\n"
+            f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(val_filenames)}"
         )
 
         # Setup tensorboard
@@ -242,28 +245,58 @@ class TrainBase(metaclass=ABCMeta):
         )
         with open(model_meta_info_path, "wb") as f:
             pickle.dump(self.model_meta_info, f)
-        print(f"[TrainBase] Save model meta info: {model_meta_info_path}")
+        print(
+            f"[{self.__class__.__name__}] Save model meta info: {model_meta_info_path}"
+        )
 
         # Train loop
-        print(f"[TrainBase] Train with saving checkpoints: {self.args.checkpoint_dir}")
+        print(
+            f"[{self.__class__.__name__}] Train with saving checkpoints: {self.args.checkpoint_dir}"
+        )
         self.train_loop()
 
     @abstractmethod
     def train_loop(self):
         pass
 
-    def detach_epoch_result(self, epoch_result):
-        for k, v in epoch_result.items():
-            epoch_result[k] = v.item()
-        return epoch_result
+    def detach_batch_result(self, batch_result):
+        for k, v in batch_result.items():
+            batch_result[k] = v.item()
+        return batch_result
 
-    def calc_epoch_summary(self, epoch_result_list):
-        epoch_summary = {k: 0.0 for k in epoch_result_list[0]}
-        for k in epoch_summary:
-            for epoch_result in epoch_result_list:
-                epoch_summary[k] += epoch_result[k]
-            epoch_summary[k] /= len(epoch_result_list)
+    def log_epoch_summary(self, batch_result_list, label, epoch):
+        epoch_summary = {"epoch": epoch}
+        for k in batch_result_list[0]:
+            epoch_summary[k] = np.mean(
+                [batch_result[k] for batch_result in batch_result_list]
+            )
+        for k, v in epoch_summary.items():
+            self.writer.add_scalar(f"{k}/{label}", v, epoch)
         return epoch_summary
+
+    def update_best_ckpt(self, best_ckpt_info, epoch_summary):
+        if epoch_summary["loss"] < best_ckpt_info["loss"]:
+            best_ckpt_info = {
+                "epoch": epoch_summary["epoch"],
+                "loss": epoch_summary["loss"],
+                "state_dict": deepcopy(self.policy.state_dict()),
+            }
+        return best_ckpt_info
+
+    def save_current_ckpt(self, ckpt_suffix):
+        ckpt_path = os.path.join(
+            self.args.checkpoint_dir, f"{self.policy_name}_{ckpt_suffix}.ckpt"
+        )
+        torch.save(self.policy.state_dict(), ckpt_path)
+
+    def save_best_ckpt(self, best_ckpt_info):
+        ckpt_path = os.path.join(
+            self.args.checkpoint_dir, f"{self.policy_name}_best.ckpt"
+        )
+        torch.save(best_ckpt_info["state_dict"], ckpt_path)
+        print(
+            f"[{self.__class__.__name__}] Best val loss is {best_ckpt_info['loss']:.3f} at epoch {best_ckpt_info['epoch']}"
+        )
 
     def close(self):
         self.writer.close()

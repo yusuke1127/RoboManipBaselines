@@ -24,6 +24,7 @@ class MlpDataset(DatasetBase):
                     self.accum_step_idxes.append(
                         self.accum_step_idxes[-1] + episode_len
                     )
+        self.accum_step_idxes = np.array(self.accum_step_idxes)
 
     def __len__(self):
         return self.accum_step_idxes[-1]
@@ -86,4 +87,4 @@ class MlpDataset(DatasetBase):
             state_tensor, action_tensor, images_tensor
         )
 
-        return state_tensor, action_tensor, images_tensor
+        return state_tensor, images_tensor, action_tensor

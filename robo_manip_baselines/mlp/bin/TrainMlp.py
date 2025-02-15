@@ -1,93 +1,88 @@
 import argparse
 import os
-import sys
 
 import numpy as np
 import torch
+from torch.nn import functional as F
 from tqdm import tqdm
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
-from detr.models.detr_vae import DETRVAE
-from policy import ACTPolicy
-
-from robo_manip_baselines.act import RmbActDataset
 from robo_manip_baselines.common import TrainBase
+from robo_manip_baselines.mlp import MlpDataset, MlpPolicy
 
 
-class TrainAct(TrainBase):
-    policy_name = "ACT"
+class TrainMlp(TrainBase):
+    policy_name = "MLP"
     policy_dir = os.path.join(os.path.dirname(__file__), "..")
-    DatasetClass = RmbActDataset
+    DatasetClass = MlpDataset
 
     def setup_args(self):
         parser = argparse.ArgumentParser(
-            description="Train ACT policy",
+            description="Train MLP policy",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        parser.add_argument("--batch_size", type=int, default=8, help="batch size")
+        parser.add_argument("--batch_size", type=int, default=16, help="batch size")
         parser.add_argument(
-            "--num_epochs", type=int, default=1000, help="number of epochs"
+            "--num_epochs", type=int, default=40, help="number of epochs"
         )
         parser.add_argument("--lr", type=float, default=1e-5, help="learning rate")
+        parser.add_argument(
+            "--weight_decay", type=float, default=1e-4, help="weight decay"
+        )
 
-        parser.add_argument("--kl_weight", type=int, default=10, help="KL weight")
         parser.add_argument(
-            "--chunk_size", type=int, default=100, help="action chunking size"
+            "--hidden_dim_list",
+            type=int,
+            nargs="+",
+            default=[512, 512],
+            help="Dimension list of hidden layers",
         )
         parser.add_argument(
-            "--hidden_dim", type=int, default=512, help="hidden dimension"
-        )
-        parser.add_argument(
-            "--dim_feedforward", type=int, default=3200, help="feedforward dimension"
+            "--state_feature_dim",
+            type=int,
+            default=512,
+            help="Dimension of state feature",
         )
 
         super().setup_args(parser)
-
-    def make_model_meta_info(self, all_filenames):
-        model_meta_info = super().make_model_meta_info(all_filenames)
-
-        model_meta_info["data"]["chunk_size"] = self.args.chunk_size
-
-        return model_meta_info
 
     def setup_policy(self):
         # Set dimensions of state and action
         state_dim = len(self.model_meta_info["state"]["example"])
         action_dim = len(self.model_meta_info["action"]["example"])
-        DETRVAE.set_state_dim(state_dim)
-        DETRVAE.set_action_dim(action_dim)
         print(
             f"[{self.__class__.__name__}] Construct policy.\n"
             f"  - state dim: {state_dim}, action dim: {action_dim}, camera num: {len(self.args.camera_names)}\n"
             f"  - state keys: {self.args.state_keys}\n"
             f"  - action keys: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}, chunk size: {self.args.chunk_size}"
+            f"  - skip: {self.args.skip}"
         )
 
         # Set policy config
         policy_config = {
             "lr": self.args.lr,
-            "num_queries": self.args.chunk_size,
-            "kl_weight": self.args.kl_weight,
-            "hidden_dim": self.args.hidden_dim,
-            "dim_feedforward": self.args.dim_feedforward,
-            "lr_backbone": 1e-5,
-            "backbone": "resnet18",
-            "enc_layers": 4,
-            "dec_layers": 7,
-            "nheads": 8,
-            "camera_names": self.args.camera_names,
+            "hidden_dim_list": self.args.hidden_dim_list,
+            "state_feature_dim": self.args.state_feature_dim,
         }
         self.model_meta_info["policy_config"] = policy_config
 
         # Construct policy
-        self.policy = ACTPolicy(policy_config)
+        self.policy = MlpPolicy(
+            state_dim,
+            action_dim,
+            len(self.args.camera_names),
+            self.args.hidden_dim_list,
+            self.args.state_feature_dim,
+        )
         self.policy.cuda()
 
         # Construct optimizer
-        self.optimizer = self.policy.configure_optimizers()
+        self.optimizer = torch.optim.AdamW(
+            self.policy.parameters(),
+            lr=self.args.lr,
+            weight_decay=self.args.weight_decay,
+        )
 
     def train_loop(self):
         best_ckpt_info = {"loss": np.inf}
@@ -97,8 +92,9 @@ class TrainAct(TrainBase):
                 self.policy.eval()
                 batch_result_list = []
                 for data in self.val_dataloader:
-                    batch_result = self.policy(*[d.cuda() for d in data])
-                    batch_result_list.append(self.detach_batch_result(batch_result))
+                    pred_action = self.policy(*[d.cuda() for d in data[0:2]])
+                    loss = F.mse_loss(pred_action, data[2].cuda())
+                    batch_result_list.append(self.detach_batch_result({"loss": loss}))
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
                 # Update best checkpoint
@@ -109,11 +105,11 @@ class TrainAct(TrainBase):
             batch_result_list = []
             for data in self.train_dataloader:
                 self.optimizer.zero_grad()
-                batch_result = self.policy(*[d.cuda() for d in data])
-                loss = batch_result["loss"]
+                pred_action = self.policy(*[d.cuda() for d in data[0:2]])
+                loss = F.mse_loss(pred_action, data[2].cuda())
                 loss.backward()
                 self.optimizer.step()
-                batch_result_list.append(self.detach_batch_result(batch_result))
+                batch_result_list.append(self.detach_batch_result({"loss": loss}))
             self.log_epoch_summary(batch_result_list, "train", epoch)
 
             # Save current checkpoint
@@ -128,6 +124,6 @@ class TrainAct(TrainBase):
 
 
 if __name__ == "__main__":
-    train = TrainAct()
+    train = TrainMlp()
     train.run()
     train.close()
