@@ -5,13 +5,11 @@ from copy import deepcopy
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
-from utils import compute_dict_mean, detach_dict
 
 from robo_manip_baselines.act import RmbActDataset
 from robo_manip_baselines.common import (
@@ -22,11 +20,12 @@ from robo_manip_baselines.common import (
 
 class TrainAct(TrainBase):
     policy_name = "ACT"
-    policy_dir = os.path.dirname(__file__)
+    policy_dir = os.path.join(os.path.dirname(__file__), "..")
+    DatasetClass = RmbActDataset
 
     def setup_args(self):
         parser = argparse.ArgumentParser(
-            description="Train ACT",
+            description="Train ACT policy",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
@@ -58,20 +57,6 @@ class TrainAct(TrainBase):
         model_meta_info["data"]["chunk_size"] = self.args.chunk_size
 
         return model_meta_info
-
-    def make_dataloader(self, filenames):
-        dataset = RmbActDataset(filenames, self.model_meta_info)
-
-        dataloader = DataLoader(
-            dataset,
-            batch_size=self.args.batch_size,
-            shuffle=True,
-            pin_memory=True,
-            num_workers=1,
-            prefetch_factor=1,
-        )
-
-        return dataloader
 
     def setup_policy(self):
         set_random_seed(self.args.seed)
@@ -114,44 +99,42 @@ class TrainAct(TrainBase):
         self.optimizer = self.policy.configure_optimizers()
 
     def train_loop(self):
-        min_val_loss = np.inf
-        best_ckpt_info = None
+        best_ckpt_info = {"val_loss": np.inf}
         for epoch in tqdm(range(self.args.num_epochs)):
             # Run validation step
             with torch.inference_mode():
                 self.policy.eval()
-                epoch_dicts = []
+                epoch_result_list = []
                 for data in self.val_dataloader:
-                    epoch_dict = self.infer_policy(data)
-                    epoch_dicts.append(detach_dict(epoch_dict))
-                epoch_summary = compute_dict_mean(epoch_dicts)
+                    epoch_result = self.policy(*[d.cuda() for d in data])
+                    epoch_result_list.append(self.detach_epoch_result(epoch_result))
+                epoch_summary = self.calc_epoch_summary(epoch_result_list)
                 for k, v in epoch_summary.items():
-                    self.writer.add_scalar(f"{k}/val", v.item(), epoch)
+                    self.writer.add_scalar(f"{k}/val", v, epoch)
 
                 # Check best
                 epoch_val_loss = epoch_summary["loss"]
-                if epoch_val_loss < min_val_loss:
-                    min_val_loss = epoch_val_loss
+                if epoch_val_loss < best_ckpt_info["val_loss"]:
                     best_ckpt_info = {
                         "epoch": epoch,
-                        "val_loss": min_val_loss,
+                        "val_loss": epoch_val_loss,
                         "state_dict": deepcopy(self.policy.state_dict()),
                     }
 
             # Run train step
             self.policy.train()
             self.optimizer.zero_grad()
-            epoch_dicts = []
-            for batch_idx, data in enumerate(self.train_dataloader):
-                epoch_dict = self.infer_policy(data)
-                loss = epoch_dict["loss"]
+            epoch_result_list = []
+            for data in self.train_dataloader:
+                epoch_result = self.policy(*[d.cuda() for d in data])
+                loss = epoch_result["loss"]
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                epoch_dicts.append(detach_dict(epoch_dict))
-            epoch_summary = compute_dict_mean(epoch_dicts)
+                epoch_result_list.append(self.detach_epoch_result(epoch_result))
+            epoch_summary = self.calc_epoch_summary(epoch_result_list)
             for k, v in epoch_summary.items():
-                self.writer.add_scalar(f"{k}/train", v.item(), epoch)
+                self.writer.add_scalar(f"{k}/train", v, epoch)
 
             if epoch % 100 == 0:
                 # Save current checkpoint
@@ -165,20 +148,10 @@ class TrainAct(TrainBase):
         torch.save(self.policy.state_dict(), ckpt_path)
 
         # Save best checkpoint
-        best_epoch, min_val_loss, best_state_dict = best_ckpt_info
         ckpt_path = os.path.join(self.args.checkpoint_dir, "ACT_best.ckpt")
         torch.save(best_ckpt_info["state_dict"], ckpt_path)
         print(
             f"[TrainAct] Best val loss is {best_ckpt_info['val_loss']:.3f} at epoch {best_ckpt_info['epoch']}"
-        )
-
-    def infer_policy(self, data):
-        state_tensor, action_tensor, image_tensor, is_pad_tensor = data
-        return self.policy(
-            state_tensor.cuda(),
-            image_tensor.cuda(),
-            action_tensor.cuda(),
-            is_pad_tensor.cuda(),
         )
 
 

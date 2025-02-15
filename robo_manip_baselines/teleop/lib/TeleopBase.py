@@ -23,6 +23,10 @@ from robo_manip_baselines.common import (
 
 
 class TeleopBase(metaclass=ABCMeta):
+    MotionManagerClass = MotionManager
+    DataManagerClass = DataManager
+    PhaseManagerClass = PhaseManager
+
     def __init__(self):
         # Setup arguments
         self.setup_args()
@@ -32,18 +36,15 @@ class TeleopBase(metaclass=ABCMeta):
         self.env.reset(seed=42)
 
         # Setup motion manager
-        MotionManagerClass = getattr(self, "MotionManagerClass", MotionManager)
-        self.motion_manager = MotionManagerClass(self.env)
+        self.motion_manager = self.MotionManagerClass(self.env)
 
         # Setup data manager
-        DataManagerClass = getattr(self, "DataManagerClass", DataManager)
-        self.data_manager = DataManagerClass(self.env, demo_name=self.demo_name)
+        self.data_manager = self.DataManagerClass(self.env, demo_name=self.demo_name)
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
 
         # Setup phase manager
-        PhaseManagerClass = getattr(self, "PhaseManagerClass", PhaseManager)
-        self.phase_manager = PhaseManagerClass(self.env, PhaseOrder.TELEOP)
+        self.phase_manager = self.PhaseManagerClass(self.env, PhaseOrder.TELEOP)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:

@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 
 import h5py
 import numpy as np
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from .DataKey import DataKey
@@ -107,7 +108,7 @@ class TrainBase(metaclass=ABCMeta):
                 dataset_dirname, self.policy_name, datetime.datetime.now()
             )
             self.args.checkpoint_dir = os.path.normpath(
-                os.path.join(self.policy_dir, "../checkpoint/", checkpoint_dirname)
+                os.path.join(self.policy_dir, "checkpoint", checkpoint_dirname)
             )
 
     def setup_dataset(self):
@@ -132,8 +133,8 @@ class TrainBase(metaclass=ABCMeta):
         self.model_meta_info = self.make_model_meta_info(all_filenames)
 
         # Construct dataloader
-        self.train_dataloader = self.make_dataloader(train_filenames)
-        self.val_dataloader = self.make_dataloader(val_filenames)
+        self.train_dataloader = self.make_dataloader(train_filenames, shuffle=True)
+        self.val_dataloader = self.make_dataloader(val_filenames, shuffle=False)
         print(
             f"[TrainBase] Load dataset from {self.args.dataset_dir}\n"
             f"  - train episodes: {len(train_filenames)}, val episodes: {len(val_filenames)}"
@@ -192,7 +193,6 @@ class TrainBase(metaclass=ABCMeta):
                         ]
                         for camera_name in self.args.camera_names
                     }
-
         all_state = np.concatenate(all_state, dtype=np.float32)
         all_action = np.concatenate(all_action, dtype=np.float32)
 
@@ -219,9 +219,19 @@ class TrainBase(metaclass=ABCMeta):
             "data": {"skip": self.args.skip},
         }
 
-    @abstractmethod
-    def make_dataloader(self, filenames):
-        pass
+    def make_dataloader(self, filenames, shuffle=True):
+        dataset = self.DatasetClass(filenames, self.model_meta_info)
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=self.args.batch_size,
+            shuffle=shuffle,
+            pin_memory=True,
+            num_workers=4,
+            prefetch_factor=4,
+        )
+
+        return dataloader
 
     def run(self):
         os.makedirs(self.args.checkpoint_dir, exist_ok=True)
@@ -241,6 +251,19 @@ class TrainBase(metaclass=ABCMeta):
     @abstractmethod
     def train_loop(self):
         pass
+
+    def detach_epoch_result(self, epoch_result):
+        for k, v in epoch_result.items():
+            epoch_result[k] = v.item()
+        return epoch_result
+
+    def calc_epoch_summary(self, epoch_result_list):
+        epoch_summary = {k: 0.0 for k in epoch_result_list[0]}
+        for k in epoch_summary:
+            for epoch_result in epoch_result_list:
+                epoch_summary[k] += epoch_result[k]
+            epoch_summary[k] /= len(epoch_result_list)
+        return epoch_summary
 
     def close(self):
         self.writer.close()

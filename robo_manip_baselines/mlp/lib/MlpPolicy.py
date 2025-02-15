@@ -12,12 +12,9 @@ class MlpPolicy(nn.Module):
         state_dim,
         action_dim,
         num_images,
-        hidden_dim_list=None,
-        state_feature_dim=512,
+        hidden_dim_list,
+        state_feature_dim,
     ):
-        if hidden_dim_list is None:
-            hidden_dim_list = [512, 512]
-
         super().__init__()
 
         # Instantiate state feature extractor
