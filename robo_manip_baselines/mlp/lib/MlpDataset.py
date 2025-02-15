@@ -38,7 +38,7 @@ class MlpDataset(DatasetBase):
 
         with h5py.File(self.filenames[episode_idx], "r") as h5file:
             episode_len = h5file[DataKey.TIME][::skip].shape[0]
-            assert step_idx_in_episode < episode_len
+            assert 0 <= step_idx_in_episode < episode_len
 
             # Load state
             if len(self.model_meta_info["state"]["keys"]) == 0:
