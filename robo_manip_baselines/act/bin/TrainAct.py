@@ -21,15 +21,12 @@ class TrainAct(TrainBase):
 
     def setup_args(self):
         parser = argparse.ArgumentParser(
-            description="Train ACT policy",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        parser.add_argument("--batch_size", type=int, default=8, help="batch size")
-        parser.add_argument(
-            "--num_epochs", type=int, default=1000, help="number of epochs"
-        )
-        parser.add_argument("--lr", type=float, default=1e-5, help="learning rate")
+        parser.set_defaults(batch_size=8)
+        parser.set_defaults(num_epochs=1000)
+        parser.set_defaults(lr=1e-5)
 
         parser.add_argument("--kl_weight", type=int, default=10, help="KL weight")
         parser.add_argument(
@@ -44,16 +41,14 @@ class TrainAct(TrainBase):
 
         super().setup_args(parser)
 
-    def make_model_meta_info(self, all_filenames):
-        model_meta_info = super().make_model_meta_info(all_filenames)
+    def setup_model_meta_info(self):
+        super().setup_model_meta_info()
 
-        model_meta_info["data"]["chunk_size"] = self.args.chunk_size
-
-        return model_meta_info
+        self.model_meta_info["data"]["chunk_size"] = self.args.chunk_size
 
     def setup_policy(self):
-        # Set policy config
-        policy_config = {
+        # Set policy args
+        policy_args = {
             "lr": self.args.lr,
             "num_queries": self.args.chunk_size,
             "kl_weight": self.args.kl_weight,
@@ -66,12 +61,12 @@ class TrainAct(TrainBase):
             "nheads": 8,
             "camera_names": self.args.camera_names,
         }
-        self.model_meta_info["policy_config"] = policy_config
+        self.model_meta_info["policy"]["args"] = policy_args
 
         # Construct policy
         DETRVAE.set_state_dim(len(self.model_meta_info["state"]["example"]))
         DETRVAE.set_action_dim(len(self.model_meta_info["action"]["example"]))
-        self.policy = ACTPolicy(policy_config)
+        self.policy = ACTPolicy(policy_args)
         self.policy.cuda()
 
         # Construct optimizer
@@ -109,7 +104,7 @@ class TrainAct(TrainBase):
             self.log_epoch_summary(batch_result_list, "train", epoch)
 
             # Save current checkpoint
-            if epoch % (self.args.num_epochs // 10) == 0:
+            if epoch % max(self.args.num_epochs // 10, 1) == 0:
                 self.save_current_ckpt(f"epoch{epoch:0>3}")
 
         # Save last checkpoint

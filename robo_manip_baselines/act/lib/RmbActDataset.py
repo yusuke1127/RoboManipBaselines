@@ -84,5 +84,5 @@ class RmbActDataset(DatasetBase):
             state_tensor, action_tensor, images_tensor
         )
 
-        # Sort in the order of ACT policy inputs
+        # Sort in the order of policy inputs and outputs
         return state_tensor, images_tensor, action_tensor, is_pad_tensor

@@ -22,18 +22,29 @@ class DatasetBase(torch.utils.data.Dataset):
         """
         Setup image transforms.
 
-        Image transforms should also be responsible for converting the data type from uint8 to float32 with scale (255 -> 1.0).
+        Image transforms should be responsible for converting the data type from uint8 to float32 with scale (255 -> 1.0).
         """
         image_transform_list = []
 
-        if self.model_meta_info["image"]["aug_color"]:
+        if self.model_meta_info["image"]["aug_color_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_color_scale"]
             image_transform_list.append(
-                v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05)
+                v2.ColorJitter(
+                    brightness=0.4 * scale,
+                    contrast=0.4 * scale,
+                    saturation=0.4 * scale,
+                    hue=0.05 * scale,
+                )
             )
 
-        if self.model_meta_info["image"]["aug_affine"]:
+        if self.model_meta_info["image"]["aug_affine_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_affine_scale"]
             image_transform_list.append(
-                v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1))
+                v2.RandomAffine(
+                    degrees=4.0 * scale,
+                    translate=(0.05 * scale, 0.05 * scale),
+                    scale=(1.0 - 0.1 * scale, 1.0 + 0.1 * scale),
+                )
             )
 
         image_transform_list.append(v2.ToDtype(torch.float32, scale=True))

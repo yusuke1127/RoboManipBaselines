@@ -30,6 +30,7 @@ class MlpDataset(DatasetBase):
         return self.accum_step_idxes[-1]
 
     def __getitem__(self, step_idx_in_whole):
+        # Set episode_idx and step_idx_in_episode
         skip = self.model_meta_info["data"]["skip"]
         episode_idx = (self.accum_step_idxes > step_idx_in_whole).nonzero()[0][0]
         step_idx_in_episode = step_idx_in_whole
@@ -87,4 +88,5 @@ class MlpDataset(DatasetBase):
             state_tensor, action_tensor, images_tensor
         )
 
+        # Sort in the order of policy inputs and outputs
         return state_tensor, images_tensor, action_tensor

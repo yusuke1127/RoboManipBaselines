@@ -25,6 +25,8 @@ class TrainBase(metaclass=ABCMeta):
 
         set_random_seed(self.args.seed)
 
+        self.setup_model_meta_info()
+
         self.setup_dataset()
 
         self.setup_policy()
@@ -98,14 +100,16 @@ class TrainBase(metaclass=ABCMeta):
             help="Standard deviation of random noise added to images",
         )
         parser.add_argument(
-            "--image_aug_color",
-            action="store_true",
-            help="Whether to enable color augmentation for images",
+            "--image_aug_color_scale",
+            type=float,
+            default=0.0,
+            help="Scale of color random noise added to the images",
         )
         parser.add_argument(
-            "--image_aug_affine",
-            action="store_true",
-            help="Whether to enable affine augmentation for images",
+            "--image_aug_affine_scale",
+            type=float,
+            default=0.0,
+            help="Scale of affine random noise added to the images",
         )
 
         parser.add_argument(
@@ -115,7 +119,11 @@ class TrainBase(metaclass=ABCMeta):
             help="skip interval of data sequence (set 1 for no skip)",
         )
 
-        parser.add_argument("--seed", type=int, default=42, help="seed")
+        parser.add_argument("--batch_size", type=int, help="batch size")
+        parser.add_argument("--num_epochs", type=int, help="number of epochs")
+        parser.add_argument("--lr", type=float, help="learning rate")
+
+        parser.add_argument("--seed", type=int, default=42, help="random seed")
 
         if argv is None:
             argv = sys.argv
@@ -130,6 +138,34 @@ class TrainBase(metaclass=ABCMeta):
             self.args.checkpoint_dir = os.path.normpath(
                 os.path.join(self.policy_dir, "checkpoint", checkpoint_dirname)
             )
+
+    def setup_model_meta_info(self):
+        self.model_meta_info = {
+            "data": {
+                "name": os.path.basename(os.path.normpath(self.args.dataset_dir)),
+                "skip": self.args.skip,
+            },
+            "policy": {"name": self.policy_name},
+            "train": {
+                "batch_size": self.args.batch_size,
+                "num_epochs": self.args.num_epochs,
+                "lr": self.args.lr,
+            },
+            "state": {
+                "keys": self.args.state_keys,
+                "aug_std": self.args.state_aug_std,
+            },
+            "action": {
+                "keys": self.args.action_keys,
+                "aug_std": self.args.action_aug_std,
+            },
+            "image": {
+                "camera_names": self.args.camera_names,
+                "aug_std": self.args.image_aug_std,
+                "aug_color_scale": self.args.image_aug_color_scale,
+                "aug_affine_scale": self.args.image_aug_affine_scale,
+            },
+        }
 
     def setup_dataset(self):
         # Get file list
@@ -147,10 +183,10 @@ class TrainBase(metaclass=ABCMeta):
         train_filenames = all_filenames[:train_num]
         val_filenames = all_filenames[-1 * val_num :]
 
-        # Construct dataset stats
-        self.model_meta_info = self.make_model_meta_info(all_filenames)
+        # Set data stats
+        self.set_data_stats(all_filenames)
 
-        # Construct dataloader
+        # Make dataloader
         self.train_dataloader = self.make_dataloader(train_filenames, shuffle=True)
         self.val_dataloader = self.make_dataloader(val_filenames, shuffle=False)
 
@@ -158,44 +194,17 @@ class TrainBase(metaclass=ABCMeta):
         self.writer = SummaryWriter(self.args.checkpoint_dir)
 
         # Print dataset information
-        print(
-            f"[{self.__class__.__name__}] Load dataset from {self.args.dataset_dir}\n"
-            f"  - train size: {len(self.train_dataloader.dataset)}, files: {len(train_filenames)}\n"
-            f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(val_filenames)}"
-        )
-        print(
-            f"  - aug std state: {self.model_meta_info['state']['aug_std']}, action: {self.model_meta_info['action']['aug_std']}, image: {self.model_meta_info['image']['aug_std']}"
-        )
-        image_transforms_str = ""
-        image_transform_list = self.train_dataloader.dataset.image_transforms.transforms
-        for image_transform_idx, image_transform in enumerate(image_transform_list):
-            image_transforms_str += f"<{image_transform.__class__.__name__}>"
-            if image_transform_idx < len(image_transform_list) - 1:
-                image_transforms_str += " -> "
-        print(f"  - image transforms: {image_transforms_str}")
+        self.print_dataset_info()
 
-    @abstractmethod
-    def setup_policy(self):
-        pass
-
-    def print_policy_info(self):
-        print(
-            f"[{self.__class__.__name__}] Construct policy.\n"
-            f"  - state dim: {len(self.model_meta_info['state']['example'])}, action dim: {len(self.model_meta_info['action']['example'])}, camera num: {len(self.args.camera_names)}\n"
-            f"  - state keys: {self.args.state_keys}\n"
-            f"  - action keys: {self.args.action_keys}\n"
-            f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}"
-        )
-
-    def make_model_meta_info(self, all_filenames):
-        # Load all state and action
+    def set_data_stats(self, all_filenames):
+        # Load dataset
         all_state = []
         all_action = []
         rgb_image_example = None
         depth_image_example = None
         for filename in all_filenames:
             with h5py.File(filename, "r") as h5file:
+                # Load state
                 if len(self.args.state_keys) == 0:
                     episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
                     state = np.zeros((episode_len, 0), dtype=np.float32)
@@ -211,6 +220,7 @@ class TrainBase(metaclass=ABCMeta):
                     )
                 all_state.append(state)
 
+                # Load action
                 action = np.concatenate(
                     [
                         get_skipped_data_seq(
@@ -222,6 +232,7 @@ class TrainBase(metaclass=ABCMeta):
                 )
                 all_action.append(action)
 
+                # Load image
                 if rgb_image_example is None:
                     rgb_image_example = {
                         camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][()]
@@ -237,31 +248,26 @@ class TrainBase(metaclass=ABCMeta):
         all_state = np.concatenate(all_state, dtype=np.float32)
         all_action = np.concatenate(all_action, dtype=np.float32)
 
-        return {
-            "state": {
-                "keys": self.args.state_keys,
+        self.model_meta_info["state"].update(
+            {
                 "mean": all_state.mean(axis=0),
                 "std": np.clip(all_state.std(axis=0), 1e-3, 1e10),
-                "aug_std": self.args.state_aug_std,
                 "example": all_state[0],
-            },
-            "action": {
-                "keys": self.args.action_keys,
+            }
+        )
+        self.model_meta_info["action"].update(
+            {
                 "mean": all_action.mean(axis=0),
                 "std": np.clip(all_action.std(axis=0), 1e-3, 1e10),
-                "aug_std": self.args.action_aug_std,
                 "example": all_action[0],
-            },
-            "image": {
-                "camera_names": self.args.camera_names,
-                "aug_std": self.args.image_aug_std,
-                "aug_color": self.args.image_aug_color,
-                "aug_affine": self.args.image_aug_affine,
+            }
+        )
+        self.model_meta_info["image"].update(
+            {
                 "rgb_example": rgb_image_example,
                 "depth_example": depth_image_example,
-            },
-            "data": {"skip": self.args.skip},
-        }
+            }
+        )
 
     def make_dataloader(self, filenames, shuffle=True):
         dataset = self.DatasetClass(filenames, self.model_meta_info)
@@ -277,10 +283,39 @@ class TrainBase(metaclass=ABCMeta):
 
         return dataloader
 
-    def run(self):
-        os.makedirs(self.args.checkpoint_dir, exist_ok=True)
+    def print_dataset_info(self):
+        print(
+            f"[{self.__class__.__name__}] Load dataset from {self.args.dataset_dir}\n"
+            f"  - train size: {len(self.train_dataloader.dataset)}, files: {len(self.train_dataloader.dataset.filenames)}\n"
+            f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(self.val_dataloader.dataset.filenames)}"
+        )
+        print(
+            f"  - aug std state: {self.model_meta_info['state']['aug_std']}, action: {self.model_meta_info['action']['aug_std']}, "
+            f"image: {self.model_meta_info['image']['aug_std']}, color: {self.model_meta_info['image']['aug_color_scale']}, affine: {self.model_meta_info['image']['aug_affine_scale']}"
+        )
+        image_transform_str_list = [
+            f"{image_transform.__class__.__name__}"
+            for image_transform in self.train_dataloader.dataset.image_transforms.transforms
+        ]
+        print(f"  - image transforms: {image_transform_str_list}")
 
+    @abstractmethod
+    def setup_policy(self):
+        pass
+
+    def print_policy_info(self):
+        print(
+            f"[{self.__class__.__name__}] Construct policy.\n"
+            f"  - state dim: {len(self.model_meta_info['state']['example'])}, action dim: {len(self.model_meta_info['action']['example'])}, camera num: {len(self.args.camera_names)}\n"
+            f"  - state keys: {self.args.state_keys}\n"
+            f"  - action keys: {self.args.action_keys}\n"
+            f"  - camera names: {self.args.camera_names}\n"
+            f"  - skip: {self.args.skip}, batch size: {self.args.batch_size}, num epochs: {self.args.num_epochs}"
+        )
+
+    def run(self):
         # Save model meta info
+        os.makedirs(self.args.checkpoint_dir, exist_ok=True)
         model_meta_info_path = os.path.join(
             self.args.checkpoint_dir, "model_meta_info.pkl"
         )
@@ -325,15 +360,11 @@ class TrainBase(metaclass=ABCMeta):
         return best_ckpt_info
 
     def save_current_ckpt(self, ckpt_suffix):
-        ckpt_path = os.path.join(
-            self.args.checkpoint_dir, f"{self.policy_name}_{ckpt_suffix}.ckpt"
-        )
+        ckpt_path = os.path.join(self.args.checkpoint_dir, f"policy_{ckpt_suffix}.ckpt")
         torch.save(self.policy.state_dict(), ckpt_path)
 
     def save_best_ckpt(self, best_ckpt_info):
-        ckpt_path = os.path.join(
-            self.args.checkpoint_dir, f"{self.policy_name}_best.ckpt"
-        )
+        ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_best.ckpt")
         torch.save(best_ckpt_info["state_dict"], ckpt_path)
         print(
             f"[{self.__class__.__name__}] Best val loss is {best_ckpt_info['loss']:.3f} at epoch {best_ckpt_info['epoch']}"

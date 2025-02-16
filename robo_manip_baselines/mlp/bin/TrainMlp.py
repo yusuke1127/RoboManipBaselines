@@ -17,15 +17,13 @@ class TrainMlp(TrainBase):
 
     def setup_args(self):
         parser = argparse.ArgumentParser(
-            description="Train MLP policy",
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-        parser.add_argument(
-            "--num_epochs", type=int, default=40, help="number of epochs"
-        )
-        parser.add_argument("--lr", type=float, default=1e-5, help="learning rate")
+        parser.set_defaults(batch_size=32)
+        parser.set_defaults(num_epochs=40)
+        parser.set_defaults(lr=1e-5)
+
         parser.add_argument(
             "--weight_decay", type=float, default=1e-4, help="weight decay"
         )
@@ -47,21 +45,18 @@ class TrainMlp(TrainBase):
         super().setup_args(parser)
 
     def setup_policy(self):
-        # Set policy config
-        policy_config = {
-            "lr": self.args.lr,
+        # Set policy args
+        self.model_meta_info["policy"]["args"] = {
             "hidden_dim_list": self.args.hidden_dim_list,
             "state_feature_dim": self.args.state_feature_dim,
         }
-        self.model_meta_info["policy_config"] = policy_config
 
         # Construct policy
         self.policy = MlpPolicy(
             len(self.model_meta_info["state"]["example"]),
             len(self.model_meta_info["action"]["example"]),
             len(self.args.camera_names),
-            self.args.hidden_dim_list,
-            self.args.state_feature_dim,
+            **self.model_meta_info["policy"]["args"],
         )
         self.policy.cuda()
 
@@ -104,7 +99,7 @@ class TrainMlp(TrainBase):
             self.log_epoch_summary(batch_result_list, "train", epoch)
 
             # Save current checkpoint
-            if epoch % (self.args.num_epochs // 10) == 0:
+            if epoch % max(self.args.num_epochs // 10, 1) == 0:
                 self.save_current_ckpt(f"epoch{epoch:0>3}")
 
         # Save last checkpoint
