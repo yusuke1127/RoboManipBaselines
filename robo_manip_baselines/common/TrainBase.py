@@ -81,15 +81,31 @@ class TrainBase(metaclass=ABCMeta):
 
         parser.add_argument(
             "--state_aug_std",
-            type=int,
+            type=float,
             default=0.0,
             help="Standard deviation of random noise added to state",
         )
         parser.add_argument(
             "--action_aug_std",
-            type=int,
+            type=float,
             default=0.0,
             help="Standard deviation of random noise added to action",
+        )
+        parser.add_argument(
+            "--image_aug_std",
+            type=float,
+            default=0.0,
+            help="Standard deviation of random noise added to images",
+        )
+        parser.add_argument(
+            "--image_aug_color",
+            action="store_true",
+            help="Whether to enable color augmentation for images",
+        )
+        parser.add_argument(
+            "--image_aug_affine",
+            action="store_true",
+            help="Whether to enable affine augmentation for images",
         )
 
         parser.add_argument(
@@ -137,18 +153,40 @@ class TrainBase(metaclass=ABCMeta):
         # Construct dataloader
         self.train_dataloader = self.make_dataloader(train_filenames, shuffle=True)
         self.val_dataloader = self.make_dataloader(val_filenames, shuffle=False)
+
+        # Setup tensorboard
+        self.writer = SummaryWriter(self.args.checkpoint_dir)
+
+        # Print dataset information
         print(
             f"[{self.__class__.__name__}] Load dataset from {self.args.dataset_dir}\n"
             f"  - train size: {len(self.train_dataloader.dataset)}, files: {len(train_filenames)}\n"
             f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(val_filenames)}"
         )
-
-        # Setup tensorboard
-        self.writer = SummaryWriter(self.args.checkpoint_dir)
+        print(
+            f"  - aug std state: {self.model_meta_info['state']['aug_std']}, action: {self.model_meta_info['action']['aug_std']}, image: {self.model_meta_info['image']['aug_std']}"
+        )
+        image_transforms_str = ""
+        image_transform_list = self.train_dataloader.dataset.image_transforms.transforms
+        for image_transform_idx, image_transform in enumerate(image_transform_list):
+            image_transforms_str += f"<{image_transform.__class__.__name__}>"
+            if image_transform_idx < len(image_transform_list) - 1:
+                image_transforms_str += " -> "
+        print(f"  - image transforms: {image_transforms_str}")
 
     @abstractmethod
     def setup_policy(self):
         pass
+
+    def print_policy_info(self):
+        print(
+            f"[{self.__class__.__name__}] Construct policy.\n"
+            f"  - state dim: {len(self.model_meta_info['state']['example'])}, action dim: {len(self.model_meta_info['action']['example'])}, camera num: {len(self.args.camera_names)}\n"
+            f"  - state keys: {self.args.state_keys}\n"
+            f"  - action keys: {self.args.action_keys}\n"
+            f"  - camera names: {self.args.camera_names}\n"
+            f"  - skip: {self.args.skip}"
+        )
 
     def make_model_meta_info(self, all_filenames):
         # Load all state and action
@@ -216,6 +254,9 @@ class TrainBase(metaclass=ABCMeta):
             },
             "image": {
                 "camera_names": self.args.camera_names,
+                "aug_std": self.args.image_aug_std,
+                "aug_color": self.args.image_aug_color,
+                "aug_affine": self.args.image_aug_affine,
                 "rgb_example": rgb_image_example,
                 "depth_example": depth_image_example,
             },

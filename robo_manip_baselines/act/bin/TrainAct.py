@@ -52,20 +52,6 @@ class TrainAct(TrainBase):
         return model_meta_info
 
     def setup_policy(self):
-        # Set dimensions of state and action
-        state_dim = len(self.model_meta_info["state"]["example"])
-        action_dim = len(self.model_meta_info["action"]["example"])
-        DETRVAE.set_state_dim(state_dim)
-        DETRVAE.set_action_dim(action_dim)
-        print(
-            f"[{self.__class__.__name__}] Construct policy.\n"
-            f"  - state dim: {state_dim}, action dim: {action_dim}, camera num: {len(self.args.camera_names)}\n"
-            f"  - state keys: {self.args.state_keys}\n"
-            f"  - action keys: {self.args.action_keys}\n"
-            f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}, chunk size: {self.args.chunk_size}"
-        )
-
         # Set policy config
         policy_config = {
             "lr": self.args.lr,
@@ -83,11 +69,17 @@ class TrainAct(TrainBase):
         self.model_meta_info["policy_config"] = policy_config
 
         # Construct policy
+        DETRVAE.set_state_dim(len(self.model_meta_info["state"]["example"]))
+        DETRVAE.set_action_dim(len(self.model_meta_info["action"]["example"]))
         self.policy = ACTPolicy(policy_config)
         self.policy.cuda()
 
         # Construct optimizer
         self.optimizer = self.policy.configure_optimizers()
+
+        # Print policy information
+        self.print_policy_info()
+        print(f"  - chunk size: {self.args.chunk_size}")
 
     def train_loop(self):
         best_ckpt_info = {"loss": np.inf}

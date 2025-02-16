@@ -24,14 +24,26 @@ class DatasetBase(torch.utils.data.Dataset):
 
         Image transforms should also be responsible for converting the data type from uint8 to float32 with scale (255 -> 1.0).
         """
-        self.image_transforms = v2.Compose(
-            [
-                # v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05),
-                # v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1)),
-                v2.ToDtype(torch.float32, scale=True),
-                # v2.GaussianNoise(sigma=0.1),
-            ]
-        )
+        image_transform_list = []
+
+        if self.model_meta_info["image"]["aug_color"]:
+            image_transform_list.append(
+                v2.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.05)
+            )
+
+        if self.model_meta_info["image"]["aug_affine"]:
+            image_transform_list.append(
+                v2.RandomAffine(degrees=4.0, translate=(0.05, 0.05), scale=(0.9, 1.1))
+            )
+
+        image_transform_list.append(v2.ToDtype(torch.float32, scale=True))
+
+        if self.model_meta_info["image"]["aug_std"] > 0.0:
+            image_transform_list.append(
+                v2.GaussianNoise(sigma=self.model_meta_info["image"]["aug_std"])
+            )
+
+        self.image_transforms = v2.Compose(image_transform_list)
 
     def setup_variables(self):
         """Setup internal variables."""
@@ -47,9 +59,9 @@ class DatasetBase(torch.utils.data.Dataset):
 
     def augment_data(self, state, action, images):
         """Augment data. Arguments must be torch tensors (not numpy arrays)."""
-        if "aug_std" in self.model_meta_info["state"]:
+        if self.model_meta_info["state"]["aug_std"] > 0.0:
             state += self.model_meta_info["state"]["aug_std"] * torch.randn_like(state)
-        if "aug_std" in self.model_meta_info["action"]:
+        if self.model_meta_info["action"]["aug_std"] > 0.0:
             action += self.model_meta_info["action"]["aug_std"] * torch.randn_like(
                 action
             )

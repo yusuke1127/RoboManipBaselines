@@ -20,8 +20,8 @@ class MlpPolicy(nn.Module):
         # Instantiate state feature extractor
         self.state_feature_extractor = nn.Sequential(
             nn.Linear(state_dim, state_feature_dim),
+            # nn.BatchNorm1d(state_feature_dim),
             nn.ReLU(),
-            nn.BatchNorm1d(state_feature_dim),
         )
 
         # Instantiate image feature extractor
@@ -42,7 +42,10 @@ class MlpPolicy(nn.Module):
             output_dim = linear_dim_list[linear_idx + 1]
             linear_layers += [nn.Linear(input_dim, output_dim)]
             if linear_idx < len(linear_dim_list) - 2:
-                linear_layers += [nn.ReLU(), nn.BatchNorm1d(output_dim)]
+                linear_layers += [
+                    # nn.BatchNorm1d(output_dim),
+                    nn.ReLU(),
+                ]
         self.linear_layer_seq = nn.Sequential(*linear_layers)
 
         # Initialize weights

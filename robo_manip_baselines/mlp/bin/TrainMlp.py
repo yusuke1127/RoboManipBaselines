@@ -21,7 +21,7 @@ class TrainMlp(TrainBase):
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-        parser.add_argument("--batch_size", type=int, default=16, help="batch size")
+        parser.add_argument("--batch_size", type=int, default=32, help="batch size")
         parser.add_argument(
             "--num_epochs", type=int, default=40, help="number of epochs"
         )
@@ -47,18 +47,6 @@ class TrainMlp(TrainBase):
         super().setup_args(parser)
 
     def setup_policy(self):
-        # Set dimensions of state and action
-        state_dim = len(self.model_meta_info["state"]["example"])
-        action_dim = len(self.model_meta_info["action"]["example"])
-        print(
-            f"[{self.__class__.__name__}] Construct policy.\n"
-            f"  - state dim: {state_dim}, action dim: {action_dim}, camera num: {len(self.args.camera_names)}\n"
-            f"  - state keys: {self.args.state_keys}\n"
-            f"  - action keys: {self.args.action_keys}\n"
-            f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}"
-        )
-
         # Set policy config
         policy_config = {
             "lr": self.args.lr,
@@ -69,8 +57,8 @@ class TrainMlp(TrainBase):
 
         # Construct policy
         self.policy = MlpPolicy(
-            state_dim,
-            action_dim,
+            len(self.model_meta_info["state"]["example"]),
+            len(self.model_meta_info["action"]["example"]),
             len(self.args.camera_names),
             self.args.hidden_dim_list,
             self.args.state_feature_dim,
@@ -83,6 +71,9 @@ class TrainMlp(TrainBase):
             lr=self.args.lr,
             weight_decay=self.args.weight_decay,
         )
+
+        # Print policy information
+        self.print_policy_info()
 
     def train_loop(self):
         best_ckpt_info = {"loss": np.inf}
