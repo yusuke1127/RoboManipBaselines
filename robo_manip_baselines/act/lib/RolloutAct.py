@@ -60,7 +60,9 @@ class RolloutAct(RolloutBase):
         state = self.get_state()
         images = self.get_images()
         all_actions = self.policy(state, images)[0]
-        self.all_actions_history.append(all_actions.cpu().detach().numpy())
+        self.all_actions_history.append(
+            all_actions.cpu().detach().numpy().astype(np.float64)
+        )
         if len(self.all_actions_history) > self.model_meta_info["data"]["chunk_size"]:
             self.all_actions_history.pop(0)
 

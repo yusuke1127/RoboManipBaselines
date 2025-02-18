@@ -207,7 +207,7 @@ class TrainBase(metaclass=ABCMeta):
                 # Load state
                 if len(self.args.state_keys) == 0:
                     episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
-                    state = np.zeros((episode_len, 0), dtype=np.float32)
+                    state = np.zeros((episode_len, 0), dtype=np.float64)
                 else:
                     state = np.concatenate(
                         [
@@ -245,8 +245,8 @@ class TrainBase(metaclass=ABCMeta):
                         ]
                         for camera_name in self.args.camera_names
                     }
-        all_state = np.concatenate(all_state, dtype=np.float32)
-        all_action = np.concatenate(all_action, dtype=np.float32)
+        all_state = np.concatenate(all_state, dtype=np.float64)
+        all_action = np.concatenate(all_action, dtype=np.float64)
 
         self.model_meta_info["state"].update(
             {

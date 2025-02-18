@@ -26,7 +26,7 @@ class RmbActDataset(DatasetBase):
 
             # Load state
             if len(self.model_meta_info["state"]["keys"]) == 0:
-                state = np.zeros(0, dtype=np.float32)
+                state = np.zeros(0, dtype=np.float64)
             else:
                 state = np.concatenate(
                     [
@@ -63,7 +63,7 @@ class RmbActDataset(DatasetBase):
 
         # Chunk action
         action_len = action.shape[0]
-        action_chunked = np.zeros((chunk_size, action.shape[1]), dtype=np.float32)
+        action_chunked = np.zeros((chunk_size, action.shape[1]), dtype=np.float64)
         action_chunked[:action_len] = action[:chunk_size]
         is_pad = np.zeros(chunk_size, dtype=bool)
         is_pad[action_len:] = True

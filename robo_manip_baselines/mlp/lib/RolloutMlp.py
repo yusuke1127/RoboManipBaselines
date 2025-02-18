@@ -38,7 +38,7 @@ class RolloutMlp(RolloutBase):
         state = self.get_state()
         images = self.get_images()
         action = self.policy(state, images)[0]
-        action = action.cpu().detach().numpy()
+        action = action.cpu().detach().numpy().astype(np.float64)
         self.policy_action = denormalize_data(action, self.model_meta_info["action"])
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
