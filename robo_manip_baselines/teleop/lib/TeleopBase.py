@@ -19,6 +19,7 @@ from robo_manip_baselines.common import (
     PhaseOrder,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
+    set_random_seed,
 )
 
 
@@ -31,9 +32,11 @@ class TeleopBase(metaclass=ABCMeta):
         # Setup arguments
         self.setup_args()
 
+        set_random_seed(self.args.seed)
+
         # Setup gym environment
         self.setup_env()
-        self.env.reset(seed=42)
+        self.env.reset(seed=self.args.seed)
 
         # Setup motion manager
         self.motion_manager = self.MotionManagerClass(self.env)
@@ -163,6 +166,8 @@ class TeleopBase(metaclass=ABCMeta):
             default=[DataKey.COMMAND_JOINT_POS],
             help="Command data keys when replaying log motion",
         )
+
+        parser.add_argument("--seed", type=int, default=42, help="random seed")
 
         if argv is None:
             argv = sys.argv
