@@ -6,12 +6,6 @@
   <asset>
     <texture name="table_plate2" file="table/table2.png" type="2d"/>
     <material name="table_plate2" texture="table_plate2" specular="0.0" shininess="0.0"/>
-    <!-- <texture name="random1" file="random/random1.png" type="2d"/> -->
-    <!-- <texture name="random2" file="random/random2.png" type="2d"/> -->
-    <!-- <material name="random1" texture="random1" specular="0.0" shininess="0.0" -->
-    <!--           rgba="1 1 1 0.5" texrepeat="0.5 0.5" texuniform="true"/> -->
-    <!-- <material name="random2" texture="random2" specular="0.0" shininess="0.0" -->
-    <!--           rgba="1 1 1 0.5" texrepeat="0.8 0.8" texuniform="true"/> -->
   </asset>
 
   <worldbody>
