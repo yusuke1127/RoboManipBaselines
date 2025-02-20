@@ -9,6 +9,7 @@ from .RolloutMujocoUR5eCloth import RolloutMujocoUR5eCloth
 from .RolloutMujocoUR5eInsert import RolloutMujocoUR5eInsert
 from .RolloutMujocoUR5eDoor import RolloutMujocoUR5eDoor
 from .RolloutMujocoUR5eCabinet import RolloutMujocoUR5eCabinet
+from .RolloutMujocoUR5eToolbox import RolloutMujocoUR5eToolbox
 
 ## Xarm7
 from .RolloutMujocoXarm7Cable import RolloutMujocoXarm7Cable

@@ -95,7 +95,7 @@ class RolloutBase(metaclass=ABCMeta):
         parser.add_argument(
             "--wait_before_start",
             action="store_true",
-            help="whether to wait a key input before starting simulation",
+            help="whether to wait a key input before starting motion",
         )
 
         if argv is None:
