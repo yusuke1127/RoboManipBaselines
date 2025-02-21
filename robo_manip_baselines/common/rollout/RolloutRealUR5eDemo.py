@@ -3,14 +3,14 @@ import numpy as np
 
 from robo_manip_baselines.common import Phase
 
-from ..DataKey import DataKey
 from .RolloutBase import RolloutBase
 
 
 class RolloutRealUR5eDemo(RolloutBase):
-    def __init__(self, robot_ip, camera_ids):
+    def __init__(self, robot_ip, camera_ids, gelsight_ids=None):
         self.robot_ip = robot_ip
         self.camera_ids = camera_ids
+        self.gelsight_ids = gelsight_ids
         super().__init__()
 
     def setup_env(self):
@@ -18,6 +18,7 @@ class RolloutRealUR5eDemo(RolloutBase):
             "robo_manip_baselines/RealUR5eDemoEnv-v0",
             robot_ip=self.robot_ip,
             camera_ids=self.camera_ids,
+            gelsight_ids=self.gelsight_ids,
             scale_dt=self.args.scale_dt,
         )
 

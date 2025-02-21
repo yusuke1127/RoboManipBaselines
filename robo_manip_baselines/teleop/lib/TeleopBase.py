@@ -19,35 +19,32 @@ from robo_manip_baselines.common import (
     PhaseOrder,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
-    set_random_seed,
+    get_se3_from_pose,
 )
 
 
 class TeleopBase(metaclass=ABCMeta):
-    MotionManagerClass = MotionManager
-    DataManagerClass = DataManager
-    PhaseManagerClass = PhaseManager
-
     def __init__(self):
         # Setup arguments
         self.setup_args()
 
-        set_random_seed(self.args.seed)
-
         # Setup gym environment
         self.setup_env()
-        self.env.reset(seed=self.args.seed)
+        self.env.reset(seed=42)
 
         # Setup motion manager
-        self.motion_manager = self.MotionManagerClass(self.env)
+        MotionManagerClass = getattr(self, "MotionManagerClass", MotionManager)
+        self.motion_manager = MotionManagerClass(self.env)
 
         # Setup data manager
-        self.data_manager = self.DataManagerClass(self.env, demo_name=self.demo_name)
+        DataManagerClass = getattr(self, "DataManagerClass", DataManager)
+        self.data_manager = DataManagerClass(self.env, demo_name=self.demo_name)
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
 
         # Setup phase manager
-        self.phase_manager = self.PhaseManagerClass(self.env, PhaseOrder.TELEOP)
+        PhaseManagerClass = getattr(self, "PhaseManagerClass", PhaseManager)
+        self.phase_manager = PhaseManagerClass(self.env, PhaseOrder.TELEOP)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -65,7 +62,7 @@ class TeleopBase(metaclass=ABCMeta):
         # Command configuration
         self._spacemouse_connected = False
         self.command_pos_scale = 1e-2
-        self.command_rpy_scale = 0.0  # 5e-3
+        self.command_rpy_scale = 5e-3
         self.gripper_scale = 5.0
 
     def run(self):
@@ -166,8 +163,6 @@ class TeleopBase(metaclass=ABCMeta):
             default=[DataKey.COMMAND_JOINT_POS],
             help="Command data keys when replaying log motion",
         )
-
-        parser.add_argument("--seed", type=int, default=42, help="random seed")
 
         if argv is None:
             argv = sys.argv
@@ -331,6 +326,11 @@ class TeleopBase(metaclass=ABCMeta):
             self.data_manager.append_single_data(
                 DataKey.get_depth_image_key(camera_name),
                 info["depth_images"][camera_name],
+            )
+        for tactile_name in self.env.unwrapped.tactile_names:
+            self.data_manager.append_single_data(
+                DataKey.get_rgb_image_key(tactile_name),
+                info["rgb_images"][tactile_name],
             )
 
     def draw_image(self, info):
