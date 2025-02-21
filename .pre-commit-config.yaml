@@ -13,6 +13,10 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
+<<<<<<< HEAD
         args: [--fix, --extend-select, I]
+=======
+        args: [--fix, --select, I]
+>>>>>>> origin/gelsight-ids-setup
         exclude: "(__init__\\.py)"
       - id: ruff-format
