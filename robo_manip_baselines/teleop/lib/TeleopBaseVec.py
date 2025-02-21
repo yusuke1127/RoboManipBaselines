@@ -19,11 +19,6 @@ class TeleopBaseVec(TeleopBase):
                 '[TeleopBaseVec] The "replay_log" option is not supported.'
             )
 
-        if self.args.replay_log is not None:
-            raise NotImplementedError(
-                '[TeleopBaseVec] The "replay_log" option is not supported.'
-            )
-
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
