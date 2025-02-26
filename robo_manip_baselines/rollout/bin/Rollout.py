@@ -3,6 +3,8 @@ import importlib
 import re
 import sys
 
+import yaml
+
 
 def camel_to_snake(name):
     """Converts camelCase or PascalCase to snake_case (also converts the first letter to lowercase)"""
@@ -29,6 +31,7 @@ def main():
         help="rollout policy",
     )
     parser.add_argument("rollout_env", type=str, help="rollout environment")
+    parser.add_argument("--rollout_config", type=str, help="rollout configuration file")
     parser.add_argument(
         "-h", "--help", action="store_true", help="Show this help message and continue"
     )
@@ -38,6 +41,13 @@ def main():
     if args.help:
         parser.print_help()
         sys.argv += ["--help"]
+
+    if "Isaac" in args.rollout_env:
+        from isaacgym import (
+            gymapi,  # noqa: F401
+            gymtorch,  # noqa: F401
+            gymutil,  # noqa: F401
+        )
 
     policy_module = importlib.import_module(
         f"robo_manip_baselines.{camel_to_snake(args.rollout_policy)}"
@@ -50,7 +60,13 @@ def main():
     class Rollout(RolloutPolicyClass, RolloutEnvClass):
         pass
 
-    rollout = Rollout()
+    if args.rollout_config is None:
+        rollout_config = {}
+    else:
+        with open(args.rollout_config, "r") as f:
+            rollout_config = yaml.safe_load(f)
+
+    rollout = Rollout(**rollout_config)
     rollout.run()
 
 
