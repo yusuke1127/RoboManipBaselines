@@ -173,7 +173,7 @@ class RolloutBase(metaclass=ABCMeta):
 
     def print_policy_info(self):
         print(
-            f"[{self.__class__.__name__}] Construct policy.\n"
+            f"[{self.__class__.__name__}] Construct {self.policy_name} policy.\n"
             f"  - state dim: {self.state_dim}, action dim: {self.action_dim}, camera num: {len(self.camera_names)}\n"
             f"  - state keys: {self.state_keys}\n"
             f"  - action keys: {self.action_keys}\n"
