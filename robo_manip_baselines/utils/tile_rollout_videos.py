@@ -20,7 +20,7 @@ CAPTURE_TRIM_COLOR_THRESHOLD = 64
 RESIZE_VIDEO_LOGLEVEL_DEFAULT = "info"
 RESIZE_VIDEO_LOGLEVEL_QUIET = "warning"
 
-NUM_SAMPLE_FRAMES_FOR_MARGIN_REMOVAL = 5
+NUM_SAMPLE_FRAMES_FOR_MARGIN_REMOVAL = 30
 
 
 def parse_arg():
@@ -156,7 +156,7 @@ def sample_frames(input_file_name, num_sample_frames):
         raise RuntimeError(f"Failed to read frame at index {frame_indices[0]}")
     height, width, channels = first_frame.shape
     sampled_frames = np.empty(
-        (5, height, width, channels), dtype=np.uint8
+        (NUM_SAMPLE_FRAMES_FOR_MARGIN_REMOVAL, height, width, channels), dtype=np.uint8
     )  # pre-allocate array
     for i, idx in enumerate(frame_indices):
         cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
@@ -185,6 +185,15 @@ def remove_white_margin(input_file_name):
     w_trim = x_max - x_min
     h_trim = y_max - y_min
 
+    if w_trim < 1 or h_trim < 1:
+        sys.stderr.write(
+            f"Warning in {remove_white_margin.__name__}: "
+            f"Either {w_trim=} or {h_trim=} is less than 1, "
+            "so no removal of white margin will be performed. "
+            f"Returning {input_file_name=} as is.\n"
+        )
+        return input_file_name
+
     video_margin_removed = ffmpeg.input(input_file_name).crop(
         x_min, y_min, w_trim, h_trim
     )
@@ -194,7 +203,7 @@ def remove_white_margin(input_file_name):
     try:
         video_margin_removed.output(removed_file_name).run(overwrite_output=False)
     except ffmpeg._run.Error:
-        sys.stderr.write(f"{(input_file_name, removed_file_name)}=")
+        sys.stderr.write(f"{(input_file_name, removed_file_name)=}")
         raise
 
     return removed_file_name
