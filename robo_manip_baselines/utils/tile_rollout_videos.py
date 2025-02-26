@@ -520,8 +520,9 @@ def read_video(input_file_name, final_frames, frame_periods, column_num, border_
 
 def write_video(final_frames, output_file_name, frame_rate, codec):
     output_dir_name = os.path.dirname(output_file_name)
-    if not os.path.exists(output_dir_name):
-        os.makedirs(output_dir_name)
+    if output_dir_name:  # false if empty, "/", or no directory (e.g., "output.mp4")
+        if not os.path.exists(output_dir_name):  # check if the directory does not exist
+            os.makedirs(output_dir_name)
 
     fourcc = cv2.VideoWriter_fourcc(*codec)
     writer_out = cv2.VideoWriter(
