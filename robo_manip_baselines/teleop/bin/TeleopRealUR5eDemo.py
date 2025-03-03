@@ -17,6 +17,7 @@ class TeleopRealUR5eDemo(TeleopBase):
             "robo_manip_baselines/RealUR5eDemoEnv-v0",
             robot_ip=self.robot_ip,
             camera_ids=self.camera_ids,
+            gelsight_ids=self.gelsight_ids,
         )
         self.demo_name = self.args.demo_name or "RealUR5eDemo"
 

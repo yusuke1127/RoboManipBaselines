@@ -67,23 +67,19 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                     open(real_device_name, "rt") as device_name_file
                 ):  # "rt": read-text mode ("t" is default, so "r" alone is the same)
                     detected_tactile_id = device_name_file.read().rstrip()
-                is_found = tactile_id in detected_tactile_id
-                print(
-                    "{} {} -> {}".format(
-                        "FOUND!" if is_found else "      ",
-                        device_name,
-                        detected_tactile_id,
+                if tactile_id in detected_tactile_id:
+                    print(
+                        f"[{self.__class__.__name__}] Found GelSight sensor. name: {device_name}, ID: {detected_tactile_id}"
                     )
-                )
-                if not is_found:
-                    continue
-                tactile_num = int(re.search("\d+$", device_name).group(0))
-                tactile = cv2.VideoCapture(tactile_num)
-                if tactile is None or not tactile.isOpened():
-                    print(f"Warning: unable to open video source: {tactile_num}")
-                    continue
-                self.tactiles[tactile_name] = tactile
-                break
+                    tactile_num = int(re.search("\d+$", device_name).group(0))
+                    tactile = cv2.VideoCapture(tactile_num)
+                    if tactile is None or not tactile.isOpened():
+                        print(
+                            f"{self.__class__.__name__} Warning: unable to open video source: {tactile_num}"
+                        )
+                        continue
+                    self.tactiles[tactile_name] = tactile
+                    break
 
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
@@ -148,10 +144,9 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
         for tactile_name, tactile in self.tactiles.items():
             ret, rgb_image = tactile.read()
-            assert ret, "ERROR! reading image from tactile!"
+            assert ret, f"[{self.__class__.__name__}] Failed to read tactile image."
             info["rgb_images"][tactile_name] = rgb_image
             info["depth_images"][tactile_name] = None
-            continue
 
         return info
 
