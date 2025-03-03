@@ -506,7 +506,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     @property
     def camera_names(self):
         """Get camera names."""
-        return self.camera_handles_list[self.rep_env_idx].keys()
+        return list(self.camera_handles_list[self.rep_env_idx].keys())
 
     @property
     def tactile_names(self):

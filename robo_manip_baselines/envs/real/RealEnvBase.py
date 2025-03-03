@@ -169,12 +169,12 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     @property
     def camera_names(self):
         """Get camera names."""
-        return self.cameras.keys()
+        return list(self.cameras.keys())
 
     @property
     def tactile_names(self):
         """Get tactile sensor names."""
-        return self.tactiles.keys()
+        return list(self.tactiles.keys())
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""

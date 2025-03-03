@@ -156,7 +156,7 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
     @property
     def camera_names(self):
         """Get camera names."""
-        return self.cameras.keys()
+        return list(self.cameras.keys())
 
     @property
     def tactile_names(self):
