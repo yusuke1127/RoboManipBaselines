@@ -69,7 +69,7 @@ def parse_arg():
         "--satur_thresh",
         "-e",
         type=float,
-        default=10.0,
+        default=5.5,
         help="threshold used to determine if the screen is saturated",
     )
     parser.add_argument(
