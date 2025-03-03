@@ -103,7 +103,14 @@ class DataManager(object):
                         f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
                     )
             for key in meta_data.keys():
-                h5file.attrs[key] = meta_data[key]
+                if isinstance(meta_data[key], list) and isinstance(
+                    meta_data[key][0], str
+                ):
+                    h5file.attrs[key] = np.array(
+                        meta_data[key], dtype=h5py.special_dtype(vlen=str)
+                    )
+                else:
+                    h5file.attrs[key] = meta_data[key]
 
         if increment_episode_idx:
             self.episode_idx += 1
