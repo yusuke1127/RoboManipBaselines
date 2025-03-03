@@ -155,8 +155,13 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
 
     @property
     def camera_names(self):
-        """Camera names being measured."""
+        """Get camera names."""
         return self.cameras.keys()
+
+    @property
+    def tactile_names(self):
+        """Get tactile sensor names."""
+        return []
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
