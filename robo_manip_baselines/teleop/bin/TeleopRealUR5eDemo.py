@@ -39,7 +39,7 @@ class TeleopRealUR5eDemo(TeleopBase):
 
 if __name__ == "__main__":
     robot_ip = "192.168.11.4"
-    camera_ids = {"front": "145522067924", "side": None, "hand": "153122070885"}
+    camera_ids = {"front": "145522067924", "hand": "153122070885"}
     gelsight_ids = {"tactile_left": "GelSight Mini R0B 2D16-V7R5: Ge"}
     teleop = TeleopRealUR5eDemo(robot_ip, camera_ids, gelsight_ids)
     teleop.run()
