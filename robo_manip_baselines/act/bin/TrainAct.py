@@ -1,4 +1,3 @@
-import argparse
 import os
 import sys
 
@@ -19,11 +18,7 @@ class TrainAct(TrainBase):
     policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = RmbActDataset
 
-    def setup_args(self):
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
-
+    def set_additional_args(self, parser):
         parser.set_defaults(batch_size=8)
         parser.set_defaults(num_epochs=1000)
         parser.set_defaults(lr=1e-5)
@@ -39,8 +34,6 @@ class TrainAct(TrainBase):
             "--dim_feedforward", type=int, default=3200, help="feedforward dimension"
         )
 
-        super().setup_args(parser)
-
     def setup_model_meta_info(self):
         super().setup_model_meta_info()
 
@@ -48,7 +41,7 @@ class TrainAct(TrainBase):
 
     def setup_policy(self):
         # Set policy args
-        policy_args = {
+        self.model_meta_info["policy"]["args"] = {
             "lr": self.args.lr,
             "num_queries": self.args.chunk_size,
             "kl_weight": self.args.kl_weight,
@@ -61,12 +54,11 @@ class TrainAct(TrainBase):
             "nheads": 8,
             "camera_names": self.args.camera_names,
         }
-        self.model_meta_info["policy"]["args"] = policy_args
 
         # Construct policy
         DETRVAE.set_state_dim(len(self.model_meta_info["state"]["example"]))
         DETRVAE.set_action_dim(len(self.model_meta_info["action"]["example"]))
-        self.policy = ACTPolicy(policy_args)
+        self.policy = ACTPolicy(self.model_meta_info["policy"]["args"])
         self.policy.cuda()
 
         # Construct optimizer
@@ -79,18 +71,6 @@ class TrainAct(TrainBase):
     def train_loop(self):
         best_ckpt_info = {"loss": np.inf}
         for epoch in tqdm(range(self.args.num_epochs)):
-            # Run validation step
-            with torch.inference_mode():
-                self.policy.eval()
-                batch_result_list = []
-                for data in self.val_dataloader:
-                    batch_result = self.policy(*[d.cuda() for d in data])
-                    batch_result_list.append(self.detach_batch_result(batch_result))
-                epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
-
-                # Update best checkpoint
-                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
-
             # Run train step
             self.policy.train()
             batch_result_list = []
@@ -102,6 +82,18 @@ class TrainAct(TrainBase):
                 self.optimizer.step()
                 batch_result_list.append(self.detach_batch_result(batch_result))
             self.log_epoch_summary(batch_result_list, "train", epoch)
+
+            # Run validation step
+            with torch.inference_mode():
+                self.policy.eval()
+                batch_result_list = []
+                for data in self.val_dataloader:
+                    batch_result = self.policy(*[d.cuda() for d in data])
+                    batch_result_list.append(self.detach_batch_result(batch_result))
+                epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
+
+                # Update best checkpoint
+                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
 
             # Save current checkpoint
             if epoch % max(self.args.num_epochs // 10, 1) == 0:

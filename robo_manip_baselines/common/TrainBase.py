@@ -125,6 +125,8 @@ class TrainBase(metaclass=ABCMeta):
 
         parser.add_argument("--seed", type=int, default=42, help="random seed")
 
+        self.set_additional_args(parser)
+
         if argv is None:
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
@@ -138,6 +140,9 @@ class TrainBase(metaclass=ABCMeta):
             self.args.checkpoint_dir = os.path.normpath(
                 os.path.join(self.policy_dir, "checkpoint", checkpoint_dirname)
             )
+
+    def set_additional_args(self, parser):
+        pass
 
     def setup_model_meta_info(self):
         self.model_meta_info = {
@@ -202,47 +207,47 @@ class TrainBase(metaclass=ABCMeta):
         all_action = []
         rgb_image_example = None
         depth_image_example = None
+        episode_len_list = []
         for filename in all_filenames:
             with h5py.File(filename, "r") as h5file:
+                episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
+                episode_len_list.append(episode_len)
+
                 # Load state
                 if len(self.args.state_keys) == 0:
-                    episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
                     state = np.zeros((episode_len, 0), dtype=np.float64)
                 else:
                     state = np.concatenate(
                         [
-                            get_skipped_data_seq(
-                                h5file[state_key][()], state_key, self.args.skip
-                            )
-                            for state_key in self.args.state_keys
+                            get_skipped_data_seq(h5file[key][()], key, self.args.skip)
+                            for key in self.args.state_keys
                         ],
                         axis=1,
                     )
                 all_state.append(state)
 
                 # Load action
-                action = np.concatenate(
-                    [
-                        get_skipped_data_seq(
-                            h5file[action_key][()], action_key, self.args.skip
-                        )
-                        for action_key in self.args.action_keys
-                    ],
-                    axis=1,
-                )
+                if len(self.args.action_keys) == 0:
+                    action = np.zeros((episode_len, 0), dtype=np.float64)
+                else:
+                    action = np.concatenate(
+                        [
+                            get_skipped_data_seq(h5file[key][()], key, self.args.skip)
+                            for key in self.args.action_keys
+                        ],
+                        axis=1,
+                    )
                 all_action.append(action)
 
                 # Load image
                 if rgb_image_example is None:
                     rgb_image_example = {
-                        camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][()]
+                        camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][0]
                         for camera_name in self.args.camera_names
                     }
                 if depth_image_example is None:
                     depth_image_example = {
-                        camera_name: h5file[DataKey.get_depth_image_key(camera_name)][
-                            ()
-                        ]
+                        camera_name: h5file[DataKey.get_depth_image_key(camera_name)][0]
                         for camera_name in self.args.camera_names
                     }
         all_state = np.concatenate(all_state, dtype=np.float64)
@@ -268,6 +273,13 @@ class TrainBase(metaclass=ABCMeta):
                 "depth_example": depth_image_example,
             }
         )
+        self.model_meta_info["data"].update(
+            {
+                "mean_episode_len": np.mean(episode_len_list),
+                "min_episode_len": np.min(episode_len_list),
+                "max_episode_len": np.max(episode_len_list),
+            }
+        )
 
     def make_dataloader(self, filenames, shuffle=True):
         dataset = self.DatasetClass(filenames, self.model_meta_info)
@@ -287,7 +299,8 @@ class TrainBase(metaclass=ABCMeta):
         print(
             f"[{self.__class__.__name__}] Load dataset from {self.args.dataset_dir}\n"
             f"  - train size: {len(self.train_dataloader.dataset)}, files: {len(self.train_dataloader.dataset.filenames)}\n"
-            f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(self.val_dataloader.dataset.filenames)}"
+            f"  - val size: {len(self.val_dataloader.dataset)}, files: {len(self.val_dataloader.dataset.filenames)}\n"
+            f"  - episode len mean: {int(self.model_meta_info['data']['mean_episode_len'])}, min: {self.model_meta_info['data']['min_episode_len']}, max: {self.model_meta_info['data']['max_episode_len']}"
         )
         print(
             f"  - aug std state: {self.model_meta_info['state']['aug_std']}, action: {self.model_meta_info['action']['aug_std']}, "
