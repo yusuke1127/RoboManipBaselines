@@ -15,15 +15,22 @@ parser.add_argument("--skip", default=10, type=int, help="skip", required=False)
 args = parser.parse_args()
 
 plt.rcParams["keymap.quit"] = ["q", "escape"]
-fig, ax = plt.subplots(4, 4)
-for ax_idx in range(1, 4):
-    ax[ax_idx, 2].remove()
-    ax[ax_idx, 3].remove()
-    ax[ax_idx, 2] = fig.add_subplot(4, 4, 4 * (ax_idx + 1) - 1, projection="3d")
-fig.tight_layout(pad=0.1)
 
 data_manager = DataManager(env=None)
 data_manager.load_data(args.teleop_filename)
+
+camera_names = data_manager.get_meta_data("camera_names").tolist()
+tactile_names = data_manager.get_meta_data("tactile_names").tolist()
+sensor_names = camera_names + tactile_names
+
+fig, ax = plt.subplots(len(sensor_names) + 1, 4)
+for ax_idx in range(1, len(sensor_names) + 1):
+    ax[ax_idx, 2].remove()
+    ax[ax_idx, 3].remove()
+    ax[ax_idx, 2] = fig.add_subplot(
+        len(sensor_names) + 1, 4, 4 * (ax_idx + 1) - 1, projection="3d"
+    )
+fig.tight_layout(pad=0.1)
 
 time_range = (
     data_manager.get_data_seq(DataKey.TIME)[0],
@@ -119,56 +126,67 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
     ax03_twin.plot(time_list, np.array(measured_eef_list)[:, 3:])
 
     far_clip_list = (3.0, 3.0, 0.8)  # [m]
-    camera_names = ("front", "side", "hand")
-    for ax_idx, camera_name in enumerate(camera_names, start=1):
-        rgb_key = DataKey.get_rgb_image_key(camera_name)
-        depth_key = DataKey.get_depth_image_key(camera_name)
+    for ax_idx, sensor_name in enumerate(sensor_names, start=1):
+        rgb_key = DataKey.get_rgb_image_key(sensor_name)
+        depth_key = DataKey.get_depth_image_key(sensor_name)
 
         ax[ax_idx, 0].axis("off")
         rgb_image = data_manager.get_single_data(rgb_key, time_idx)
         rgb_image_skip = 4
         ax[ax_idx, 0].imshow(rgb_image[::rgb_image_skip, ::rgb_image_skip])
 
-        ax[ax_idx, 1].axis("off")
-        depth_image = data_manager.get_single_data(depth_key, time_idx)
-        depth_iamge_skip = 4
-        ax[ax_idx, 1].imshow(depth_image[::depth_iamge_skip, ::depth_iamge_skip])
-
-        point_cloud_skip = 10
-        small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
-        small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-        fovy = data_manager.get_meta_data(f"{depth_key}_fovy")
-        xyz_array, rgb_array = convert_depth_image_to_point_cloud(
-            small_depth_image,
-            fovy=fovy,
-            rgb_image=small_rgb_image,
-            far_clip=far_clip_list[ax_idx - 1],
+        depth_names_count = len(
+            [
+                k
+                for k in data_manager.all_data_seq.keys()
+                if k.startswith(f"{sensor_name}_") and ("_depth" in k)
+            ]
         )
-        if scatter_list[ax_idx - 1] is None:
+        assert depth_names_count in (0, 1)
+        if depth_names_count:
+            ax[ax_idx, 1].axis("off")
+            depth_image = data_manager.get_single_data(depth_key, time_idx)
+            depth_iamge_skip = 4
+            ax[ax_idx, 1].imshow(depth_image[::depth_iamge_skip, ::depth_iamge_skip])
 
-            def get_min_max(v_min, v_max):
-                return (
-                    0.75 * v_min + 0.25 * v_max,
-                    0.25 * v_min + 0.75 * v_max,
+        if f"{depth_key}_fovy" in data_manager.meta_data.keys():
+            point_cloud_skip = 10
+            small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
+            small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
+            fovy = data_manager.get_meta_data(f"{depth_key}_fovy")
+            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
+                small_depth_image,
+                fovy=fovy,
+                rgb_image=small_rgb_image,
+                far_clip=far_clip_list[ax_idx - 1],
+            )
+            if not xyz_array.size:
+                continue
+            if scatter_list[ax_idx - 1] is None:
+
+                def get_min_max(v_min, v_max):
+                    return (
+                        0.75 * v_min + 0.25 * v_max,
+                        0.25 * v_min + 0.75 * v_max,
+                    )
+
+                ax[ax_idx, 2].view_init(elev=-90, azim=-90)
+                ax[ax_idx, 2].set_xlim(
+                    *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
                 )
-
-            ax[ax_idx, 2].view_init(elev=-90, azim=-90)
-            ax[ax_idx, 2].set_xlim(
-                *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
+                ax[ax_idx, 2].set_ylim(
+                    *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
+                )
+                ax[ax_idx, 2].set_zlim(
+                    *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+                )
+            else:
+                scatter_list[ax_idx - 1].remove()
+            ax[ax_idx, 2].axis("off")
+            ax[ax_idx, 2].set_box_aspect(np.ptp(xyz_array, axis=0))
+            scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
+                xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
             )
-            ax[ax_idx, 2].set_ylim(
-                *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
-            )
-            ax[ax_idx, 2].set_zlim(
-                *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
-            )
-        else:
-            scatter_list[ax_idx - 1].remove()
-        ax[ax_idx, 2].axis("off")
-        ax[ax_idx, 2].set_box_aspect(np.ptp(xyz_array, axis=0))
-        scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
-            xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
-        )
 
     plt.draw()
     plt.pause(0.001)
