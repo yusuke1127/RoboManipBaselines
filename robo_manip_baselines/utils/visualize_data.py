@@ -74,6 +74,88 @@ def key_event(event):
         break_flag = True
 
 
+def handle_rgb_image(data_manager, ax, ax_idx, time_idx, rgb_key):
+    ax[ax_idx, 0].axis("off")
+    rgb_image = data_manager.get_single_data(rgb_key, time_idx)
+    rgb_image_skip = 4
+    ax[ax_idx, 0].imshow(rgb_image[::rgb_image_skip, ::rgb_image_skip])
+    return rgb_image
+
+
+def handle_depth_image(data_manager, fig, ax, ax_idx, time_idx, sensor_name, depth_key):
+    depth_names_count = len(
+        [
+            k
+            for k in data_manager.all_data_seq.keys()
+            if k.startswith(f"{sensor_name}_") and ("_depth" in k)
+        ]
+    )
+    assert depth_names_count in (0, 1)
+    if not depth_names_count:
+        if ax[ax_idx, 1] in fig.axes:
+            ax[ax_idx, 1].remove()
+        return None
+    ax[ax_idx, 1].axis("off")
+    depth_image = data_manager.get_single_data(depth_key, time_idx)
+    depth_image_skip = 4
+    ax[ax_idx, 1].imshow(depth_image[::depth_image_skip, ::depth_image_skip])
+    return depth_image
+
+
+def handle_point_cloud(
+    data_manager,
+    fig,
+    ax,
+    ax_idx,
+    scatter_list,
+    far_clip_list,
+    depth_key,
+    rgb_image,
+    depth_image,
+):
+    if f"{depth_key}_fovy" not in data_manager.meta_data.keys():
+        if ax[ax_idx, 2] in fig.axes:
+            ax[ax_idx, 2].remove()
+        return
+    point_cloud_skip = 10
+    small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
+    small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
+    fovy = data_manager.get_meta_data(f"{depth_key}_fovy")
+    xyz_array, rgb_array = convert_depth_image_to_point_cloud(
+        small_depth_image,
+        fovy=fovy,
+        rgb_image=small_rgb_image,
+        far_clip=far_clip_list[ax_idx - 1],
+    )
+    if not xyz_array.size:
+        return
+    if scatter_list[ax_idx - 1] is None:
+
+        def get_min_max(v_min, v_max):
+            return (
+                0.75 * v_min + 0.25 * v_max,
+                0.25 * v_min + 0.75 * v_max,
+            )
+
+        ax[ax_idx, 2].view_init(elev=-90, azim=-90)
+        ax[ax_idx, 2].set_xlim(
+            *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
+        )
+        ax[ax_idx, 2].set_ylim(
+            *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
+        )
+        ax[ax_idx, 2].set_zlim(
+            *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
+        )
+    else:
+        scatter_list[ax_idx - 1].remove()
+    ax[ax_idx, 2].axis("off")
+    ax[ax_idx, 2].set_box_aspect(np.ptp(xyz_array, axis=0))
+    scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
+        xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
+    )
+
+
 for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip):
     if break_flag:
         break
@@ -130,63 +212,23 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
         rgb_key = DataKey.get_rgb_image_key(sensor_name)
         depth_key = DataKey.get_depth_image_key(sensor_name)
 
-        ax[ax_idx, 0].axis("off")
-        rgb_image = data_manager.get_single_data(rgb_key, time_idx)
-        rgb_image_skip = 4
-        ax[ax_idx, 0].imshow(rgb_image[::rgb_image_skip, ::rgb_image_skip])
+        rgb_image = handle_rgb_image(data_manager, ax, ax_idx, time_idx, rgb_key)
 
-        depth_names_count = len(
-            [
-                k
-                for k in data_manager.all_data_seq.keys()
-                if k.startswith(f"{sensor_name}_") and ("_depth" in k)
-            ]
+        depth_image = handle_depth_image(
+            data_manager, fig, ax, ax_idx, time_idx, sensor_name, depth_key
         )
-        assert depth_names_count in (0, 1)
-        if depth_names_count:
-            ax[ax_idx, 1].axis("off")
-            depth_image = data_manager.get_single_data(depth_key, time_idx)
-            depth_iamge_skip = 4
-            ax[ax_idx, 1].imshow(depth_image[::depth_iamge_skip, ::depth_iamge_skip])
 
-        if f"{depth_key}_fovy" in data_manager.meta_data.keys():
-            point_cloud_skip = 10
-            small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
-            small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-            fovy = data_manager.get_meta_data(f"{depth_key}_fovy")
-            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
-                small_depth_image,
-                fovy=fovy,
-                rgb_image=small_rgb_image,
-                far_clip=far_clip_list[ax_idx - 1],
-            )
-            if not xyz_array.size:
-                continue
-            if scatter_list[ax_idx - 1] is None:
-
-                def get_min_max(v_min, v_max):
-                    return (
-                        0.75 * v_min + 0.25 * v_max,
-                        0.25 * v_min + 0.75 * v_max,
-                    )
-
-                ax[ax_idx, 2].view_init(elev=-90, azim=-90)
-                ax[ax_idx, 2].set_xlim(
-                    *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
-                )
-                ax[ax_idx, 2].set_ylim(
-                    *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
-                )
-                ax[ax_idx, 2].set_zlim(
-                    *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
-                )
-            else:
-                scatter_list[ax_idx - 1].remove()
-            ax[ax_idx, 2].axis("off")
-            ax[ax_idx, 2].set_box_aspect(np.ptp(xyz_array, axis=0))
-            scatter_list[ax_idx - 1] = ax[ax_idx, 2].scatter(
-                xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
-            )
+        handle_point_cloud(
+            data_manager,
+            fig,
+            ax,
+            ax_idx,
+            scatter_list,
+            far_clip_list,
+            depth_key,
+            rgb_image,
+            depth_image,
+        )
 
     plt.draw()
     plt.pause(0.001)
