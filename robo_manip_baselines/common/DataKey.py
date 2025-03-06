@@ -132,6 +132,20 @@ class DataKey(object):
             return 6
 
     @classmethod
+    def get_measured_key(cls, key):
+        """Get the measured key corresponding to the command key."""
+        if not key.startswith("command_"):
+            raise ValueError(f"[{cls.__name__}] Command key must be given: {key}")
+        return "measured_" + key[len("command_") :]
+
+    @classmethod
+    def get_command_key(cls, key):
+        """Get the command key corresponding to the measured key."""
+        if not key.startswith("measured_"):
+            raise ValueError(f"[{cls.__name__}] Measured key must be given: {key}")
+        return "command_" + key[len("measured_") :]
+
+    @classmethod
     def get_rel_key(cls, key):
         """Get the relative key corresponding to the absolute key."""
         if key == DataKey.MEASURED_JOINT_POS:
@@ -143,7 +157,7 @@ class DataKey(object):
         elif key == DataKey.COMMAND_EEF_POSE:
             return DataKey.COMMAND_EEF_POSE_REL
         else:
-            raise RuntimeError(f"[DataKey] Relative data key not found: {key}")
+            raise ValueError(f"[{cls.__name__}] Relative data key not found: {key}")
 
     @classmethod
     def get_abs_key(cls, key):
@@ -157,7 +171,7 @@ class DataKey(object):
         elif key == DataKey.COMMAND_EEF_POSE_REL:
             return DataKey.COMMAND_EEF_POSE
         else:
-            raise RuntimeError(f"[DataKey] Absolute data key not found: {key}")
+            raise ValueError(f"[{cls.__name__}] Absolute data key not found: {key}")
 
     @classmethod
     def get_rgb_image_key(cls, camera_name):
@@ -221,6 +235,6 @@ class DataKey(object):
             new_key = orig_key.lower()
         if orig_key != new_key:
             warnings.warn(
-                f'[DataKey] "{orig_key}" is deprecated, use "{new_key}" instead.'
+                f'[{cls.__name__}] "{orig_key}" is deprecated, use "{new_key}" instead.'
             )
         return new_key

@@ -160,12 +160,12 @@ class RolloutBase(metaclass=ABCMeta):
             cv2.moveWindow("Policy image", *self.args.win_xy_policy)
         cv2.waitKey(1)
 
-        self.action_plot_scale = np.concatenate(
-            [
-                DataKey.get_plot_scale(action_key, self.env)
-                for action_key in self.action_keys
-            ]
-        )
+        if len(self.action_keys) > 0:
+            self.action_plot_scale = np.concatenate(
+                [DataKey.get_plot_scale(key, self.env) for key in self.action_keys]
+            )
+        else:
+            self.action_plot_scale = np.zeros(0)
 
     def setup_variables(self):
         self.image_transforms = v2.ToDtype(torch.float32, scale=True)
@@ -181,10 +181,15 @@ class RolloutBase(metaclass=ABCMeta):
             f"  - skip: {self.args.skip}"
         )
 
-    def load_ckpt(self):
+    def load_ckpt(self, device="cuda"):
         print(f"[{self.__class__.__name__}] Load {self.args.checkpoint}")
-        self.policy.load_state_dict(torch.load(self.args.checkpoint, weights_only=True))
-        self.policy.cuda()
+        self.device = torch.device(device)
+        self.policy.load_state_dict(
+            torch.load(
+                self.args.checkpoint, map_location=self.device, weights_only=True
+            )
+        )
+        self.policy.to(self.device)
         self.policy.eval()
 
     def run(self):
@@ -277,11 +282,12 @@ class RolloutBase(metaclass=ABCMeta):
             )
 
         state = normalize_data(state, self.model_meta_info["state"])
-        state = torch.tensor(state[np.newaxis], dtype=torch.float32).cuda()
+        state = torch.tensor(state[np.newaxis], dtype=torch.float32).to(self.device)
 
         return state
 
     def get_images(self):
+        # Assume all images are the same size
         images = np.stack(
             [self.info["rgb_images"][camera_name] for camera_name in self.camera_names],
             axis=0,
@@ -289,18 +295,21 @@ class RolloutBase(metaclass=ABCMeta):
 
         images = np.einsum("k h w c -> k c h w", images)
         images = torch.tensor(images, dtype=torch.uint8)
-        images = self.image_transforms(images)[np.newaxis].cuda()
+        images = self.image_transforms(images)[np.newaxis].to(self.device)
 
         return images
 
-    def set_command(self):
+    def set_command(self, action_keys=None):
+        if action_keys is None:
+            action_keys = self.action_keys
+
         if self.phase_manager.phase == Phase.ROLLOUT:
             is_skip = self.rollout_time_idx % self.args.skip != 0
             action_idx = 0
-            for action_key in self.action_keys:
-                action_dim = DataKey.get_dim(action_key, self.env)
+            for key in action_keys:
+                action_dim = DataKey.get_dim(key, self.env)
                 self.motion_manager.set_command_data(
-                    action_key,
+                    key,
                     self.policy_action[action_idx : action_idx + action_dim],
                     is_skip,
                 )

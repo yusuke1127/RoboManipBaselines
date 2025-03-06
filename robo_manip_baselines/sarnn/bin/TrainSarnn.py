@@ -58,6 +58,8 @@ class TrainSarnn(TrainBase):
             help="Scale of random erasing applied to the images",
         )
 
+        parser.set_defaults(skip=6)
+
         parser.set_defaults(batch_size=5)
         parser.set_defaults(num_epochs=10000)
         parser.set_defaults(lr=1e-4)
@@ -173,16 +175,19 @@ class TrainSarnn(TrainBase):
                 v2.GaussianNoise(sigma=self.model_meta_info["image"]["aug_std"])
             )
 
-        self.image_transforms = v2.Compose(image_transform_list)
+        if len(image_transform_list) == 0:
+            self.image_transforms = None
+        else:
+            self.image_transforms = v2.Compose(image_transform_list)
 
-        print(
-            f"[{self.__class__.__name__}] Augment the target image for reconstruction."
-        )
-        image_transform_str_list = [
-            f"{image_transform.__class__.__name__}"
-            for image_transform in self.image_transforms.transforms
-        ]
-        print(f"  - image transforms: {image_transform_str_list}")
+            print(
+                f"[{self.__class__.__name__}] Augment the target image for reconstruction."
+            )
+            image_transform_str_list = [
+                f"{image_transform.__class__.__name__}"
+                for image_transform in self.image_transforms.transforms
+            ]
+            print(f"  - image transforms: {image_transform_str_list}")
 
     def train_loop(self):
         self.attention_loss_scheduler = LossScheduler(decay_end=1000, curve_name="s")
@@ -295,7 +300,10 @@ class TrainSarnn(TrainBase):
         image_loss_list = []
         attention_loss_list = []
         for image_idx in range(num_images):
-            aug_image_seq = self.image_transforms(image_seq_list[image_idx])
+            if self.image_transforms is None:
+                aug_image_seq = image_seq_list[image_idx]
+            else:
+                aug_image_seq = self.image_transforms(image_seq_list[image_idx])
             image_loss = torch.mean(
                 criterion(
                     predicted_image_seq_list[image_idx],

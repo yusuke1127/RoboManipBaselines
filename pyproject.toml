@@ -22,6 +22,7 @@ dependencies = [
   "mujoco==3.1.6",
   "matplotlib>=3.3.4",
   "imageio >=2.14.1",
+  "pyyaml",
   "tqdm",
   "numpy",
   "h5py",
@@ -42,7 +43,6 @@ sarnn = [
   "gdown",
 ]
 act = [
-  "pyyaml",
   "packaging",
   "pyquaternion",
 ]

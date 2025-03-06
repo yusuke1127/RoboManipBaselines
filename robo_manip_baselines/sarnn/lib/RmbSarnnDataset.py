@@ -1,4 +1,3 @@
-import cv2
 import h5py
 import numpy as np
 import torch
@@ -7,6 +6,7 @@ from torchvision.transforms import v2
 from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
+    crop_and_resize,
     get_skipped_data_seq,
     normalize_data,
 )
@@ -44,7 +44,7 @@ class RmbSarnnDataset(DatasetBase):
         image_crop_size_list = self.model_meta_info["data"]["image_crop_size_list"]
         image_size_list = self.model_meta_info["data"]["image_size_list"]
         image_list = [
-            self.crop_and_resize(*image_and_sizes)
+            crop_and_resize(*image_and_sizes)
             for image_and_sizes in zip(
                 image_list, image_crop_size_list, image_size_list
             )
@@ -92,32 +92,6 @@ class RmbSarnnDataset(DatasetBase):
         image_list = [np.einsum("t h w c -> t c h w", image) for image in image_list]
 
         return state, image_list
-
-    def crop_and_resize(
-        self,
-        image,  # (T, H, W, C)
-        crop_size,
-        resize_size,
-    ):
-        """Crop and resize an image. Arguments must be numpy array (not torch tensor)."""
-        # Crop
-        input_size = image.shape[1:3]
-        crop_start_pixel = [
-            input_size[dim] // 2 - crop_size[dim] // 2 for dim in (0, 1)
-        ]
-        crop_end_pixel = [crop_start_pixel[dim] + crop_size[dim] for dim in (0, 1)]
-        image = image[
-            :,
-            crop_start_pixel[0] : crop_end_pixel[0],
-            crop_start_pixel[1] : crop_end_pixel[1],
-        ]
-
-        # Resize
-        image = np.array(
-            [cv2.resize(single_image, resize_size) for single_image in image]
-        )
-
-        return image
 
     def pad_last_element(self, data_seq):
         """Add padding with the last element. Arguments must be numpy array (not torch tensor)."""
