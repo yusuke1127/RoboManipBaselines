@@ -33,14 +33,13 @@ tactile_names = data_manager.get_meta_data("tactile_names").tolist()
 sensor_names = camera_names + tactile_names
 
 frames = []
-fig, ax = plt.subplots(len(sensor_names) + 1, 4)
+fig, ax = plt.subplots(len(sensor_names) + 1, 4, constrained_layout=True)
 for ax_idx in range(1, len(sensor_names) + 1):
     ax[ax_idx, 2].remove()
     ax[ax_idx, 3].remove()
     ax[ax_idx, 2] = fig.add_subplot(
         len(sensor_names) + 1, 4, 4 * (ax_idx + 1) - 1, projection="3d"
     )
-fig.tight_layout(pad=0.1)
 
 time_range = (
     data_manager.get_data_seq(DataKey.TIME)[0],
