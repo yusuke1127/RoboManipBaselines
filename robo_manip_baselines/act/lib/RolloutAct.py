@@ -49,6 +49,7 @@ class RolloutAct(RolloutBase):
             figsize=(13.5, 6.0),
             dpi=60,
             squeeze=False,
+            constrained_layout=True,
         )
         super().setup_plot(fig_ax)
 
@@ -105,7 +106,6 @@ class RolloutAct(RolloutBase):
             )
 
         # Finalize plot
-        self.fig.tight_layout()
         self.canvas.draw()
         cv2.imshow(
             "Policy image",

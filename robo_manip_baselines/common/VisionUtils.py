@@ -2,6 +2,32 @@ import cv2
 import numpy as np
 
 
+def crop_and_resize(
+    image,  # (B, H, W, C)
+    crop_size,
+    resize_size,
+):
+    """
+    Crop and resize an image. Arguments must be numpy array (not torch tensor).
+
+    Crop processing is performed so that the centers of the images before and after cropping are aligned.
+    """
+    # Crop
+    input_size = image.shape[1:3]
+    crop_start_pixel = [input_size[dim] // 2 - crop_size[dim] // 2 for dim in (0, 1)]
+    crop_end_pixel = [crop_start_pixel[dim] + crop_size[dim] for dim in (0, 1)]
+    image = image[
+        :,
+        crop_start_pixel[0] : crop_end_pixel[0],
+        crop_start_pixel[1] : crop_end_pixel[1],
+    ]
+
+    # Resize
+    image = np.array([cv2.resize(single_image, resize_size) for single_image in image])
+
+    return image
+
+
 def convert_depth_image_to_color_image(image):
     """Convert depth image (float type) to color image (uint8 type)."""
     eps = 1e-6

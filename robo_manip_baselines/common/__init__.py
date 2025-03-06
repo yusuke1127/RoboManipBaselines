@@ -22,6 +22,7 @@ from .MathUtils import (
     get_se3_from_rel_pose,
 )
 from .VisionUtils import (
+    crop_and_resize,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
 )
