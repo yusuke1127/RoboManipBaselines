@@ -65,7 +65,7 @@ class TeleopBase(metaclass=ABCMeta):
         # Command configuration
         self._spacemouse_connected = False
         self.command_pos_scale = 1e-2
-        self.command_rpy_scale = 0.0  # 5e-3
+        self.command_rpy_scale = 5e-3
         self.gripper_scale = 5.0
 
     def run(self):

@@ -23,7 +23,6 @@ dependencies = [
   "matplotlib>=3.3.4",
   "imageio >=2.14.1",
   "tqdm",
-  "numba",
   "numpy",
   "h5py",
   "scipy>=1.7.0",

@@ -1,333 +1,336 @@
-#
-# Copyright (c) Since 2023 Ogata Laboratory, Waseda University
-#
-# Released under the AGPL license.
-# see https://www.gnu.org/licenses/agpl-3.0.txt
-#
-
-import argparse
 import os
-import random
-import shutil
-from collections import OrderedDict
-from pathlib import Path
 
 import numpy as np
 import torch
-import torch.optim as optim
-from eipl.utils import EarlyStopping, check_args, normalization, set_logdir
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from eipl.utils import LossScheduler
+from torchvision.transforms import v2
 from tqdm import tqdm
 
+from robo_manip_baselines.common import TrainBase
+from robo_manip_baselines.sarnn import RmbSarnnDataset, SarnnPolicy
 
-class TrainSarnn(object):
+
+class TrainSarnn(TrainBase):
+    policy_name = "SARNN"
+    policy_dir = os.path.join(os.path.dirname(__file__), "..")
+    DatasetClass = RmbSarnnDataset
+
     def __init__(self):
-        self.setup_args()
+        super().__init__()
 
-        self.setup_dataset()
-
-        self.setup_policy()
+        self.setup_image_transforms()
 
     def setup_args(self):
-        parser = argparse.ArgumentParser(
-            description="Train SARNN",
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
+        super().setup_args()
 
-        parser.add_argument("--data_dir", type=str, required=True)
-        parser.add_argument("--model", type=str, default="sarnn")
-        parser.add_argument("--epoch", type=int, default=10000)
-        parser.add_argument("--batch_size", type=int, default=5)
-        parser.add_argument("--rec_dim", type=int, default=50)
-        parser.add_argument("--k_dim", type=int, default=5)
-        parser.add_argument("--random_seed", type=int)
-        parser.add_argument("--front_img_loss", type=float, default=0.1)
-        parser.add_argument("--side_img_loss", type=float, default=0.1)
-        parser.add_argument("--joint_loss", type=float, default=1.0)
-        parser.add_argument("--wrench_loss", type=float, default=1.0)
-        parser.add_argument("--front_pt_loss", type=float, default=0.1)
-        parser.add_argument("--side_pt_loss", type=float, default=0.1)
-        parser.add_argument("--no_side_image", action="store_true")
-        parser.add_argument("--no_wrench", action="store_true")
-        parser.add_argument("--with_mask", action="store_true")
-        parser.add_argument("--lr", type=float, default=1e-4)
-        parser.add_argument("--heatmap_size", type=float, default=0.1)
-        parser.add_argument("--temperature", type=float, default=1e-4)
-        parser.add_argument("--stdev", type=float, default=0.1)
-        parser.add_argument("--log_dir", default="log/")
-        parser.add_argument("--vmin", type=float, default=0.0)
-        parser.add_argument("--vmax", type=float, default=1.0)
-        parser.add_argument("--device", type=int, default=0)
-        parser.add_argument("--compile", action="store_true")
-        parser.add_argument("--tag", help="Tag name for snap/log sub directory")
-
-        args = parser.parse_args()
-        self.args = check_args(args)
-
-    def setup_dataset(self):
-        # fix seed
-        if self.args.random_seed is not None:
-            random.seed(self.args.random_seed)
-            np.random.seed(self.args.random_seed)
-            torch.manual_seed(self.args.random_seed)
-            torch.backends.cudnn.benchmark = False
-            torch.backends.cudnn.deterministic = True
-
-        # calculate the noise level (variance) from the normalized range
-        stdev = self.args.stdev * (self.args.vmax - self.args.vmin)
-
-        # set device id
-        if self.args.device >= 0:
-            self.device = "cuda:{}".format(self.args.device)
-        else:
-            self.device = "cpu"
-
-        # copy bound files
-        data_dir = Path(self.args.data_dir)
-        minmax = [self.args.vmin, self.args.vmax]
-        self.log_dir_path = set_logdir("./" + self.args.log_dir, self.args.tag)
-        bound_files = sorted(data_dir.glob("*_bounds.npy"))
-        for bound_file in bound_files:
-            shutil.copy(bound_file, os.path.join(self.log_dir_path, bound_file.name))
-
-        # load train data files
-        train_data_dir = data_dir / "train"
-        joint_bounds = np.load(data_dir / "action_bounds.npy")
-        joints_raw = np.load(sorted(train_data_dir.glob("**/actions.npy"))[0])
-        joints = normalization(joints_raw, joint_bounds, minmax)
-        if not self.args.no_wrench:
-            wrench_bounds = np.load(data_dir / "wrench_bounds.npy")
-            wrenches_raw = np.load(sorted(train_data_dir.glob("**/wrenches.npy"))[0])
-            wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
-        front_images_raw = np.load(
-            sorted(train_data_dir.glob("**/front_images.npy"))[0]
-        )
-        front_images = normalization(
-            front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
-        )
-        if not self.args.no_side_image:
-            side_images_raw = np.load(
-                sorted(train_data_dir.glob("**/side_images.npy"))[0]
-            )
-            side_images = normalization(
-                side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
-            )
-        masks = np.load(sorted(train_data_dir.glob("**/masks.npy"))[0])
-
-        if (not self.args.no_side_image) and (not self.args.no_wrench):
-            assert not self.args.with_mask, "with_mask option is not supported for the model with side_image and wrench."
-            from robo_manip_baselines.sarnn import (
-                RmbSarnnDatasetWithSideImageAndWrench,
+        # Check action keys
+        if len(self.args.action_keys) > 0:
+            raise ValueError(
+                f"[{self.__class__.__name__}] action_keys must be empty: {self.args.action_keys}"
             )
 
-            train_dataset = RmbSarnnDatasetWithSideImageAndWrench(
-                front_images,
-                side_images,
-                joints,
-                wrenches,
-                device=self.device,
-                stdev=stdev,
-            )
-        elif self.args.no_side_image and self.args.no_wrench:
-            if self.args.with_mask:
-                from robo_manip_baselines.sarnn import RmbSarnnDatasetWithMask
-
-                train_dataset = RmbSarnnDatasetWithMask(
-                    front_images, joints, masks, device=self.device, stdev=stdev
-                )
+        # Set image size list
+        def refine_size_list(size_list):
+            if len(size_list) == 2:
+                return [tuple(size_list)] * len(self.args.camera_names)
             else:
-                from eipl.data import MultimodalDataset
+                assert len(size_list) == len(self.args.camera_names) * 2
+                return [
+                    (size_list[i], size_list[i + 1])
+                    for i in range(0, len(size_list), 2)
+                ]
 
-                train_dataset = MultimodalDataset(
-                    front_images, joints, device=self.device, stdev=stdev
-                )
-        else:
-            raise AssertionError(
-                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
-            )
-        self.train_loader = DataLoader(
-            train_dataset,
-            batch_size=self.args.batch_size,
-            shuffle=True,
-            drop_last=False,
+        self.args.image_crop_size_list = refine_size_list(
+            self.args.image_crop_size_list
+        )
+        self.args.image_size_list = refine_size_list(self.args.image_size_list)
+
+    def set_additional_args(self, parser):
+        parser.set_defaults(action_keys=[])
+
+        parser.set_defaults(state_aug_std=0.1)
+        parser.set_defaults(image_aug_std=0.02)
+        parser.set_defaults(image_aug_color_scale=1.0)
+        parser.add_argument(
+            "--image_aug_erasing_scale",
+            type=float,
+            default=1.0,
+            help="Scale of random erasing applied to the images",
         )
 
-        # load test data files
-        test_data_dir = data_dir / "test"
-        joints_raw = np.load(sorted(test_data_dir.glob("**/actions.npy"))[0])
-        joints = normalization(joints_raw, joint_bounds, minmax)
-        if not self.args.no_wrench:
-            wrenches_raw = np.load(sorted(test_data_dir.glob("**/wrenches.npy"))[0])
-            wrenches = normalization(wrenches_raw, wrench_bounds, minmax)
-        front_images_raw = np.load(sorted(test_data_dir.glob("**/front_images.npy"))[0])
-        front_images = normalization(
-            front_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
+        parser.set_defaults(batch_size=5)
+        parser.set_defaults(num_epochs=10000)
+        parser.set_defaults(lr=1e-4)
+
+        parser.add_argument(
+            "--image_loss_scale",
+            type=float,
+            default=0.1,
+            help="Scale of image loss",
         )
-        if not self.args.no_side_image:
-            side_images_raw = np.load(
-                sorted(test_data_dir.glob("**/side_images.npy"))[0]
-            )
-            side_images = normalization(
-                side_images_raw.transpose(0, 1, 4, 2, 3), (0, 255), minmax
-            )
-        masks = np.load(sorted(test_data_dir.glob("**/masks.npy"))[0])
-
-        if (not self.args.no_side_image) and (not self.args.no_wrench):
-            test_dataset = RmbSarnnDatasetWithSideImageAndWrench(
-                front_images,
-                side_images,
-                joints,
-                wrenches,
-                device=self.device,
-                stdev=None,
-            )
-        elif self.args.no_side_image and self.args.no_wrench:
-            if self.args.with_mask:
-                from robo_manip_baselines.sarnn import RmbSarnnDatasetWithMask
-
-                test_dataset = RmbSarnnDatasetWithMask(
-                    front_images, joints, masks, device=self.device, stdev=stdev
-                )
-            else:
-                from eipl.data import MultimodalDataset
-
-                test_dataset = MultimodalDataset(
-                    front_images, joints, device=self.device, stdev=None
-                )
-        else:
-            raise AssertionError(
-                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
-            )
-        self.test_loader = DataLoader(
-            test_dataset,
-            batch_size=self.args.batch_size,
-            shuffle=True,
-            drop_last=False,
+        parser.add_argument(
+            "--attention_loss_scale",
+            type=float,
+            default=0.1,
+            help="Scale of attention loss",
         )
+
+        parser.add_argument(
+            "--image_crop_size_list",
+            type=int,
+            nargs="+",
+            default=[280, 280],
+            help="List of image crop size before resize. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
+        )
+        parser.add_argument(
+            "--image_size_list",
+            type=int,
+            nargs="+",
+            default=[64, 64],
+            help="List of image size. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
+        )
+        parser.add_argument(
+            "--num_attentions",
+            type=int,
+            default=5,
+            help="Number of spacial attention points",
+        )
+        parser.add_argument(
+            "--lstm_hidden_dim",
+            type=int,
+            default=50,
+            help="Dimension of hidden state of LSTM",
+        )
+
+    def setup_model_meta_info(self):
+        super().setup_model_meta_info()
+
+        self.model_meta_info["image"]["aug_erasing_scale"] = (
+            self.args.image_aug_erasing_scale
+        )
+        self.model_meta_info["data"]["image_crop_size_list"] = (
+            self.args.image_crop_size_list
+        )
+        self.model_meta_info["data"]["image_size_list"] = self.args.image_size_list
 
     def setup_policy(self):
-        joint_dim = self.train_loader.dataset[0][0][1].shape[-1]
+        # Set policy args
+        self.model_meta_info["policy"]["args"] = {
+            "image_size_list": self.args.image_size_list,
+            "num_attentions": self.args.num_attentions,
+            "lstm_hidden_dim": self.args.lstm_hidden_dim,
+        }
 
-        # define model
-        if (not self.args.no_side_image) and (not self.args.no_wrench):
-            from robo_manip_baselines.sarnn import SarnnWithSideImageAndWrench
+        # Construct policy
+        self.policy = SarnnPolicy(
+            len(self.model_meta_info["state"]["example"]),
+            len(self.args.camera_names),
+            **self.model_meta_info["policy"]["args"],
+        )
+        self.policy.cuda()
 
-            self.model = SarnnWithSideImageAndWrench(
-                rec_dim=self.args.rec_dim,
-                joint_dim=joint_dim,
-                wrench_dim=6,
-                k_dim=self.args.k_dim,
-                heatmap_size=self.args.heatmap_size,
-                temperature=self.args.temperature,
-                im_size=[64, 64],
-            )
-        elif self.args.no_side_image and self.args.no_wrench:
-            from eipl.model import SARNN
+        # Construct optimizer
+        self.optimizer = torch.optim.Adam(
+            self.policy.parameters(), lr=self.args.lr, eps=1e-7
+        )
 
-            self.model = SARNN(
-                rec_dim=self.args.rec_dim,
-                joint_dim=joint_dim,
-                k_dim=self.args.k_dim,
-                heatmap_size=self.args.heatmap_size,
-                temperature=self.args.temperature,
-                im_size=[64, 64],
-            )
-        else:
-            raise AssertionError(
-                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
-            )
+        # Print policy information
+        self.print_policy_info()
+        print(f"  - image crop size list: {self.args.image_crop_size_list}")
+        print(f"  - image size list: {self.args.image_size_list}")
+        print(f"  - num attentions: {self.args.num_attentions}")
 
-        # torch.compile makes PyTorch code run faster
-        if self.args.compile:
-            torch.set_float32_matmul_precision("high")
-            self.model = torch.compile(self.model)
+    def setup_image_transforms(self):
+        image_transform_list = []
 
-        # set optimizer
-        self.optimizer = optim.Adam(self.model.parameters(), eps=1e-07, lr=self.args.lr)
+        if self.model_meta_info["image"]["aug_erasing_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_erasing_scale"]
+            image_transform_list.append(v2.RandomErasing(p=0.5 * scale))
 
-        # load trainer/tester class
-        if (not self.args.no_side_image) and (not self.args.no_wrench):
-            from robo_manip_baselines.sarnn import (
-                FullBpttTrainerWithSideImageAndWrench,
-                Loss,
-            )
-
-            loss_weights = [
-                {
-                    Loss.FRONT_IMG: self.args.front_img_loss,
-                    Loss.SIDE_IMG: self.args.side_img_loss,
-                    Loss.JOINT: self.args.joint_loss,
-                    Loss.WRENCH: self.args.wrench_loss,
-                    Loss.FRONT_PT: self.args.front_pt_loss,
-                    Loss.SIDE_PT: self.args.side_pt_loss,
-                }[loss]
-                for loss in Loss
-            ]
-            self.trainer = FullBpttTrainerWithSideImageAndWrench(
-                self.model,
-                self.optimizer,
-                loss_weights=loss_weights,
-                device=self.device,
-            )
-        elif self.args.no_side_image and self.args.no_wrench:
-            loss_weights = [
-                self.args.front_img_loss,
-                self.args.joint_loss,
-                self.args.front_pt_loss,
-            ]
-            if self.args.with_mask:
-                from robo_manip_baselines.sarnn import FullBpttTrainerWithMask
-
-                self.trainer = FullBpttTrainerWithMask(
-                    self.model,
-                    self.optimizer,
-                    loss_weights=loss_weights,
-                    device=self.device,
+        if self.model_meta_info["image"]["aug_color_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_color_scale"]
+            image_transform_list.append(
+                v2.ColorJitter(
+                    brightness=0.4 * scale,
+                    contrast=0.4 * scale,
+                    saturation=0.4 * scale,
+                    hue=0.05 * scale,
                 )
-            else:
-                from eipl.tutorials.airec.sarnn.libs.fullBPTT import fullBPTTtrainer
-
-                self.trainer = fullBPTTtrainer(
-                    self.model,
-                    self.optimizer,
-                    loss_weights=loss_weights,
-                    device=self.device,
-                )
-        else:
-            raise AssertionError(
-                f"Not asserted (no_side_image, no_wrench): {(self.args.no_side_image, self.args.no_wrench)}"
             )
 
-    def run(self):
-        save_name = os.path.join(self.log_dir_path, "SARNN.pth")
-        writer = SummaryWriter(log_dir=self.log_dir_path, flush_secs=30)
-        early_stop = EarlyStopping(patience=1000)
-
-        with tqdm(range(self.args.epoch)) as pbar_epoch:
-            for epoch in pbar_epoch:
-                # train and test
-                train_loss = self.trainer.process_epoch(self.train_loader)
-                with torch.no_grad():
-                    test_loss = self.trainer.process_epoch(
-                        self.test_loader, training=False
-                    )
-                writer.add_scalar("Loss/train_loss", train_loss, epoch)
-                writer.add_scalar("Loss/test_loss", test_loss, epoch)
-
-                # early stop
-                save_ckpt, _ = early_stop(test_loss)
-
-                if save_ckpt:
-                    self.trainer.save(epoch, [train_loss, test_loss], save_name)
-
-                # print process bar
-                pbar_epoch.set_postfix(
-                    OrderedDict(train_loss=train_loss, test_loss=test_loss)
+        if self.model_meta_info["image"]["aug_affine_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_affine_scale"]
+            image_transform_list.append(
+                v2.RandomAffine(
+                    degrees=4.0 * scale,
+                    translate=(0.05 * scale, 0.05 * scale),
+                    scale=(1.0 - 0.1 * scale, 1.0 + 0.1 * scale),
                 )
-                pbar_epoch.update()
+            )
+
+        if self.model_meta_info["image"]["aug_std"] > 0.0:
+            image_transform_list.append(
+                v2.GaussianNoise(sigma=self.model_meta_info["image"]["aug_std"])
+            )
+
+        self.image_transforms = v2.Compose(image_transform_list)
+
+        print(
+            f"[{self.__class__.__name__}] Augment the target image for reconstruction."
+        )
+        image_transform_str_list = [
+            f"{image_transform.__class__.__name__}"
+            for image_transform in self.image_transforms.transforms
+        ]
+        print(f"  - image transforms: {image_transform_str_list}")
+
+    def train_loop(self):
+        self.attention_loss_scheduler = LossScheduler(decay_end=1000, curve_name="s")
+
+        best_ckpt_info = {"loss": np.inf}
+        for epoch in tqdm(range(self.args.num_epochs)):
+            # Run train step
+            self.policy.train()
+            batch_result_list = []
+            for data in self.train_dataloader:
+                self.optimizer.zero_grad()
+                loss = self.calc_loss(*data)
+                loss.backward()
+                self.optimizer.step()
+                batch_result_list.append(self.detach_batch_result({"loss": loss}))
+            self.log_epoch_summary(batch_result_list, "train", epoch)
+
+            # Run validation step
+            with torch.inference_mode():
+                self.policy.eval()
+                batch_result_list = []
+                for data in self.val_dataloader:
+                    loss = self.calc_loss(*data)
+                    batch_result_list.append(self.detach_batch_result({"loss": loss}))
+                epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
+
+                # Update best checkpoint
+                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
+
+            # Save current checkpoint
+            if epoch % max(self.args.num_epochs // 10, 1) == 0:
+                self.save_current_ckpt(f"epoch{epoch:0>4}")
+
+        # Save last checkpoint
+        self.save_current_ckpt("last")
+
+        # Save best checkpoint
+        self.save_best_ckpt(best_ckpt_info)
+
+    def calc_loss(
+        self,
+        state_seq,  # (batch_size, episode_len, state_dim)
+        image_seq_list,  # (num_images, batch_size, episode_len, 3, width, height)
+        mask_seq,  # (batch_size, episode_len)
+    ):
+        state_seq = state_seq.cuda()
+        image_seq_list = [image_seq.cuda() for image_seq in image_seq_list]
+        mask_seq = mask_seq.cuda()
+
+        # Forward policy along the time sequence
+        num_images = len(image_seq_list)
+        lstm_state = None
+        predicted_state_seq = []
+        predicted_image_seq_list = [[] * num_images]
+        attention_seq_list = [[] * num_images]
+        predicted_attention_seq_list = [[] * num_images]
+        for time_idx in range(len(state_seq[0]) - 1):
+            (
+                predicted_state,
+                predicted_image_list,
+                attention_list,
+                predicted_attention_list,
+                lstm_state,
+            ) = self.policy(
+                state_seq[:, time_idx],
+                [image_seq[:, time_idx] for image_seq in image_seq_list],
+                lstm_state,
+            )
+            predicted_state_seq.append(predicted_state)
+            for image_idx in range(num_images):
+                predicted_image_seq_list[image_idx].append(
+                    predicted_image_list[image_idx]
+                )
+                attention_seq_list[image_idx].append(attention_list[image_idx])
+                predicted_attention_seq_list[image_idx].append(
+                    predicted_attention_list[image_idx]
+                )
+
+        # Permute the dimensions so that the batch size is at the top
+        predicted_state_seq = torch.permute(
+            torch.stack(predicted_state_seq), (1, 0, 2)
+        )  # (batch_size, episode_len, state_dim)
+        for image_idx in range(num_images):
+            predicted_image_seq_list[image_idx] = torch.permute(
+                torch.stack(predicted_image_seq_list[image_idx]),
+                (1, 0, 2, 3, 4),
+            )  # (batch_size, episode_len, 3, width, height)
+            attention_seq_list[image_idx] = torch.permute(
+                torch.stack(attention_seq_list[image_idx]),
+                (1, 0, 2, 3),
+            )  # (batch_size, episode_len, num_attentions, 2)
+            predicted_attention_seq_list[image_idx] = torch.permute(
+                torch.stack(predicted_attention_seq_list[image_idx]),
+                (1, 0, 2, 3),
+            )  # (batch_size, episode_len, num_attentions, 2)
+
+        # Calculate loss
+        criterion = torch.nn.MSELoss(reduction="none")
+
+        aug_state_seq = state_seq + self.model_meta_info["state"][
+            "aug_std"
+        ] * torch.randn_like(state_seq)
+        state_loss = torch.mean(
+            criterion(predicted_state_seq, aug_state_seq[:, 1:]), dim=2
+        )
+        state_loss = torch.sum(state_loss * mask_seq[:, 1:]) / torch.sum(
+            mask_seq[:, 1:]
+        )
+
+        image_loss_list = []
+        attention_loss_list = []
+        for image_idx in range(num_images):
+            aug_image_seq = self.image_transforms(image_seq_list[image_idx])
+            image_loss = torch.mean(
+                criterion(
+                    predicted_image_seq_list[image_idx],
+                    aug_image_seq[:, 1:],
+                ),
+                dim=(2, 3, 4),
+            )
+            image_loss = torch.sum(image_loss * mask_seq[:, 1:]) / torch.sum(
+                mask_seq[:, 1:]
+            )
+            image_loss_list.append(image_loss)
+
+            attention_loss = torch.mean(
+                criterion(
+                    predicted_attention_seq_list[image_idx][:, :-1],
+                    attention_seq_list[image_idx][:, 1:],
+                ),
+                dim=(2, 3),
+            )
+            attention_loss = torch.sum(attention_loss * mask_seq[:, 1:-1]) / torch.sum(
+                mask_seq[:, 1:-1]
+            )
+            attention_loss_list.append(attention_loss)
+
+        loss = (
+            state_loss
+            + self.args.image_loss_scale * torch.sum(torch.stack(image_loss_list))
+            + self.attention_loss_scheduler(self.args.attention_loss_scale)
+            * torch.sum(torch.stack(attention_loss_list))
+        )
+
+        return loss
 
 
 if __name__ == "__main__":
     train = TrainSarnn()
     train.run()
+    train.close()

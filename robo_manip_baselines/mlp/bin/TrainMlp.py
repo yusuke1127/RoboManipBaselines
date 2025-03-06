@@ -1,4 +1,3 @@
-import argparse
 import os
 
 import numpy as np
@@ -15,11 +14,7 @@ class TrainMlp(TrainBase):
     policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = MlpDataset
 
-    def setup_args(self):
-        parser = argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
-
+    def set_additional_args(self, parser):
         parser.set_defaults(batch_size=32)
         parser.set_defaults(num_epochs=40)
         parser.set_defaults(lr=1e-5)
@@ -41,8 +36,6 @@ class TrainMlp(TrainBase):
             default=512,
             help="Dimension of state feature",
         )
-
-        super().setup_args(parser)
 
     def setup_policy(self):
         # Set policy args
@@ -73,6 +66,18 @@ class TrainMlp(TrainBase):
     def train_loop(self):
         best_ckpt_info = {"loss": np.inf}
         for epoch in tqdm(range(self.args.num_epochs)):
+            # Run train step
+            self.policy.train()
+            batch_result_list = []
+            for data in self.train_dataloader:
+                self.optimizer.zero_grad()
+                pred_action = self.policy(*[d.cuda() for d in data[0:2]])
+                loss = F.mse_loss(pred_action, data[2].cuda())
+                loss.backward()
+                self.optimizer.step()
+                batch_result_list.append(self.detach_batch_result({"loss": loss}))
+            self.log_epoch_summary(batch_result_list, "train", epoch)
+
             # Run validation step
             with torch.inference_mode():
                 self.policy.eval()
@@ -85,18 +90,6 @@ class TrainMlp(TrainBase):
 
                 # Update best checkpoint
                 best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
-
-            # Run train step
-            self.policy.train()
-            batch_result_list = []
-            for data in self.train_dataloader:
-                self.optimizer.zero_grad()
-                pred_action = self.policy(*[d.cuda() for d in data[0:2]])
-                loss = F.mse_loss(pred_action, data[2].cuda())
-                loss.backward()
-                self.optimizer.step()
-                batch_result_list.append(self.detach_batch_result({"loss": loss}))
-            self.log_epoch_summary(batch_result_list, "train", epoch)
 
             # Save current checkpoint
             if epoch % max(self.args.num_epochs // 10, 1) == 0:
