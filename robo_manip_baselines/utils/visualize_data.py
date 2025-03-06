@@ -1,7 +1,11 @@
 import argparse
+import io
+import os
 
+import imageio.v2 as imageio
 import matplotlib.pylab as plt
 import numpy as np
+from tqdm import tqdm
 
 from robo_manip_baselines.common import (
     DataKey,
@@ -12,6 +16,11 @@ from robo_manip_baselines.common import (
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument("teleop_filename", type=str)
 parser.add_argument("--skip", default=10, type=int, help="skip", required=False)
+parser.add_argument(
+    "--save_gif_filename",
+    type=str,
+    default="./output_" + os.path.splitext(os.path.basename(__file__))[0] + ".gif",
+)
 args = parser.parse_args()
 
 plt.rcParams["keymap.quit"] = ["q", "escape"]
@@ -23,6 +32,7 @@ camera_names = data_manager.get_meta_data("camera_names").tolist()
 tactile_names = data_manager.get_meta_data("tactile_names").tolist()
 sensor_names = camera_names + tactile_names
 
+frames = []
 fig, ax = plt.subplots(len(sensor_names) + 1, 4)
 for ax_idx in range(1, len(sensor_names) + 1):
     ax[ax_idx, 2].remove()
@@ -156,7 +166,10 @@ def handle_point_cloud(
     )
 
 
-for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip):
+for time_idx in tqdm(
+    range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip),
+    desc=ax[0, 0].plot.__name__,
+):
     if break_flag:
         break
 
@@ -232,6 +245,19 @@ for time_idx in range(0, len(data_manager.get_data_seq(DataKey.TIME)), args.skip
 
     plt.draw()
     plt.pause(0.001)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="jpg")
+    buf.seek(0)
+    img = imageio.imread(buf)
+    frames.append(img)
+    buf.close()
+
     fig.canvas.mpl_connect("key_press_event", key_event)
+
+os.makedirs(os.path.dirname(args.save_gif_filename), exist_ok=True)
+imageio.mimsave(args.save_gif_filename, frames, fps=10)
+print(f"File '{args.save_gif_filename}' has been successfully saved.")
+print("Press 'Q' or 'Esc' to quit.")
 
 plt.show()
