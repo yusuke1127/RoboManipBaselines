@@ -124,7 +124,18 @@ class MotionManager(object):
                 target_se3 = target_se3 * get_se3_from_rel_pose(command)
             self.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
         else:
-            raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid command data key: {key}"
+            )
+
+    def get_data(self, key, obs=None):
+        """Get data of the specified key."""
+        if key in DataKey.MEASURED_DATA_KEYS:
+            return self.get_measured_data(key, obs)
+        elif key in DataKey.COMMAND_DATA_KEYS:
+            return self.get_command_data(key)
+        else:
+            raise ValueError(f"[{self.__class__.__name__}] Invalid data key: {key}")
 
     def get_measured_data(self, key, obs):
         """Get measured data of the specified key from observation."""
@@ -148,7 +159,9 @@ class MotionManager(object):
         elif key == DataKey.MEASURED_EEF_WRENCH:
             return self.env.unwrapped.get_eef_wrench_from_obs(obs)
         else:
-            raise RuntimeError(f"[MotionManager] Invalid measured data key: {key}")
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid measured data key: {key}"
+            )
 
     def get_command_data(self, key):
         """Get command data of the specified key."""
@@ -159,7 +172,9 @@ class MotionManager(object):
         elif key == DataKey.COMMAND_EEF_POSE:
             return get_pose_from_se3(self.target_se3)
         else:
-            raise RuntimeError(f"[MotionManager] Invalid command data key: {key}")
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid command data key: {key}"
+            )
 
     def draw_markers(self):
         """Draw markers of the current and target poses of the end-effector to viewer."""

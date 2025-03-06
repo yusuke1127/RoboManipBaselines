@@ -290,6 +290,7 @@ class TrainBase(metaclass=ABCMeta):
             shuffle=shuffle,
             pin_memory=True,
             num_workers=4,
+            persistent_workers=True,
             prefetch_factor=4,
         )
 

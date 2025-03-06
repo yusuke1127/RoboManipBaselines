@@ -276,7 +276,7 @@ class RolloutBase(metaclass=ABCMeta):
         else:
             state = np.concatenate(
                 [
-                    self.motion_manager.get_measured_data(state_key, self.obs)
+                    self.motion_manager.get_data(state_key, self.obs)
                     for state_key in self.state_keys
                 ]
             )
