@@ -129,15 +129,6 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         info["rgb_images"] = {}
         info["depth_images"] = {}
         for camera_name, camera in self.cameras.items():
-            if camera is None:
-                info["rgb_images"][camera_name] = np.zeros(
-                    (480, 640, 3), dtype=np.uint8
-                )
-                info["depth_images"][camera_name] = np.zeros(
-                    (480, 640), dtype=np.float32
-                )
-                continue
-
             rgb_image, depth_image = camera.read((640, 480))
             info["rgb_images"][camera_name] = rgb_image
             info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
