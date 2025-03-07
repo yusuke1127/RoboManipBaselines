@@ -106,6 +106,11 @@ class RealUR5eEnvBase(RealEnvBase):
             self.gripper.activate()
             print(f"[{self.__class__.__name__}] Finish activating the Robotiq gripper.")
 
+        # Calibrate force sensor
+        time.sleep(0.2)
+        self.rtde_c.zeroFtSensor()
+        time.sleep(0.2)
+
     def _set_action(self, action, duration=None, joint_vel_limit_scale=0.5, wait=False):
         start_time = time.time()
 
@@ -174,9 +179,7 @@ class RealUR5eEnvBase(RealEnvBase):
         gripper_joint_vel = np.zeros(1)
 
         # Get wrench from force sensor
-        # Set zero because UR5e does not have a wrist force sensor
-        force = np.zeros(3)
-        torque = np.zeros(3)
+        wrench = np.array(self.rtde_r.getActualTCPForce(), dtype=np.float64)
 
         return {
             "joint_pos": np.concatenate(
@@ -185,5 +188,5 @@ class RealUR5eEnvBase(RealEnvBase):
             "joint_vel": np.concatenate(
                 (arm_joint_vel, gripper_joint_vel), dtype=np.float64
             ),
-            "wrench": np.concatenate((force, torque), dtype=np.float64),
+            "wrench": wrench,
         }

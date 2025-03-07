@@ -9,7 +9,7 @@ Collect demonstration data by [teleoperation](../teleop).
 ## Model training
 Train a model:
 ```console
-$ python bin/TrainAct.py --dataset_dir ../teleop/teleop_data/<name> --checkpoint_dir ./checkpoint/<name>
+$ python ./bin/TrainAct.py --dataset_dir ../teleop/teleop_data/<name> --checkpoint_dir ./checkpoint/<name>
 ```
 
 **Note**: The following error will occur if the chunk_size is larger than the time series length of the training data.

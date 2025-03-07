@@ -6,7 +6,7 @@ from eipl.utils import LossScheduler
 from torchvision.transforms import v2
 from tqdm import tqdm
 
-from robo_manip_baselines.common import TrainBase
+from robo_manip_baselines.common import DataKey, TrainBase
 from robo_manip_baselines.sarnn import RmbSarnnDataset, SarnnPolicy
 
 
@@ -46,9 +46,16 @@ class TrainSarnn(TrainBase):
         self.args.image_size_list = refine_size_list(self.args.image_size_list)
 
     def set_additional_args(self, parser):
+        for action in parser._actions:
+            if action.dest == "state_keys":
+                action.choices = DataKey.MEASURED_DATA_KEYS + DataKey.COMMAND_DATA_KEYS
+            elif action.dest == "action_keys":
+                action.choices = []
+
+        parser.set_defaults(state_keys=[DataKey.COMMAND_JOINT_POS])
         parser.set_defaults(action_keys=[])
 
-        parser.set_defaults(state_aug_std=0.1)
+        parser.set_defaults(state_aug_std=0.2)
         parser.set_defaults(image_aug_std=0.02)
         parser.set_defaults(image_aug_color_scale=1.0)
         parser.add_argument(
@@ -61,7 +68,7 @@ class TrainSarnn(TrainBase):
         parser.set_defaults(skip=6)
 
         parser.set_defaults(batch_size=5)
-        parser.set_defaults(num_epochs=10000)
+        parser.set_defaults(num_epochs=3000)
         parser.set_defaults(lr=1e-4)
 
         parser.add_argument(
@@ -237,6 +244,18 @@ class TrainSarnn(TrainBase):
         image_seq_list = [image_seq.cuda() for image_seq in image_seq_list]
         mask_seq = mask_seq.cuda()
 
+        # Augment data
+        aug_image_seq_list = []
+        for image_seq in image_seq_list:
+            if self.image_transforms is None:
+                aug_image_seq = image_seq
+            else:
+                aug_image_seq = self.image_transforms(image_seq)
+            aug_image_seq_list.append(aug_image_seq)
+        aug_state_seq = state_seq + self.model_meta_info["state"][
+            "aug_std"
+        ] * torch.randn_like(state_seq)
+
         # Forward policy along the time sequence
         num_images = len(image_seq_list)
         lstm_state = None
@@ -252,8 +271,8 @@ class TrainSarnn(TrainBase):
                 predicted_attention_list,
                 lstm_state,
             ) = self.policy(
-                state_seq[:, time_idx],
-                [image_seq[:, time_idx] for image_seq in image_seq_list],
+                aug_state_seq[:, time_idx],
+                [aug_image_seq[:, time_idx] for aug_image_seq in aug_image_seq_list],
                 lstm_state,
             )
             predicted_state_seq.append(predicted_state)
@@ -287,12 +306,7 @@ class TrainSarnn(TrainBase):
         # Calculate loss
         criterion = torch.nn.MSELoss(reduction="none")
 
-        aug_state_seq = state_seq + self.model_meta_info["state"][
-            "aug_std"
-        ] * torch.randn_like(state_seq)
-        state_loss = torch.mean(
-            criterion(predicted_state_seq, aug_state_seq[:, 1:]), dim=2
-        )
+        state_loss = torch.mean(criterion(predicted_state_seq, state_seq[:, 1:]), dim=2)
         state_loss = torch.sum(state_loss * mask_seq[:, 1:]) / torch.sum(
             mask_seq[:, 1:]
         )
@@ -300,14 +314,10 @@ class TrainSarnn(TrainBase):
         image_loss_list = []
         attention_loss_list = []
         for image_idx in range(num_images):
-            if self.image_transforms is None:
-                aug_image_seq = image_seq_list[image_idx]
-            else:
-                aug_image_seq = self.image_transforms(image_seq_list[image_idx])
             image_loss = torch.mean(
                 criterion(
                     predicted_image_seq_list[image_idx],
-                    aug_image_seq[:, 1:],
+                    image_seq_list[image_idx][:, 1:],
                 ),
                 dim=(2, 3, 4),
             )

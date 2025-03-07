@@ -133,17 +133,23 @@ class DataKey(object):
 
     @classmethod
     def get_measured_key(cls, key):
-        """Get the measured key corresponding to the command key."""
-        if not key.startswith("command_"):
-            raise ValueError(f"[{cls.__name__}] Command key must be given: {key}")
-        return "measured_" + key[len("command_") :]
+        """Get measured key."""
+        if key.startswith("measured_"):
+            return key
+        elif key.startswith("command_"):
+            return "measured_" + key[len("command_") :]
+        else:
+            raise ValueError(f"[{cls.__name__}] Invalid data key: {key}")
 
     @classmethod
     def get_command_key(cls, key):
-        """Get the command key corresponding to the measured key."""
-        if not key.startswith("measured_"):
-            raise ValueError(f"[{cls.__name__}] Measured key must be given: {key}")
-        return "command_" + key[len("measured_") :]
+        """Get command key."""
+        if key.startswith("command_"):
+            return key
+        elif key.startswith("measured_"):
+            return "command_" + key[len("measured_") :]
+        else:
+            raise ValueError(f"[{cls.__name__}] Invalid data key: {key}")
 
     @classmethod
     def get_rel_key(cls, key):
