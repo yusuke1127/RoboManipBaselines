@@ -73,6 +73,12 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                     )
                     tactile_num = int(re.search("\d+$", device_name).group(0))
                     tactile = cv2.VideoCapture(tactile_num)
+
+                    # Set resolution (ensure the camera supports it).
+                    # For example, use 'v4l2-ctl -d /dev/video0 --list-formats-ext' to check supported resolutions.
+                    tactile.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
+                    tactile.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
+
                     if tactile is None or not tactile.isOpened():
                         print(
                             f"{self.__class__.__name__} Warning: unable to open video source: {tactile_num}"
