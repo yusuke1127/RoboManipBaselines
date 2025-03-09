@@ -5,7 +5,7 @@ from .Phase import Phase
 
 
 class PhaseManager(object):
-    """Phase Manager."""
+    """Phase manager."""
 
     def __init__(self, env, phase_order, phase=None):
         self.env = env

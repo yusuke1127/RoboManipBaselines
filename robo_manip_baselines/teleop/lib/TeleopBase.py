@@ -7,8 +7,6 @@ from abc import ABCMeta, abstractmethod
 import cv2
 import matplotlib.pylab as plt
 import numpy as np
-import pinocchio as pin
-import pyspacemouse
 
 from robo_manip_baselines.common import (
     DataKey,
@@ -62,11 +60,15 @@ class TeleopBase(metaclass=ABCMeta):
                 self.env.unwrapped.camera_names
             )
 
-        # Command configuration
-        self._spacemouse_connected = False
-        self.command_pos_scale = 1e-2
-        self.command_rpy_scale = 5e-3
-        self.gripper_scale = 5.0
+        # Setup input device
+        if self.args.input_device == "spacemouse":
+            from .SpacemouseInputDevice import SpacemouseInputDevice
+
+            self.input_device = SpacemouseInputDevice()
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
+            )
 
     def run(self):
         self.reset_flag = True
@@ -81,11 +83,9 @@ class TeleopBase(metaclass=ABCMeta):
                 self.reset()
                 self.reset_flag = False
 
-            # Read spacemouse
+            # Read input device
             if self.phase_manager.phase == Phase.TELEOP:
-                # Empirically, you can call read repeatedly to get the latest device state
-                for i in range(10):
-                    self.spacemouse_state = pyspacemouse.read()
+                self.input_device.read()
 
             # Set command
             self.set_command()
@@ -143,6 +143,13 @@ class TeleopBase(metaclass=ABCMeta):
 
         parser.add_argument(
             "--demo_name", type=str, default=None, help="demonstration name"
+        )
+        parser.add_argument(
+            "--input_device",
+            type=str,
+            default="spacemouse",
+            choices=["spacemouse"],
+            help="input device for teleoperation",
         )
         parser.add_argument(
             "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
@@ -240,26 +247,7 @@ class TeleopBase(metaclass=ABCMeta):
 
     def set_arm_command(self):
         if self.phase_manager.phase == Phase.TELEOP:
-            delta_pos = self.command_pos_scale * np.array(
-                [
-                    -1.0 * self.spacemouse_state.y,
-                    self.spacemouse_state.x,
-                    self.spacemouse_state.z,
-                ]
-            )
-            delta_rpy = self.command_rpy_scale * np.array(
-                [
-                    -1.0 * self.spacemouse_state.roll,
-                    -1.0 * self.spacemouse_state.pitch,
-                    -2.0 * self.spacemouse_state.yaw,
-                ]
-            )
-
-            target_se3 = self.motion_manager.target_se3.copy()
-            target_se3.translation += delta_pos
-            target_se3.rotation = pin.rpy.rpyToMatrix(*delta_rpy) @ target_se3.rotation
-
-            self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
+            self.input_device.set_arm_command(self.motion_manager)
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
@@ -268,22 +256,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
         elif self.phase_manager.phase == Phase.TELEOP:
-            gripper_joint_pos = self.motion_manager.get_command_data(
-                DataKey.COMMAND_GRIPPER_JOINT_POS
-            )
-            if (
-                self.spacemouse_state.buttons[0] > 0
-                and self.spacemouse_state.buttons[-1] <= 0
-            ):
-                gripper_joint_pos += self.gripper_scale
-            elif (
-                self.spacemouse_state.buttons[-1] > 0
-                and self.spacemouse_state.buttons[0] <= 0
-            ):
-                gripper_joint_pos -= self.gripper_scale
-            self.motion_manager.set_command_data(
-                DataKey.COMMAND_GRIPPER_JOINT_POS, gripper_joint_pos
-            )
+            self.input_device.set_gripper_command(self.motion_manager)
 
     def record_data(self, obs, info):
         # Add time
@@ -434,10 +407,8 @@ class TeleopBase(metaclass=ABCMeta):
                 self.phase_manager.set_next_phase()
         elif self.phase_manager.phase == Phase.GRASP:
             if key == ord("n"):
-                # Setup spacemouse
-                if (self.args.replay_log is None) and (not self._spacemouse_connected):
-                    self._spacemouse_connected = True
-                    pyspacemouse.open()
+                if self.args.replay_log is None:
+                    self.input_device.connect()
                 self.teleop_time_idx = 0
                 if self.args.replay_log is None:
                     print(
