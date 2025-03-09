@@ -61,14 +61,7 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
         # Setup input device
-        if self.args.input_device == "spacemouse":
-            from .SpacemouseInputDevice import SpacemouseInputDevice
-
-            self.input_device = SpacemouseInputDevice()
-        else:
-            raise ValueError(
-                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
-            )
+        self.setup_input_device()
 
     def run(self):
         self.reset_flag = True
@@ -183,6 +176,16 @@ class TeleopBase(metaclass=ABCMeta):
     @abstractmethod
     def setup_env(self):
         pass
+
+    def setup_input_device(self):
+        if self.args.input_device == "spacemouse":
+            from .SpacemouseInputDevice import SpacemouseInputDevice
+
+            self.input_device = SpacemouseInputDevice()
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
+            )
 
     def reset(self):
         # Reset managers
