@@ -36,8 +36,8 @@ class PhaseManager(object):
         idx = self.phase_order.index(self.phase)
 
         if idx == len(self.phase_order) - 1:
-            raise ValueError(
-                "[PhaseManager] Cannot go from the last phase to the next."
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Cannot go from the last phase to the next."
             )
 
         self.set_phase(self.phase_order[idx + 1])
@@ -59,7 +59,7 @@ class PhaseManager(object):
         elif self.phase == Phase.END:
             phase_image[:, :] = np.array([200, 200, 255])
         else:
-            raise ValueError(f"[PhaseManager] Unknown phase: {self.phase}")
+            raise ValueError(f"[{self.__class__.__name__}] Unknown phase: {self.phase}")
 
         cv2.putText(
             phase_image,

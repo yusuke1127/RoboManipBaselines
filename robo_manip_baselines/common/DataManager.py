@@ -100,7 +100,7 @@ class DataManager(object):
                     h5file.create_dataset(key, data=np.array(all_data_seq[key]))
                 else:
                     raise ValueError(
-                        f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
+                        f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
                     )
             for key in meta_data.keys():
                 h5file.attrs[key] = meta_data[key]
@@ -139,7 +139,7 @@ class DataManager(object):
                 all_data_seq[key].reverse()
             else:
                 raise ValueError(
-                    f"[DataManager] Unsupported type of data sequence: {type(all_data_seq[key])}"
+                    f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
                 )
 
             if key in (

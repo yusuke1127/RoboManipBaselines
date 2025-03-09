@@ -34,8 +34,8 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                 continue
 
             if camera_id not in detected_camera_ids:
-                raise ValueError(
-                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
                 )
 
             camera = RealSenseCamera(device_id=camera_id, flip=False)
@@ -182,7 +182,9 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[RealEnvBase] modify_world is not implemented.")
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] modify_world is not implemented."
+        )
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""
