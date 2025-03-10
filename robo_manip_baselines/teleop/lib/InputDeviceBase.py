@@ -6,9 +6,10 @@ class InputDeviceBase(metaclass=ABCMeta):
 
     def __init__(self):
         self.connected = False
+        self.state = None
 
     @abstractmethod
-    def connect(self):
+    def connect(self, motion_manager):
         pass
 
     @abstractmethod

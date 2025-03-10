@@ -12,12 +12,11 @@ class SpacemouseInputDevice(InputDeviceBase):
     def __init__(self):
         super().__init__()
 
-        # Command configuration
         self.command_pos_scale = 1e-2
         self.command_rpy_scale = 5e-3
         self.gripper_scale = 5.0
 
-    def connect(self):
+    def connect(self, motion_manager):
         if self.connected:
             return
 
@@ -28,6 +27,9 @@ class SpacemouseInputDevice(InputDeviceBase):
         pyspacemouse.open()
 
     def read(self):
+        if not self.connected:
+            raise RuntimeError(f"[{self.__class__.__name__}] Device is not connected.")
+
         # Empirically, you can call read repeatedly to get the latest device state
         import pyspacemouse
 

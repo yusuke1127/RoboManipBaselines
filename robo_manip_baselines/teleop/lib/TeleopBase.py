@@ -411,7 +411,7 @@ class TeleopBase(metaclass=ABCMeta):
         elif self.phase_manager.phase == Phase.GRASP:
             if key == ord("n"):
                 if self.args.replay_log is None:
-                    self.input_device.connect()
+                    self.input_device.connect(self.motion_manager)
                 self.teleop_time_idx = 0
                 if self.args.replay_log is None:
                     print(
