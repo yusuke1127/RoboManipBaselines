@@ -30,13 +30,13 @@ class GelloInputDevice(InputDeviceBase):
         }
     }
 
-    def __init__(self, port=None):
-        super().__init__()
+    def __init__(self, motion_manager, port=None):
+        super().__init__(motion_manager)
 
         self.port = port
         self.interp_end_time_idx = 50
 
-    def connect(self, motion_manager):
+    def connect(self):
         if self.connected:
             return
 
@@ -69,7 +69,7 @@ class GelloInputDevice(InputDeviceBase):
         self.time_idx = 0
 
         # Check joint error
-        new_joint_pos = self.agent.act()
+        new_joint_pos = self.get_joint_pos()
         if current_joint_pos.shape != new_joint_pos.shape:
             raise RuntimeError(
                 f"[{self.__class__.__name__}] The shape of current_joint_pos and new_joint_pos do not match: {current_joint_pos.shape} != {new_joint_pos.shape}"
@@ -77,23 +77,23 @@ class GelloInputDevice(InputDeviceBase):
         joint_pos_thre = np.deg2rad(60.0)
         if np.max(np.abs(current_joint_pos - new_joint_pos)) > joint_pos_thre:
             raise RuntimeError(
-                f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {np.rad2deg(current_joint_pos)}\n  gello: {np.rad2deg(new_joint_pos)}"
+                f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
             )
 
     def read(self):
         if not self.connected:
             raise RuntimeError(f"[{self.__class__.__name__}] Device is not connected.")
 
-        self.state = self.agent.act()
+        self.state = self.get_joint_pos()
 
-    def set_arm_command(self, motion_manager):
+    def set_arm_command(self):
         new_joint_pos = self.state.copy()
         current_joint_pos = self.motion_manager.get_command_data(
             DataKey.COMMAND_JOINT_POS
         )
 
         # Keep the current gripper command
-        gripper_joint_idxes = motion_manager.env.unwrapped.gripper_joint_idxes
+        gripper_joint_idxes = self.motion_manager.env.unwrapped.gripper_joint_idxes
         new_joint_pos[gripper_joint_idxes] = current_joint_pos[gripper_joint_idxes]
 
         # Interpolate command
@@ -103,11 +103,29 @@ class GelloInputDevice(InputDeviceBase):
                 interp_ratio * new_joint_pos + (1 - interp_ratio) * current_joint_pos
             )
 
-        motion_manager.set_command_data(DataKey.COMMAND_JOINT_POS, new_joint_pos)
+        self.motion_manager.set_command_data(DataKey.COMMAND_JOINT_POS, new_joint_pos)
         self.time_idx += 1
 
-    def set_gripper_command(self, motion_manager):
-        gripper_joint_pos = self.state[motion_manager.env.unwrapped.gripper_joint_idxes]
-        motion_manager.set_command_data(
+    def set_gripper_command(self):
+        gripper_joint_pos = self.state[
+            self.motion_manager.env.unwrapped.gripper_joint_idxes
+        ]
+        self.motion_manager.set_command_data(
             DataKey.COMMAND_GRIPPER_JOINT_POS, gripper_joint_pos
         )
+
+    def get_joint_pos(self):
+        gripper_joint_idxes = self.motion_manager.env.unwrapped.gripper_joint_idxes
+        gripper_joint_pos_low = self.motion_manager.env.action_space.low[
+            gripper_joint_idxes
+        ]
+        gripper_joint_pos_high = self.motion_manager.env.action_space.high[
+            gripper_joint_idxes
+        ]
+
+        joint_pos = self.agent.act().copy()
+        joint_pos[gripper_joint_idxes] = (
+            gripper_joint_pos_high - gripper_joint_pos_low
+        ) * joint_pos[gripper_joint_idxes] + gripper_joint_pos_low
+
+        return joint_pos

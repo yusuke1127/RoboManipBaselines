@@ -61,7 +61,8 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
         # Setup input device
-        self.setup_input_device()
+        if self.args.replay_log is None:
+            self.setup_input_device()
 
     def run(self):
         self.reset_flag = True
@@ -77,7 +78,10 @@ class TeleopBase(metaclass=ABCMeta):
                 self.reset_flag = False
 
             # Read input device
-            if self.phase_manager.phase == Phase.TELEOP:
+            if (
+                self.phase_manager.phase == Phase.TELEOP
+                and self.args.replay_log is None
+            ):
                 self.input_device.read()
 
             # Set command
@@ -181,11 +185,11 @@ class TeleopBase(metaclass=ABCMeta):
         if self.args.input_device == "spacemouse":
             from .SpacemouseInputDevice import SpacemouseInputDevice
 
-            self.input_device = SpacemouseInputDevice()
+            self.input_device = SpacemouseInputDevice(self.motion_manager)
         elif self.args.input_device == "gello":
             from .GelloInputDevice import GelloInputDevice
 
-            self.input_device = GelloInputDevice()
+            self.input_device = GelloInputDevice(self.motion_manager)
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
@@ -254,7 +258,7 @@ class TeleopBase(metaclass=ABCMeta):
 
     def set_arm_command(self):
         if self.phase_manager.phase == Phase.TELEOP:
-            self.input_device.set_arm_command(self.motion_manager)
+            self.input_device.set_arm_command()
 
     def set_gripper_command(self):
         if self.phase_manager.phase == Phase.GRASP:
@@ -263,7 +267,7 @@ class TeleopBase(metaclass=ABCMeta):
                 self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
             )
         elif self.phase_manager.phase == Phase.TELEOP:
-            self.input_device.set_gripper_command(self.motion_manager)
+            self.input_device.set_gripper_command()
 
     def record_data(self, obs, info):
         # Add time
@@ -415,7 +419,7 @@ class TeleopBase(metaclass=ABCMeta):
         elif self.phase_manager.phase == Phase.GRASP:
             if key == ord("n"):
                 if self.args.replay_log is None:
-                    self.input_device.connect(self.motion_manager)
+                    self.input_device.connect()
                 self.teleop_time_idx = 0
                 if self.args.replay_log is None:
                     print(
