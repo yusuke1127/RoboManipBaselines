@@ -67,8 +67,8 @@ class TrainSarnn(TrainBase):
 
         parser.set_defaults(skip=6)
 
-        parser.set_defaults(batch_size=5)
-        parser.set_defaults(num_epochs=3000)
+        parser.set_defaults(batch_size=16)
+        parser.set_defaults(num_epochs=8000)
         parser.set_defaults(lr=1e-4)
 
         parser.add_argument(
