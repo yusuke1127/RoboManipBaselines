@@ -113,7 +113,7 @@ class TeleopBase(metaclass=ABCMeta):
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.phase_manager.phase == Phase.TELEOP:
+            if self.phase_manager.phase == Phase.TELEOP and self.teleop_time_idx > 0:
                 iteration_duration_list.append(iteration_duration)
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)

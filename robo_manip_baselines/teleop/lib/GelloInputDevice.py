@@ -1,4 +1,5 @@
 import glob
+import time
 
 import numpy as np
 
@@ -75,10 +76,16 @@ class GelloInputDevice(InputDeviceBase):
                 f"[{self.__class__.__name__}] The shape of current_joint_pos and new_joint_pos do not match: {current_joint_pos.shape} != {new_joint_pos.shape}"
             )
         joint_pos_thre = np.deg2rad(60.0)
-        if np.max(np.abs(current_joint_pos - new_joint_pos)) > joint_pos_thre:
-            raise RuntimeError(
-                f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
-            )
+        while np.max(np.abs(current_joint_pos - new_joint_pos)) > joint_pos_thre:
+            with np.printoptions(precision=2):
+                print(
+                    f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
+                )
+            time.sleep(0.1)
+            new_joint_pos = self.get_joint_pos()
+            # raise RuntimeError(
+            #     f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
+            # )
 
     def read(self):
         if not self.connected:
