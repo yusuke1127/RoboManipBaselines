@@ -141,7 +141,7 @@ class TeleopBase(metaclass=ABCMeta):
             "--input_device",
             type=str,
             default="spacemouse",
-            choices=["spacemouse"],
+            choices=["spacemouse", "gello"],
             help="input device for teleoperation",
         )
         parser.add_argument(
@@ -182,6 +182,10 @@ class TeleopBase(metaclass=ABCMeta):
             from .SpacemouseInputDevice import SpacemouseInputDevice
 
             self.input_device = SpacemouseInputDevice()
+        elif self.args.input_device == "gello":
+            from .GelloInputDevice import GelloInputDevice
+
+            self.input_device = GelloInputDevice()
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
