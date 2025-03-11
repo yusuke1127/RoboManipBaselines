@@ -64,6 +64,69 @@ class TeleopBase(metaclass=ABCMeta):
         if self.args.replay_log is None:
             self.setup_input_device()
 
+    def setup_args(self, parser=None, argv=None):
+        if parser is None:
+            parser = argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            )
+
+        parser.add_argument(
+            "--demo_name", type=str, default=None, help="demonstration name"
+        )
+        parser.add_argument(
+            "--input_device",
+            type=str,
+            default="spacemouse",
+            choices=["spacemouse", "gello"],
+            help="input device for teleoperation",
+        )
+        parser.add_argument(
+            "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
+        )
+        parser.add_argument(
+            "--world_idx_list",
+            type=int,
+            nargs="*",
+            help="list of world indexes (if not given, loop through all world indicies)",
+        )
+        parser.add_argument(
+            "--replay_log",
+            type=str,
+            default=None,
+            help="log file path when replaying log motion",
+        )
+        parser.add_argument(
+            "--replay_keys",
+            nargs="+",
+            choices=DataKey.COMMAND_DATA_KEYS,
+            default=[DataKey.COMMAND_JOINT_POS],
+            help="Command data keys when replaying log motion",
+        )
+
+        parser.add_argument("--seed", type=int, default=42, help="random seed")
+
+        if argv is None:
+            argv = sys.argv
+        self.args = parser.parse_args(argv[1:])
+
+    @abstractmethod
+    def setup_env(self):
+        pass
+
+    def setup_input_device(self):
+        if self.args.input_device == "spacemouse":
+            from .SpacemouseInputDevice import SpacemouseInputDevice
+
+            self.input_device = SpacemouseInputDevice(self.motion_manager)
+        elif self.args.input_device == "gello":
+            from .GelloInputDevice import GelloInputDevice
+
+            self.input_device = GelloInputDevice(self.motion_manager)
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
+            )
+
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
@@ -131,69 +194,6 @@ class TeleopBase(metaclass=ABCMeta):
             )
 
         # self.env.close()
-
-    def setup_args(self, parser=None, argv=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                formatter_class=argparse.ArgumentDefaultsHelpFormatter
-            )
-
-        parser.add_argument(
-            "--demo_name", type=str, default=None, help="demonstration name"
-        )
-        parser.add_argument(
-            "--input_device",
-            type=str,
-            default="spacemouse",
-            choices=["spacemouse", "gello"],
-            help="input device for teleoperation",
-        )
-        parser.add_argument(
-            "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
-        )
-        parser.add_argument(
-            "--world_idx_list",
-            type=int,
-            nargs="*",
-            help="list of world indexes (if not given, loop through all world indicies)",
-        )
-        parser.add_argument(
-            "--replay_log",
-            type=str,
-            default=None,
-            help="log file path when replaying log motion",
-        )
-        parser.add_argument(
-            "--replay_keys",
-            nargs="+",
-            choices=DataKey.COMMAND_DATA_KEYS,
-            default=[DataKey.COMMAND_JOINT_POS],
-            help="Command data keys when replaying log motion",
-        )
-
-        parser.add_argument("--seed", type=int, default=42, help="random seed")
-
-        if argv is None:
-            argv = sys.argv
-        self.args = parser.parse_args(argv[1:])
-
-    @abstractmethod
-    def setup_env(self):
-        pass
-
-    def setup_input_device(self):
-        if self.args.input_device == "spacemouse":
-            from .SpacemouseInputDevice import SpacemouseInputDevice
-
-            self.input_device = SpacemouseInputDevice(self.motion_manager)
-        elif self.args.input_device == "gello":
-            from .GelloInputDevice import GelloInputDevice
-
-            self.input_device = GelloInputDevice(self.motion_manager)
-        else:
-            raise ValueError(
-                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
-            )
 
     def reset(self):
         # Reset managers
