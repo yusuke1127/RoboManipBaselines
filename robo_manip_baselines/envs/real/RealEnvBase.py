@@ -68,22 +68,18 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                 ):  # "rt": read-text mode ("t" is default, so "r" alone is the same)
                     detected_tactile_id = device_name_file.read().rstrip()
                 if tactile_id in detected_tactile_id:
-                    print(
-                        f"[{self.__class__.__name__}] Found GelSight sensor. name: {device_name}, ID: {detected_tactile_id}"
-                    )
                     tactile_num = int(re.search("\d+$", device_name).group(0))
+                    print(
+                        f"[{self.__class__.__name__}] Found GelSight sensor. ID: {detected_tactile_id}, device: {device_name}, num: {tactile_num}"
+                    )
+
                     tactile = cv2.VideoCapture(tactile_num)
-
-                    # Set resolution (ensure the camera supports it).
-                    # For example, use 'v4l2-ctl -d /dev/video0 --list-formats-ext' to check supported resolutions.
-                    tactile.set(cv2.CAP_PROP_FRAME_WIDTH, 800)
-                    tactile.set(cv2.CAP_PROP_FRAME_HEIGHT, 600)
-
                     if tactile is None or not tactile.isOpened():
                         print(
-                            f"{self.__class__.__name__} Warning: unable to open video source: {tactile_num}"
+                            f"[{self.__class__.__name__}] Unable to open video source of GelSight sensor."
                         )
                         continue
+
                     self.tactiles[tactile_name] = tactile
                     break
 
@@ -182,8 +178,12 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
         for tactile_name, tactile in self.tactiles.items():
             ret, rgb_image = tactile.read()
-            assert ret, f"[{self.__class__.__name__}] Failed to read tactile image."
-            info["rgb_images"][tactile_name] = rgb_image
+            if not ret:
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Failed to read tactile image."
+                )
+            image_size = (480, 640)
+            info["rgb_images"][tactile_name] = cv2.resize(rgb_image, image_size)
             info["depth_images"][tactile_name] = None
 
         return info
