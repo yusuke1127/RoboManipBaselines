@@ -182,7 +182,7 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                 raise RuntimeError(
                     f"[{self.__class__.__name__}] Failed to read tactile image."
                 )
-            image_size = (480, 640)
+            image_size = (640, 480)
             info["rgb_images"][tactile_name] = cv2.resize(rgb_image, image_size)
             info["depth_images"][tactile_name] = None
 

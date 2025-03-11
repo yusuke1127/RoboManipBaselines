@@ -26,9 +26,7 @@ class PhaseManager(object):
         """Set phase."""
         self.phase = phase
 
-        if self.env is None:
-            self.phase_start_time = 0.0
-        else:
+        if self.env is not None:
             self.phase_start_time = self.env.unwrapped.get_time()
 
     def set_next_phase(self):
@@ -75,4 +73,9 @@ class PhaseManager(object):
 
     def get_phase_elapsed_duration(self):
         """Get the elapsed duration of the current phase."""
+        if self.env is None:
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] get_phase_elapsed_duration() cannot be called when env is None."
+            )
+
         return self.env.unwrapped.get_time() - self.phase_start_time
