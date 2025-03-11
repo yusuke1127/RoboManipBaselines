@@ -328,7 +328,9 @@ class TeleopBase(metaclass=ABCMeta):
         phase_image = self.phase_manager.get_phase_image()
         rgb_images = []
         depth_images = []
-        for camera_name in self.env.unwrapped.camera_names:
+        for camera_name in (
+            self.env.unwrapped.camera_names + self.env.unwrapped.tactile_names
+        ):
             rgb_image = info["rgb_images"][camera_name]
             image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
             resized_image_width = phase_image.shape[1] / 2
@@ -337,10 +339,15 @@ class TeleopBase(metaclass=ABCMeta):
                 int(resized_image_width / image_ratio),
             )
             rgb_images.append(cv2.resize(rgb_image, resized_image_size))
-            depth_image = convert_depth_image_to_color_image(
-                info["depth_images"][camera_name]
-            )
-            depth_images.append(cv2.resize(depth_image, resized_image_size))
+            if camera_name in self.env.unwrapped.tactile_names:
+                depth_images.append(
+                    np.full(resized_image_size[::-1] + (3,), 255, dtype=np.uint8)
+                )
+            else:
+                depth_image = convert_depth_image_to_color_image(
+                    info["depth_images"][camera_name]
+                )
+                depth_images.append(cv2.resize(depth_image, resized_image_size))
         window_image = cv2.vconcat(
             (
                 cv2.hconcat((cv2.vconcat(rgb_images), cv2.vconcat(depth_images))),
