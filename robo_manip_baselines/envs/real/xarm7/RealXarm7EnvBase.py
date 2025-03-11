@@ -116,44 +116,15 @@ class RealXarm7EnvBase(RealEnvBase):
         start_time = time.time()
 
         # Overwrite duration or joint_pos for safety
+        action, duration = self.overwrite_command_for_safety(
+            action, duration, joint_vel_limit_scale
+        )
+
+        # Send command to xArm7
         arm_joint_pos_command = action[self.arm_joint_idxes]
         scaled_joint_vel_limit = (
             np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
         )
-        if duration is None:
-            duration_min, duration_max = 0.1, 10.0  # [s]
-            duration = np.clip(
-                np.max(
-                    np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
-                    / scaled_joint_vel_limit
-                ),
-                duration_min,
-                duration_max,
-            )
-        else:
-            arm_joint_pos_error_max = np.max(
-                np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
-            )
-            arm_joint_pos_error_thre = np.deg2rad(90)
-            duration_thre = 0.1  # [s]
-            if (
-                arm_joint_pos_error_max > arm_joint_pos_error_thre
-                and duration < duration_thre
-            ):
-                raise RuntimeError(
-                    f"[{self.__class__.__name__}] Large joint movements are commanded in short duration ({duration} s).\n  command: {arm_joint_pos_command}\n  actual: {self.arm_joint_pos_actual}"
-                )
-
-            arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
-                arm_joint_pos_command - self.arm_joint_pos_actual,
-                -1 * scaled_joint_vel_limit * duration,
-                scaled_joint_vel_limit * duration,
-            )
-            # if np.linalg.norm(arm_joint_pos_command_overwritten - arm_joint_pos_command) > 1e-10:
-            #     print(f"[{self.__class__.__name__}] Overwrite joint command for safety.")
-            arm_joint_pos_command = arm_joint_pos_command_overwritten
-
-        # Send command to xArm7
         xarm_code = self.xarm_api.set_servo_angle(
             angle=arm_joint_pos_command,
             speed=scaled_joint_vel_limit,
