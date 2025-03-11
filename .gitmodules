@@ -1,6 +1,6 @@
 [submodule "third_party/eipl"]
 	path = third_party/eipl
-	url = https://github.com/mmurooka/eipl
+	url = https://github.com/mmurooka/eipl.git
         ignore = untracked
 [submodule "third_party/act"]
 	path = third_party/act
@@ -20,5 +20,5 @@
         ignore = untracked
 [submodule "third_party/gello_software"]
 	path = third_party/gello_software
-	url = https://github.com/wuphilipp/gello_software.git
+	url = https://github.com/mmurooka/gello_software.git
 	ignore = untracked

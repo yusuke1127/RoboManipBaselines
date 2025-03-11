@@ -88,6 +88,8 @@ class RealUR5eEnvBase(RealEnvBase):
         self.setup_realsense(camera_ids)
         if gelsight_ids is not None:
             self.setup_gelsight(gelsight_ids)
+        else:
+            self.tactiles = {}
 
     def _reset_robot(self):
         print(
@@ -115,31 +117,12 @@ class RealUR5eEnvBase(RealEnvBase):
         start_time = time.time()
 
         # Overwrite duration or joint_pos for safety
-        arm_joint_pos_command = action[self.arm_joint_idxes]
-        scaled_joint_vel_limit = (
-            np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
+        action, duration = self.overwrite_command_for_safety(
+            action, duration, joint_vel_limit_scale
         )
-        if duration is None:
-            duration_min, duration_max = 0.1, 10.0  # [s]
-            duration = np.clip(
-                np.max(
-                    np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
-                    / scaled_joint_vel_limit
-                ),
-                duration_min,
-                duration_max,
-            )
-        else:
-            arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
-                arm_joint_pos_command - self.arm_joint_pos_actual,
-                -1 * scaled_joint_vel_limit * duration,
-                scaled_joint_vel_limit * duration,
-            )
-            # if np.linalg.norm(arm_joint_pos_command_overwritten - arm_joint_pos_command) > 1e-10:
-            #     print(f"[{self.__class__.__name__}] Overwrite joint command for safety.")
-            arm_joint_pos_command = arm_joint_pos_command_overwritten
 
         # Send command to UR5e
+        arm_joint_pos_command = action[self.arm_joint_idxes]
         velocity = 0.5
         acceleration = 0.5
         lookahead_time = 0.2  # [s]

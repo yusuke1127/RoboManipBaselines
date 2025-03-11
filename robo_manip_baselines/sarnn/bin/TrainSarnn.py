@@ -67,8 +67,8 @@ class TrainSarnn(TrainBase):
 
         parser.set_defaults(skip=6)
 
-        parser.set_defaults(batch_size=5)
-        parser.set_defaults(num_epochs=3000)
+        parser.set_defaults(batch_size=16)
+        parser.set_defaults(num_epochs=8000)
         parser.set_defaults(lr=1e-4)
 
         parser.add_argument(
@@ -260,9 +260,9 @@ class TrainSarnn(TrainBase):
         num_images = len(image_seq_list)
         lstm_state = None
         predicted_state_seq = []
-        predicted_image_seq_list = [[] * num_images]
-        attention_seq_list = [[] * num_images]
-        predicted_attention_seq_list = [[] * num_images]
+        predicted_image_seq_list = [[] for _ in range(num_images)]
+        attention_seq_list = [[] for _ in range(num_images)]
+        predicted_attention_seq_list = [[] for _ in range(num_images)]
         for time_idx in range(len(state_seq[0]) - 1):
             (
                 predicted_state,

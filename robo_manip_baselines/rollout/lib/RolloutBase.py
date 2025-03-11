@@ -203,11 +203,16 @@ class RolloutBase(metaclass=ABCMeta):
                     self.infer_policy()
                     inference_duration_list.append(time.time() - inference_start_time)
 
+            # Set command
             self.set_command()
 
+            # Set action
             env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+
+            # Step environment
             self.obs, _, _, _, self.info = self.env.step(env_action)
 
+            # Draw plots
             if self.phase_manager.phase == Phase.ROLLOUT:
                 if self.rollout_time_idx % self.args.skip_draw == 0:
                     self.draw_plot()

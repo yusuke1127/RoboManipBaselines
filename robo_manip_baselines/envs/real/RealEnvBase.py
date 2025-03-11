@@ -34,8 +34,8 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                 continue
 
             if camera_id not in detected_camera_ids:
-                raise ValueError(
-                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
                 )
 
             camera = RealSenseCamera(device_id=camera_id, flip=False)
@@ -68,16 +68,18 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
                 ):  # "rt": read-text mode ("t" is default, so "r" alone is the same)
                     detected_tactile_id = device_name_file.read().rstrip()
                 if tactile_id in detected_tactile_id:
-                    print(
-                        f"[{self.__class__.__name__}] Found GelSight sensor. name: {device_name}, ID: {detected_tactile_id}"
-                    )
                     tactile_num = int(re.search("\d+$", device_name).group(0))
+                    print(
+                        f"[{self.__class__.__name__}] Found GelSight sensor. ID: {detected_tactile_id}, device: {device_name}, num: {tactile_num}"
+                    )
+
                     tactile = cv2.VideoCapture(tactile_num)
                     if tactile is None or not tactile.isOpened():
                         print(
-                            f"{self.__class__.__name__} Warning: unable to open video source: {tactile_num}"
+                            f"[{self.__class__.__name__}] Unable to open video source of GelSight sensor."
                         )
                         continue
+
                     self.tactiles[tactile_name] = tactile
                     break
 
@@ -115,6 +117,47 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def _set_action(self):
         pass
 
+    def overwrite_command_for_safety(self, action, duration, joint_vel_limit_scale):
+        arm_joint_pos_command = action[self.arm_joint_idxes]
+        scaled_joint_vel_limit = (
+            np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
+        )
+
+        if duration is None:
+            duration_min, duration_max = 0.1, 10.0  # [s]
+            duration = np.clip(
+                np.max(
+                    np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+                    / scaled_joint_vel_limit
+                ),
+                duration_min,
+                duration_max,
+            )
+        else:
+            arm_joint_pos_error_max = np.max(
+                np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+            )
+            arm_joint_pos_error_thre = np.deg2rad(90)
+            duration_thre = 0.1  # [s]
+            if (
+                arm_joint_pos_error_max > arm_joint_pos_error_thre
+                and duration < duration_thre
+            ):
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Large joint movements are commanded in short duration ({duration} s).\n  command: {arm_joint_pos_command}\n  actual: {self.arm_joint_pos_actual}"
+                )
+
+            arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
+                arm_joint_pos_command - self.arm_joint_pos_actual,
+                -1 * scaled_joint_vel_limit * duration,
+                scaled_joint_vel_limit * duration,
+            )
+            # if np.linalg.norm(arm_joint_pos_command_overwritten - arm_joint_pos_command) > 1e-10:
+            #     print(f"[{self.__class__.__name__}] Overwrite joint command for safety.")
+            action[self.arm_joint_idxes] = arm_joint_pos_command_overwritten
+
+        return action, duration
+
     @abstractmethod
     def _get_obs(self):
         pass
@@ -135,8 +178,12 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
         for tactile_name, tactile in self.tactiles.items():
             ret, rgb_image = tactile.read()
-            assert ret, f"[{self.__class__.__name__}] Failed to read tactile image."
-            info["rgb_images"][tactile_name] = rgb_image
+            if not ret:
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Failed to read tactile image."
+                )
+            image_size = (640, 480)
+            info["rgb_images"][tactile_name] = cv2.resize(rgb_image, image_size)
             info["depth_images"][tactile_name] = None
 
         return info
@@ -176,7 +223,9 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[RealEnvBase] modify_world is not implemented.")
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] modify_world is not implemented."
+        )
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""

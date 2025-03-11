@@ -1,7 +1,6 @@
 import time
 
 import numpy as np
-import pyspacemouse
 
 from robo_manip_baselines.common import DataKey, DataManagerVec, Phase
 
@@ -54,11 +53,9 @@ class TeleopBaseVec(TeleopBase):
                 )
                 self.reset_flag = False
 
-            # Read spacemouse
+            # Read input device
             if self.phase_manager.phase == Phase.TELEOP:
-                # Empirically, you can call read repeatedly to get the latest device state
-                for i in range(10):
-                    self.spacemouse_state = pyspacemouse.read()
+                self.input_device.read()
 
             # Set command
             self.set_command()
@@ -151,7 +148,7 @@ class TeleopBaseVec(TeleopBase):
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.phase_manager.phase == Phase.TELEOP:
+            if self.phase_manager.phase == Phase.TELEOP and self.teleop_time_idx > 0:
                 iteration_duration_list.append(iteration_duration)
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)

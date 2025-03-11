@@ -244,11 +244,13 @@ class TrainBase(metaclass=ABCMeta):
                     rgb_image_example = {
                         camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][0]
                         for camera_name in self.args.camera_names
+                        if DataKey.get_rgb_image_key(camera_name) in h5file
                     }
                 if depth_image_example is None:
                     depth_image_example = {
                         camera_name: h5file[DataKey.get_depth_image_key(camera_name)][0]
                         for camera_name in self.args.camera_names
+                        if DataKey.get_depth_image_key(camera_name) in h5file
                     }
         all_state = np.concatenate(all_state, dtype=np.float64)
         all_action = np.concatenate(all_action, dtype=np.float64)

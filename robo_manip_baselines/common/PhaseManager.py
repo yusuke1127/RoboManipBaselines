@@ -5,7 +5,7 @@ from .Phase import Phase
 
 
 class PhaseManager(object):
-    """Phase Manager."""
+    """Phase manager."""
 
     def __init__(self, env, phase_order, phase=None):
         self.env = env
@@ -26,9 +26,7 @@ class PhaseManager(object):
         """Set phase."""
         self.phase = phase
 
-        if self.env is None:
-            self.phase_start_time = 0.0
-        else:
+        if self.env is not None:
             self.phase_start_time = self.env.unwrapped.get_time()
 
     def set_next_phase(self):
@@ -36,8 +34,8 @@ class PhaseManager(object):
         idx = self.phase_order.index(self.phase)
 
         if idx == len(self.phase_order) - 1:
-            raise ValueError(
-                "[PhaseManager] Cannot go from the last phase to the next."
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Cannot go from the last phase to the next."
             )
 
         self.set_phase(self.phase_order[idx + 1])
@@ -59,7 +57,7 @@ class PhaseManager(object):
         elif self.phase == Phase.END:
             phase_image[:, :] = np.array([200, 200, 255])
         else:
-            raise ValueError(f"[PhaseManager] Unknown phase: {self.phase}")
+            raise ValueError(f"[{self.__class__.__name__}] Unknown phase: {self.phase}")
 
         cv2.putText(
             phase_image,
@@ -75,4 +73,9 @@ class PhaseManager(object):
 
     def get_phase_elapsed_duration(self):
         """Get the elapsed duration of the current phase."""
+        if self.env is None:
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] get_phase_elapsed_duration() cannot be called when env is None."
+            )
+
         return self.env.unwrapped.get_time() - self.phase_start_time
