@@ -131,6 +131,19 @@ class RealXarm7EnvBase(RealEnvBase):
                 duration_max,
             )
         else:
+            arm_joint_pos_error_max = np.max(
+                np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+            )
+            arm_joint_pos_error_thre = np.deg2rad(90)
+            duration_thre = 0.1  # [s]
+            if (
+                arm_joint_pos_error_max > arm_joint_pos_error_thre
+                and duration < duration_thre
+            ):
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Large joint movements are commanded in short duration ({duration} s).\n  command: {arm_joint_pos_command}\n  actual: {self.arm_joint_pos_actual}"
+                )
+
             arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
                 arm_joint_pos_command - self.arm_joint_pos_actual,
                 -1 * scaled_joint_vel_limit * duration,
