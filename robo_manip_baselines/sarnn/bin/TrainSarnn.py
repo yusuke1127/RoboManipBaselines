@@ -260,9 +260,9 @@ class TrainSarnn(TrainBase):
         num_images = len(image_seq_list)
         lstm_state = None
         predicted_state_seq = []
-        predicted_image_seq_list = [[] * num_images]
-        attention_seq_list = [[] * num_images]
-        predicted_attention_seq_list = [[] * num_images]
+        predicted_image_seq_list = [[] for _ in range(num_images)]
+        attention_seq_list = [[] for _ in range(num_images)]
+        predicted_attention_seq_list = [[] for _ in range(num_images)]
         for time_idx in range(len(state_seq[0]) - 1):
             (
                 predicted_state,
