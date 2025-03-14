@@ -53,7 +53,7 @@ def parse_arg():
         "--max_video_width",
         "-w",
         type=int,
-        default=640,
+        default=2560,
         help=(
             "maximum width to which the video will be scaled down if it is too large"
         ),
