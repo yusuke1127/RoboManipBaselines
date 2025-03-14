@@ -14,6 +14,9 @@ class InputDeviceBase(ABC):
     def connect(self):
         pass
 
+    def is_ready(self):
+        return True
+
     @abstractmethod
     def read(self):
         pass

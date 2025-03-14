@@ -1,5 +1,4 @@
 import glob
-import time
 
 import numpy as np
 
@@ -69,30 +68,45 @@ class GelloInputDevice(InputDeviceBase):
         )
         self.time_idx = 0
 
-        # Check joint error
+    def is_ready(self):
+        current_joint_pos = self.motion_manager.get_command_data(
+            DataKey.COMMAND_JOINT_POS
+        )
         new_joint_pos = self.get_joint_pos()
         if current_joint_pos.shape != new_joint_pos.shape:
             raise RuntimeError(
                 f"[{self.__class__.__name__}] The shape of current_joint_pos and new_joint_pos do not match: {current_joint_pos.shape} != {new_joint_pos.shape}"
             )
-        joint_pos_thre = np.deg2rad(30.0)
-        while (
-            np.max(
-                np.abs(current_joint_pos - new_joint_pos)[
-                    self.motion_manager.env.unwrapped.arm_joint_idxes
-                ]
+
+        arm_joint_idxes = self.motion_manager.env.unwrapped.arm_joint_idxes
+        joint_pos_error = np.max(
+            np.abs(current_joint_pos - new_joint_pos)[arm_joint_idxes]
+        )
+        joint_pos_error_thre = np.deg2rad(30.0)  # [rad]
+        if joint_pos_error < joint_pos_error_thre:
+            return True
+        else:
+            print(
+                f"[{self.__class__.__name__}] Joint angles differ greatly.\n  joint_name, robot_joint, gello_joint (joint_status):"
             )
-            > joint_pos_thre
-        ):
-            with np.printoptions(precision=2):
+            for joint_idx, current_joint_pos0, new_joint_pos0 in zip(
+                arm_joint_idxes,
+                current_joint_pos[arm_joint_idxes],
+                new_joint_pos[arm_joint_idxes],
+            ):
+                joint_pos_error0 = np.abs(current_joint_pos0 - new_joint_pos0)
+                if joint_pos_error0 > joint_pos_error_thre:
+                    joint_status_str = (
+                        f"NG: {joint_pos_error0:.2f} < {joint_pos_error_thre:.2f}"
+                    )
+                else:
+                    joint_status_str = (
+                        f"OK: {joint_pos_error0:.2f} > {joint_pos_error_thre:.2f}"
+                    )
                 print(
-                    f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
+                    f"  - joint{joint_idx}: {current_joint_pos0:.2f}, {new_joint_pos0:.2f} ({joint_status_str})"
                 )
-            time.sleep(0.1)
-            new_joint_pos = self.get_joint_pos()
-            # raise RuntimeError(
-            #     f"[{self.__class__.__name__}] Joint angles differ greatly:\n  robot: {current_joint_pos}\n  gello: {new_joint_pos}"
-            # )
+            return False
 
     def read(self):
         if not self.connected:

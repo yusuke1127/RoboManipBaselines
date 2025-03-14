@@ -35,9 +35,29 @@ class StandbyTeleopPhase(PhaseBase):
     def start(self):
         super().start()
 
+        self.op.input_device.connect()
         print(
             f"[{self.op.__class__.__name__}] Press the 'n' key to start teleoperation."
         )
+
+    def post_update(self):
+        self.op.input_device.read()
+
+    def check_transition(self):
+        return self.op.key == ord("n") and self.op.input_device.is_ready()
+
+
+class SyncPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(
+            f"[{self.op.__class__.__name__}] Press the 'n' key to start teleoperation with recording."
+        )
+
+    def pre_update(self):
+        self.op.input_device.read()
+        self.op.input_device.set_command_data()
 
     def check_transition(self):
         return self.op.key == ord("n")
@@ -47,7 +67,6 @@ class TeleopPhase(PhaseBase):
     def start(self):
         super().start()
 
-        self.op.input_device.connect()
         self.op.teleop_time_idx = 0
         print(
             f"[{self.op.__class__.__name__}] Press the 'n' key to finish teleoperation."
@@ -157,6 +176,8 @@ class TeleopBase(ABC):
                 TeleopPhase(self),
                 EndTeleopPhase(self),
             ]
+            if self.args.sync_before_record:
+                operation_phases.insert(1, SyncPhase(self))
         else:
             operation_phases = [ReplayPhase(self), EndReplayPhase(self)]
         phase_order = [
@@ -198,6 +219,11 @@ class TeleopBase(ABC):
             default="spacemouse",
             choices=["spacemouse", "gello"],
             help="input device for teleoperation",
+        )
+        parser.add_argument(
+            "--sync_before_record",
+            action="store_true",
+            help="whether to synchronize with input device before starting record",
         )
         parser.add_argument(
             "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
@@ -400,12 +426,14 @@ class TeleopBase(ABC):
 
     def draw_image(self):
         def get_color_func(phase):
-            if "Initial" in phase.name or "End" in phase.name:
+            if phase.name in ("InitialTeleopPhase", "StandbyTeleopPhase"):
                 return np.array([200, 200, 255])
-            elif "Standby" in phase.name:
+            elif phase.name in ("SyncPhase"):
                 return np.array([255, 255, 200])
             elif phase.name in ("TeleopPhase", "ReplayPhase"):
                 return np.array([255, 200, 200])
+            elif phase.name in ("EndTeleopPhase", "EndReplayPhase"):
+                return np.array([200, 200, 200])
             else:
                 return np.array([200, 255, 200])
 
