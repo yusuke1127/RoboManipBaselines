@@ -43,14 +43,7 @@ class MujocoUR5eToolboxEnv(MujocoUR5eEnvBase):
         # )  # [m]
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
-        if world_idx is None:
-            world_idx = cumulative_idx % len(self.toolbox_pos_offsets)
-
-        # toolbox_pos = self.original_toolbox_pos + self.toolbox_pos_offsets[world_idx]
-        # if self.world_random_scale is not None:
-        #     toolbox_pos += np.random.uniform(
-        #         low=-1.0 * self.world_random_scale, high=self.world_random_scale, size=3
-        #     )
-        # self.model.body("toolbox").pos = toolbox_pos
+        # if world_idx is None:
+        #     world_idx = cumulative_idx % len(self.toolbox_pos_offsets)
 
         return world_idx

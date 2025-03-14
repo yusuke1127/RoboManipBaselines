@@ -21,8 +21,6 @@ class RealEnvBase(gym.Env, ABC):
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02  # [s]
-        if kwargs.get("scale_dt") is not None:
-            self.dt *= kwargs["scale_dt"]
         self.world_random_scale = None
 
     def setup_realsense(self, camera_ids):

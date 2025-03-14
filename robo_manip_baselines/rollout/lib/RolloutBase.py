@@ -142,11 +142,6 @@ class RolloutBase(ABC):
             type=int,
             help="step interval to draw the plot",
         )
-        parser.add_argument(
-            "--scale_dt",
-            type=float,
-            help="dt scale of environment (used only in real-world environments)",
-        )
         parser.add_argument("--seed", type=int, default=42, help="random seed")
         parser.add_argument(
             "--win_xy_policy",
