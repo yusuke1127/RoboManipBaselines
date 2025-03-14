@@ -3,7 +3,7 @@ import os
 import pickle
 import sys
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import cv2
 import matplotlib
@@ -17,14 +17,70 @@ from torchvision.transforms import v2
 from robo_manip_baselines.common import (
     DataKey,
     MotionManager,
-    Phase,
+    PhaseBase,
     PhaseManager,
-    PhaseOrder,
     normalize_data,
 )
 
 
-class RolloutBase(metaclass=ABCMeta):
+class InitialRolloutPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        if self.op.args.wait_before_start:
+            print(f"[{self.op.__class__.__name__}] Press the 'n' key to proceed.")
+
+    def check_transition(self):
+        if self.op.args.wait_before_start:
+            return self.op.key == ord("n")
+        else:
+            duration = 1.0  # [s]
+            return self.get_elapsed_duration() > duration
+
+
+class RolloutPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        self.op.rollout_time_idx = 0
+        print(
+            f"[{self.op.__class__.__name__}] Start policy rollout. Press the 'n' key to finish policy rollout."
+        )
+
+    def pre_update(self):
+        if self.op.rollout_time_idx % self.op.args.skip == 0:
+            inference_start_time = time.time()
+            self.op.infer_policy()
+            self.op.inference_duration_list.append(time.time() - inference_start_time)
+
+        self.op.set_command_data()
+
+    def post_update(self):
+        if self.op.rollout_time_idx % self.op.args.skip_draw == 0:
+            self.op.draw_plot()
+
+        self.op.rollout_time_idx += 1
+
+    def check_transition(self):
+        if self.op.key == ord("n"):
+            self.op.print_statistics()
+            return True
+        else:
+            return False
+
+
+class EndRolloutPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(f"[{self.op.__class__.__name__}] Press the 'n' key to exit.")
+
+    def post_update(self):
+        if self.op.key == ord("n"):
+            self.op.quit_flag = True
+
+
+class RolloutBase(ABC):
     def __init__(self):
         self.setup_args()
 
@@ -42,7 +98,13 @@ class RolloutBase(metaclass=ABCMeta):
         self.motion_manager = MotionManager(self.env)
 
         # Setup phase manager
-        self.phase_manager = PhaseManager(self.env, PhaseOrder.ROLLOUT)
+        phase_order = [
+            InitialRolloutPhase(self),
+            *self.get_pre_motion_phases(),
+            RolloutPhase(self),
+            EndRolloutPhase(self),
+        ]
+        self.phase_manager = PhaseManager(phase_order)
 
         # Setup environment
         self.env.unwrapped.world_random_scale = self.args.world_random_scale
@@ -131,9 +193,10 @@ class RolloutBase(metaclass=ABCMeta):
     def setup_policy(self):
         pass
 
-    @abstractmethod
     def setup_env(self):
-        pass
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] This method should be defined in the Operation class and inherited from it."
+        )
 
     def setup_plot(self, fig_ax=None):
         matplotlib.use("agg")
@@ -171,6 +234,9 @@ class RolloutBase(metaclass=ABCMeta):
         self.image_transforms = v2.ToDtype(torch.float32, scale=True)
         self.policy_action_list = np.empty((0, self.action_dim))
 
+    def get_pre_motion_phases(self):
+        return []
+
     def print_policy_info(self):
         print(
             f"[{self.__class__.__name__}] Construct {self.policy_name} policy.\n"
@@ -193,80 +259,25 @@ class RolloutBase(metaclass=ABCMeta):
         self.policy.eval()
 
     def run(self):
+        self.quit_flag = False
+        self.inference_duration_list = []
+
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
-        inference_duration_list = []
         while True:
-            if self.phase_manager.phase == Phase.ROLLOUT:
-                if self.rollout_time_idx % self.args.skip == 0:
-                    inference_start_time = time.time()
-                    self.infer_policy()
-                    inference_duration_list.append(time.time() - inference_start_time)
+            self.phase_manager.pre_update()
 
-            # Set command
-            self.set_command()
-
-            # Set action
             env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-
-            # Step environment
             self.obs, _, _, _, self.info = self.env.step(env_action)
 
-            # Draw plots
-            if self.phase_manager.phase == Phase.ROLLOUT:
-                if self.rollout_time_idx % self.args.skip_draw == 0:
-                    self.draw_plot()
+            self.phase_manager.post_update()
 
-            # Manage phase
-            key = cv2.waitKey(1)
-            if self.phase_manager.phase == Phase.INITIAL:
-                initial_duration = 1.0  # [s]
-                if (
-                    not self.args.wait_before_start
-                    and self.phase_manager.get_phase_elapsed_duration()
-                    > initial_duration
-                ) or (self.args.wait_before_start and key == ord("n")):
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.PRE_REACH:
-                pre_reach_duration = 0.7  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.REACH:
-                reach_duration = 0.3  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.GRASP:
-                grasp_duration = 0.5  # [s]
-                if self.phase_manager.get_phase_elapsed_duration() > grasp_duration:
-                    self.rollout_time_idx = 0
-                    print(
-                        f"[{self.__class__.__name__}] Press the 'n' key to finish policy rollout."
-                    )
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.ROLLOUT:
-                self.rollout_time_idx += 1
-                if key == ord("n"):
-                    print(f"[{self.__class__.__name__}] Statistics on policy inference")
-                    policy_model_size = self.calc_model_size()
-                    print(
-                        f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}"
-                    )
-                    gpu_memory_usage = torch.cuda.max_memory_reserved()
-                    print(
-                        f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}"
-                    )
-                    inference_duration_list = np.array(inference_duration_list)
-                    print(
-                        "  - Inference duration [s] | "
-                        f"mean: {inference_duration_list.mean():.2e}, std: {inference_duration_list.std():.2e} "
-                        f"min: {inference_duration_list.min():.2e}, max: {inference_duration_list.max():.2e}"
-                    )
-                    print(f"[{self.__class__.__name__}] Press the 'n' key to exit.")
-                    self.phase_manager.set_next_phase()
-            elif self.phase_manager.phase == Phase.END:
-                if key == ord("n"):
-                    break
-            if key == 27:  # escape key
+            self.key = cv2.waitKey(1)
+            self.phase_manager.check_transition()
+
+            if self.key == 27:  # escape key
+                self.quit_flag = True
+            if self.quit_flag:
                 break
 
         # self.env.close()
@@ -304,38 +315,24 @@ class RolloutBase(metaclass=ABCMeta):
 
         return images
 
-    def set_command(self, action_keys=None):
-        if action_keys is None:
-            action_keys = self.action_keys
-
-        if self.phase_manager.phase == Phase.ROLLOUT:
-            is_skip = self.rollout_time_idx % self.args.skip != 0
-            action_idx = 0
-            for key in action_keys:
-                action_dim = DataKey.get_dim(key, self.env)
-                self.motion_manager.set_command_data(
-                    key,
-                    self.policy_action[action_idx : action_idx + action_dim],
-                    is_skip,
-                )
-                action_idx += action_dim
-        else:
-            self.set_arm_command()
-            self.set_gripper_command()
-
-    def set_arm_command(self):
-        pass
-
-    def set_gripper_command(self):
-        if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.set_command_data(
-                DataKey.COMMAND_GRIPPER_JOINT_POS,
-                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
-            )
-
     @abstractmethod
     def draw_plot(self):
         pass
+
+    def set_command_data(self, action_keys=None):
+        if action_keys is None:
+            action_keys = self.action_keys
+
+        is_skip = self.rollout_time_idx % self.args.skip != 0
+        action_idx = 0
+        for key in action_keys:
+            action_dim = DataKey.get_dim(key, self.env)
+            self.motion_manager.set_command_data(
+                key,
+                self.policy_action[action_idx : action_idx + action_dim],
+                is_skip,
+            )
+            action_idx += action_dim
 
     def plot_images(self, axes):
         for camera_idx, camera_name in enumerate(self.camera_names):
@@ -353,6 +350,20 @@ class RolloutBase(metaclass=ABCMeta):
         ax.tick_params(axis="x", labelsize=16)
         ax.tick_params(axis="y", labelsize=16)
         ax.axis("on")
+
+    def print_statistics(self):
+        print(f"[{self.__class__.__name__}] Statistics on policy inference")
+        policy_model_size = self.calc_model_size()
+        print(f"  - Policy model size [MB] | {policy_model_size / 1024**2:.2f}")
+        gpu_memory_usage = torch.cuda.max_memory_reserved()
+        print(f"  - GPU memory usage [GB] | {gpu_memory_usage / 1024**3:.3f}")
+        inference_duration_arr = np.array(self.inference_duration_list)
+        print(
+            "  - Inference duration [s] | "
+            f"mean: {inference_duration_arr.mean():.2e}, std: {inference_duration_arr.std():.2e} "
+            f"min: {inference_duration_arr.min():.2e}, max: {inference_duration_arr.max():.2e}"
+        )
+        print(f"[{self.__class__.__name__}] Press the 'n' key to exit.")
 
     def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2

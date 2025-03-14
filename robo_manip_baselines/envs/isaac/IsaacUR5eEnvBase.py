@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from os import path
 
 import gymnasium as gym
@@ -11,7 +11,7 @@ from isaacgym import (
 )
 
 
-class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
+class IsaacUR5eEnvBase(gym.Env, ABC):
     metadata = {
         "render_modes": [
             "human",

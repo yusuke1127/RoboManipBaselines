@@ -8,7 +8,7 @@ from .DataUtils import (
     get_skipped_data_seq,
     get_skipped_single_data,
 )
-from .Phase import Phase, PhaseOrder
+from .PhaseBase import PhaseBase, ReachPhaseBase, GraspPhaseBase
 from .PhaseManager import PhaseManager
 from .DatasetBase import DatasetBase
 from .TrainBase import TrainBase
@@ -26,3 +26,4 @@ from .VisionUtils import (
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
 )
+from .MiscUtils import remove_suffix

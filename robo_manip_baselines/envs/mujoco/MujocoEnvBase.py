@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import mujoco
 import numpy as np
@@ -6,7 +6,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 
 
-class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
+class MujocoEnvBase(MujocoEnv, ABC):
     sim_timestep = 0.004
     frame_skip = 8
     metadata = {

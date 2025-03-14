@@ -1,8 +1,8 @@
 import time
 
-import numpy as np
+import cv2
 
-from robo_manip_baselines.common import DataKey, DataManagerVec, Phase
+from robo_manip_baselines.common import DataKey, DataManagerVec
 
 from .TeleopBase import TeleopBase
 
@@ -15,157 +15,148 @@ class TeleopBaseVec(TeleopBase):
 
         if self.args.replay_log is not None:
             raise NotImplementedError(
-                '[{self.__class__.__name__}] The "replay_log" option is not supported.'
+                f'[{self.__class__.__name__}] The "replay_log" option is not supported.'
             )
 
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
-        iteration_duration_list = []
+        self.iteration_duration_list = []
 
         while True:
             iteration_start_time = time.time()
 
-            # Reset
             if self.reset_flag:
-                self.motion_manager.reset()
-                self.phase_manager.reset()
-                self.data_manager.reset()
-                if self.args.world_idx_list is None:
-                    world_idx = None
-                else:
-                    world_idx = self.args.world_idx_list[
-                        self.data_manager.episode_idx % len(self.args.world_idx_list)
-                    ]
-                self.data_manager.setup_env_world(world_idx)
-                self.env.reset()
-                obs_list = self.env.unwrapped.obs_list
-                info_list = self.env.unwrapped.info_list
-                print(
-                    "[{}] episode_idx: {}, world_idx: {}".format(
-                        self.demo_name,
-                        self.data_manager.episode_idx,
-                        self.data_manager.world_idx,
-                    )
-                )
-                print(
-                    f"[{self.__class__.__name__}] Press the 'n' key to start automatic grasping."
-                )
+                self.reset()
                 self.reset_flag = False
 
-            # Read input device
-            if self.phase_manager.phase == Phase.TELEOP:
-                self.input_device.read()
+            self.phase_manager.pre_update()
+            self.motion_manager.draw_markers()
 
-            # Set command
-            self.set_command()
-
-            # Set action
             action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
-            update_fluctuation = self.phase_manager.phase == Phase.TELEOP
-            action_list = self.env.unwrapped.get_fluctuated_action_list(
-                action, update_fluctuation
+            self.action_list = self.env.unwrapped.get_fluctuated_action_list(
+                action, update_fluctuation=self.phase_manager.is_phase("TeleopPhase")
             )
 
-            # Record data
-            if self.phase_manager.phase == Phase.TELEOP:
-                # Add time
-                self.data_manager.append_single_data(
-                    DataKey.TIME,
-                    [self.phase_manager.get_phase_elapsed_duration()]
-                    * self.env.unwrapped.num_envs,
-                )
+            if self.phase_manager.is_phase("TeleopPhase"):
+                self.record_data()
 
-                # Add measured data
-                for key in (
-                    DataKey.MEASURED_JOINT_POS,
-                    DataKey.MEASURED_JOINT_VEL,
-                    DataKey.MEASURED_GRIPPER_JOINT_POS,
-                    DataKey.MEASURED_EEF_POSE,
-                    DataKey.MEASURED_EEF_WRENCH,
-                ):
-                    self.data_manager.append_single_data(
-                        key,
-                        [
-                            self.motion_manager.get_measured_data(key, obs)
-                            for obs in obs_list
-                        ],
-                    )
-
-                # Add command data
-                for key in (
-                    DataKey.COMMAND_JOINT_POS,
-                    DataKey.COMMAND_GRIPPER_JOINT_POS,
-                    # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
-                    DataKey.COMMAND_EEF_POSE,
-                ):
-                    self.data_manager.append_single_data(
-                        key,
-                        [
-                            self.motion_manager.get_command_data(key)
-                            for action in action_list
-                        ],
-                    )
-
-                # Add relative data
-                for key in (
-                    DataKey.MEASURED_JOINT_POS_REL,
-                    DataKey.COMMAND_JOINT_POS_REL,
-                    DataKey.MEASURED_EEF_POSE_REL,
-                    DataKey.COMMAND_EEF_POSE_REL,
-                ):
-                    self.data_manager.append_single_data(
-                        key, self.data_manager.calc_rel_data(key)
-                    )
-
-                # Add image
-                for camera_name in self.env.unwrapped.camera_names:
-                    self.data_manager.append_single_data(
-                        DataKey.get_rgb_image_key(camera_name),
-                        [info["rgb_images"][camera_name] for info in info_list],
-                    )
-                    self.data_manager.append_single_data(
-                        DataKey.get_depth_image_key(camera_name),
-                        [info["depth_images"][camera_name] for info in info_list],
-                    )
-
-            # Step environment
-            self.env.unwrapped.action_list = action_list
+            self.env.unwrapped.action_list = self.action_list
             self.env.step(action)
-            obs_list = self.env.unwrapped.obs_list
-            info_list = self.env.unwrapped.info_list
+            self.obs_list = self.env.unwrapped.obs_list
+            self.info_list = self.env.unwrapped.info_list
+            self.obs = self.obs_list[self.env.unwrapped.rep_env_idx]
+            self.info = self.info_list[self.env.unwrapped.rep_env_idx]
 
-            # Draw images
-            self.draw_image(info_list[self.env.unwrapped.rep_env_idx])
+            self.draw_image()
 
-            # Draw point clouds
             if self.args.enable_3d_plot:
-                self.draw_point_cloud(info_list[[self.env.unwrapped.rep_env_idx]])
+                self.draw_point_cloud()
 
-            # Manage phase
-            self.manage_phase()
+            self.phase_manager.post_update()
+
+            self.key = cv2.waitKey(1)
+            self.phase_manager.check_transition()
+
+            if self.key == 27:  # escape key
+                self.quit_flag = True
             if self.quit_flag:
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.phase_manager.phase == Phase.TELEOP and self.teleop_time_idx > 0:
-                iteration_duration_list.append(iteration_duration)
+            if self.phase_manager.is_phase("TeleopPhase") and self.teleop_time_idx > 0:
+                self.iteration_duration_list.append(iteration_duration)
+
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
-        print(f"[{self.__class__.__name__}] Statistics on teleoperation")
-        if len(iteration_duration_list) > 0:
-            iteration_duration_list = np.array(iteration_duration_list)
-            print(
-                f"  - Real-time factor | {self.env.unwrapped.dt / iteration_duration_list.mean():.2f}"
-            )
-            print(
-                "  - Iteration duration [s] | "
-                f"mean: {iteration_duration_list.mean():.3f}, std: {iteration_duration_list.std():.3f} "
-                f"min: {iteration_duration_list.min():.3f}, max: {iteration_duration_list.max():.3f}"
-            )
+        self.print_statistics()
 
         # self.env.close()
+
+    def reset(self):
+        # Reset motion manager
+        self.motion_manager.reset()
+
+        # Reset data
+        self.data_manager.reset()
+        if self.args.world_idx_list is None:
+            world_idx = None
+        else:
+            world_idx = self.args.world_idx_list[
+                self.data_manager.episode_idx % len(self.args.world_idx_list)
+            ]
+
+        # Reset environment
+        self.data_manager.setup_env_world(world_idx)
+        self.env.reset()
+        print(
+            f"[{self.__class__.__name__}] Reset environment. demo_name: {self.demo_name}, world_idx: {self.data_manager.world_idx}, episode_idx: {self.data_manager.episode_idx}"
+        )
+
+        # Reset phase manager
+        self.phase_manager.reset()
+
+    def record_data(self):
+        # Add time
+        self.data_manager.append_single_data(
+            DataKey.TIME,
+            [self.phase_manager.phase.get_elapsed_duration()]
+            * self.env.unwrapped.num_envs,
+        )
+
+        # Add measured data
+        for key in (
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.MEASURED_JOINT_VEL,
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
+            DataKey.MEASURED_EEF_POSE,
+            DataKey.MEASURED_EEF_WRENCH,
+        ):
+            self.data_manager.append_single_data(
+                key,
+                [
+                    self.motion_manager.get_measured_data(key, obs)
+                    for obs in self.obs_list
+                ],
+            )
+
+        # Add command data
+        for key in (
+            DataKey.COMMAND_JOINT_POS,
+            DataKey.COMMAND_GRIPPER_JOINT_POS,
+            # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
+            DataKey.COMMAND_EEF_POSE,
+        ):
+            self.data_manager.append_single_data(
+                key,
+                [
+                    self.motion_manager.get_command_data(key)
+                    for action in self.action_list
+                ],
+            )
+
+        # Add relative data
+        for key in (
+            DataKey.MEASURED_JOINT_POS_REL,
+            DataKey.COMMAND_JOINT_POS_REL,
+            DataKey.MEASURED_EEF_POSE_REL,
+            DataKey.COMMAND_EEF_POSE_REL,
+        ):
+            self.data_manager.append_single_data(
+                key, self.data_manager.calc_rel_data(key)
+            )
+
+        # Add image
+        for camera_name in self.env.unwrapped.camera_names:
+            self.data_manager.append_single_data(
+                DataKey.get_rgb_image_key(camera_name),
+                [info["rgb_images"][camera_name] for info in self.info_list],
+            )
+            self.data_manager.append_single_data(
+                DataKey.get_depth_image_key(camera_name),
+                [info["depth_images"][camera_name] for info in self.info_list],
+            )
 
     def save_data(self):
         filename_list = []

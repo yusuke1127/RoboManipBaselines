@@ -36,7 +36,8 @@ class SpacemouseInputDevice(InputDeviceBase):
         for i in range(10):
             self.state = pyspacemouse.read()
 
-    def set_arm_command(self):
+    def set_command_data(self):
+        # Set arm command
         delta_pos = self.command_pos_scale * np.array(
             [
                 -1.0 * self.state.y,
@@ -58,7 +59,7 @@ class SpacemouseInputDevice(InputDeviceBase):
 
         self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
 
-    def set_gripper_command(self):
+        # Set gripper command
         gripper_joint_pos = self.motion_manager.get_command_data(
             DataKey.COMMAND_GRIPPER_JOINT_POS
         )

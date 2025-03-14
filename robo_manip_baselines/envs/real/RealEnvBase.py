@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import cv2
 import gymnasium as gym
@@ -9,7 +9,7 @@ import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
 
-class RealEnvBase(gym.Env, metaclass=ABCMeta):
+class RealEnvBase(gym.Env, ABC):
     metadata = {
         "render_modes": [],
     }
