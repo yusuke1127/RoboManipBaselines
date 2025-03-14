@@ -1,6 +1,7 @@
 import argparse
 import math
 import os
+import subprocess
 import sys
 import tempfile
 from datetime import datetime, timedelta
@@ -519,25 +520,55 @@ def read_video(input_file_name, final_frames, frame_periods, column_num, border_
 
 
 def write_video(final_frames, output_file_name, frame_rate, codec):
+    # Get the output directory and create it if it does not exist
     output_dir_name = os.path.dirname(output_file_name)
     if output_dir_name:  # false if empty, "/", or no directory (e.g., "output.mp4")
         if not os.path.exists(output_dir_name):  # check if the directory does not exist
             os.makedirs(output_dir_name)
 
+    # If the output_file_name already exists, rename it
+    if os.path.exists(output_file_name):
+        backup_file_name = output_file_name + "~"
+        os.rename(output_file_name, backup_file_name)
+        print(
+            f"The existing file '{output_file_name}' has been renamed to '{backup_file_name}'."
+        )
+
+    # Write video frames to a temporary file
+    temp_dir_name = tempfile.gettempdir()
+    temp_file_name = os.path.join(temp_dir_name, "temp_video.mp4")
     fourcc = cv2.VideoWriter_fourcc(*codec)
     writer_out = cv2.VideoWriter(
-        output_file_name,
+        temp_file_name,
         fourcc,
         frame_rate,
         (final_frames.shape[2], final_frames.shape[1]),
     )
-
     for i_frame_curr in tqdm(
         range(final_frames.shape[0]), desc=writer_out.write.__name__
     ):
         writer_out.write(final_frames[i_frame_curr, ...])
-
     writer_out.release()
+
+    # Use FFmpeg to create a high-compression video file
+    subprocess.run(
+        [
+            "ffmpeg",  # Call the FFmpeg command-line tool
+            "-i",
+            temp_file_name,  # Specify the input file
+            "-c:v",
+            "libx264",  # Set the video codec to libx264 (H.264 encoding)
+            "-preset",
+            "slow",  # Use the 'slow' preset for better compression (slower encoding)
+            "-crf",
+            "23",  # Set Constant Rate Factor to 23 for a balanced quality and file size.
+            "-c:a",
+            "copy",  # Copy the audio stream without re-encoding
+            output_file_name,  # Specify the output file
+        ],
+        check=False,
+    )
+    os.remove(temp_file_name)
 
 
 def main():
