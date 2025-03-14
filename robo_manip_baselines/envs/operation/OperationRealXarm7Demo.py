@@ -27,3 +27,9 @@ class OperationRealXarm7Demo(object):
 
     def get_pre_motion_phases(self):
         return [GraspPhase(self)]
+
+    def get_input_device_kwargs(self):
+        if self.args.input_device == "spacemouse":
+            return {"gripper_scale": 20.0}
+        else:
+            return super().get_input_device_kwargs()

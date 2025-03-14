@@ -46,3 +46,9 @@ class OperationMujocoUR5eParticle(object):
             ReachPhase2(self),
             GraspPhase(self),
         ]
+
+    def get_input_device_kwargs(self):
+        if self.args.input_device == "spacemouse":
+            return {"rpy_scale": 1e-2}
+        else:
+            return super().get_input_device_kwargs()

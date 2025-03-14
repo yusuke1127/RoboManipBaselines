@@ -59,6 +59,7 @@ def main():
     )
     RolloutPolicyClass = getattr(policy_module, f"Rollout{args.policy}")
 
+    # The order of parent classes must not be changed in order to maintain the method resolution order (MRO)
     class Rollout(OperationEnvClass, RolloutPolicyClass):
         pass
 

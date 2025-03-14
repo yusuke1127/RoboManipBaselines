@@ -233,22 +233,27 @@ class TeleopBase(ABC):
             f"[{self.__class__.__name__}] This method should be defined in the Operation class and inherited from it."
         )
 
+    def get_pre_motion_phases(self):
+        return []
+
     def setup_input_device(self):
+        kwargs = self.get_input_device_kwargs()
+
         if self.args.input_device == "spacemouse":
             from .SpacemouseInputDevice import SpacemouseInputDevice
 
-            self.input_device = SpacemouseInputDevice(self.motion_manager)
+            self.input_device = SpacemouseInputDevice(self.motion_manager, **kwargs)
         elif self.args.input_device == "gello":
             from .GelloInputDevice import GelloInputDevice
 
-            self.input_device = GelloInputDevice(self.motion_manager)
+            self.input_device = GelloInputDevice(self.motion_manager, **kwargs)
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
             )
 
-    def get_pre_motion_phases(self):
-        return []
+    def get_input_device_kwargs(self):
+        return {}
 
     def run(self):
         self.reset_flag = True

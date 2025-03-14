@@ -9,12 +9,14 @@ from .InputDeviceBase import InputDeviceBase
 class SpacemouseInputDevice(InputDeviceBase):
     """Spacemouse for teleoperation input device."""
 
-    def __init__(self, motion_manager):
+    def __init__(
+        self, motion_manager, pos_scale=1e-2, rpy_scale=5e-3, gripper_scale=5.0
+    ):
         super().__init__(motion_manager)
 
-        self.command_pos_scale = 1e-2
-        self.command_rpy_scale = 5e-3
-        self.gripper_scale = 5.0
+        self.pos_scale = pos_scale
+        self.rpy_scale = rpy_scale
+        self.gripper_scale = gripper_scale
 
     def connect(self):
         if self.connected:
@@ -38,14 +40,14 @@ class SpacemouseInputDevice(InputDeviceBase):
 
     def set_command_data(self):
         # Set arm command
-        delta_pos = self.command_pos_scale * np.array(
+        delta_pos = self.pos_scale * np.array(
             [
                 -1.0 * self.state.y,
                 self.state.x,
                 self.state.z,
             ]
         )
-        delta_rpy = self.command_rpy_scale * np.array(
+        delta_rpy = self.rpy_scale * np.array(
             [
                 -1.0 * self.state.roll,
                 -1.0 * self.state.pitch,

@@ -39,6 +39,7 @@ def main():
     )
     OperationEnvClass = getattr(operation_module, f"Operation{args.env}")
 
+    # The order of parent classes must not be changed in order to maintain the method resolution order (MRO)
     class Teleop(OperationEnvClass, TeleopBase):
         pass
 
