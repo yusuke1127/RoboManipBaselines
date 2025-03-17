@@ -2,7 +2,7 @@ import argparse
 import datetime
 import sys
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC
 
 import cv2
 import matplotlib.pylab as plt
@@ -12,19 +12,143 @@ from robo_manip_baselines.common import (
     DataKey,
     DataManager,
     MotionManager,
-    Phase,
+    PhaseBase,
     PhaseManager,
-    PhaseOrder,
     convert_depth_image_to_color_image,
     convert_depth_image_to_point_cloud,
+    remove_suffix,
     set_random_seed,
 )
 
 
-class TeleopBase(metaclass=ABCMeta):
+class InitialTeleopPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(f"[{self.op.__class__.__name__}] Press the 'n' key to proceed.")
+
+    def check_transition(self):
+        return self.op.key == ord("n")
+
+
+class StandbyTeleopPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        self.op.input_device.connect()
+        print(
+            f"[{self.op.__class__.__name__}] Press the 'n' key to start teleoperation."
+        )
+
+    def post_update(self):
+        self.op.input_device.read()
+
+    def check_transition(self):
+        return self.op.key == ord("n") and self.op.input_device.is_ready()
+
+
+class SyncPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(
+            f"[{self.op.__class__.__name__}] Press the 'n' key to start teleoperation with recording."
+        )
+
+    def pre_update(self):
+        self.op.input_device.read()
+        self.op.input_device.set_command_data()
+
+    def check_transition(self):
+        return self.op.key == ord("n")
+
+
+class TeleopPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        self.op.teleop_time_idx = 0
+        print(
+            f"[{self.op.__class__.__name__}] Press the 'n' key to finish teleoperation."
+        )
+
+    def pre_update(self):
+        self.op.input_device.read()
+        self.op.input_device.set_command_data()
+
+    def post_update(self):
+        self.op.teleop_time_idx += 1
+
+    def check_transition(self):
+        if self.op.key == ord("n"):
+            print(
+                f"[{self.op.__class__.__name__}] Finish teleoperation. duration: {self.get_elapsed_duration():.1f} [s]"
+            )
+            return True
+        else:
+            return False
+
+
+class EndTeleopPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(
+            f"[{self.op.__class__.__name__}] Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed."
+        )
+
+    def post_update(self):
+        if self.op.key == ord("s"):
+            self.op.save_data()
+            self.op.reset_flag = True
+        elif self.op.key == ord("f"):
+            print(
+                f"[{self.op.__class__.__name__}] Teleoperation failed: Reset without saving"
+            )
+            self.op.reset_flag = True
+
+
+class ReplayPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        self.op.teleop_time_idx = 0
+        print(f"[{self.op.__class__.__name__}] Start to replay the log motion.")
+
+    def pre_update(self):
+        for replay_key in self.op.args.replay_keys:
+            self.op.motion_manager.set_command_data(
+                replay_key,
+                self.op.data_manager.get_single_data(
+                    replay_key, self.op.teleop_time_idx
+                ),
+            )
+
+    def post_update(self):
+        self.op.teleop_time_idx += 1
+
+    def check_transition(self):
+        return self.op.teleop_time_idx == len(
+            self.op.data_manager.get_data_seq(DataKey.TIME)
+        )
+
+
+class EndReplayPhase(PhaseBase):
+    def start(self):
+        super().start()
+
+        print(
+            f"[{self.op.__class__.__name__}] The log motion has finished replaying. Press the 'n' key to exit."
+        )
+
+    def post_update(self):
+        if self.op.key == ord("n"):
+            self.op.quit_flag = True
+
+
+class TeleopBase(ABC):
     MotionManagerClass = MotionManager
     DataManagerClass = DataManager
-    PhaseManagerClass = PhaseManager
 
     def __init__(self):
         # Setup arguments
@@ -34,6 +158,7 @@ class TeleopBase(metaclass=ABCMeta):
 
         # Setup gym environment
         self.setup_env()
+        self.demo_name = self.args.demo_name or remove_suffix(self.env.spec.name, "Env")
         self.env.reset(seed=self.args.seed)
 
         # Setup motion manager
@@ -45,7 +170,22 @@ class TeleopBase(metaclass=ABCMeta):
         self.datetime_now = datetime.datetime.now()
 
         # Setup phase manager
-        self.phase_manager = self.PhaseManagerClass(self.env, PhaseOrder.TELEOP)
+        if self.args.replay_log is None:
+            operation_phases = [
+                StandbyTeleopPhase(self),
+                TeleopPhase(self),
+                EndTeleopPhase(self),
+            ]
+            if self.args.sync_before_record:
+                operation_phases.insert(1, SyncPhase(self))
+        else:
+            operation_phases = [ReplayPhase(self), EndReplayPhase(self)]
+        phase_order = [
+            InitialTeleopPhase(self),
+            *self.get_pre_motion_phases(),
+            *operation_phases,
+        ]
+        self.phase_manager = PhaseManager(phase_order)
 
         # Setup 3D plot
         if self.args.enable_3d_plot:
@@ -81,6 +221,11 @@ class TeleopBase(metaclass=ABCMeta):
             help="input device for teleoperation",
         )
         parser.add_argument(
+            "--sync_before_record",
+            action="store_true",
+            help="whether to synchronize with input device before starting record",
+        )
+        parser.add_argument(
             "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
         )
         parser.add_argument(
@@ -109,96 +254,84 @@ class TeleopBase(metaclass=ABCMeta):
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
 
-    @abstractmethod
     def setup_env(self):
-        pass
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] This method should be defined in the Operation class and inherited from it."
+        )
+
+    def get_pre_motion_phases(self):
+        return []
 
     def setup_input_device(self):
+        kwargs = self.get_input_device_kwargs()
+
         if self.args.input_device == "spacemouse":
             from .SpacemouseInputDevice import SpacemouseInputDevice
 
-            self.input_device = SpacemouseInputDevice(self.motion_manager)
+            self.input_device = SpacemouseInputDevice(self.motion_manager, **kwargs)
         elif self.args.input_device == "gello":
             from .GelloInputDevice import GelloInputDevice
 
-            self.input_device = GelloInputDevice(self.motion_manager)
+            self.input_device = GelloInputDevice(self.motion_manager, **kwargs)
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
             )
 
+    def get_input_device_kwargs(self):
+        return {}
+
     def run(self):
         self.reset_flag = True
         self.quit_flag = False
-        iteration_duration_list = []
+        self.iteration_duration_list = []
 
         while True:
             iteration_start_time = time.time()
 
-            # Reset
             if self.reset_flag:
                 self.reset()
                 self.reset_flag = False
 
-            # Read input device
-            if (
-                self.phase_manager.phase == Phase.TELEOP
-                and self.args.replay_log is None
-            ):
-                self.input_device.read()
+            self.phase_manager.pre_update()
+            self.motion_manager.draw_markers()
 
-            # Set command
-            self.set_command()
-
-            # Set action
             action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
 
-            # Record data
-            if (
-                self.phase_manager.phase == Phase.TELEOP
-                and self.args.replay_log is None
-            ):
-                self.record_data(obs, info)  # noqa: F821
+            if self.phase_manager.is_phase("TeleopPhase"):
+                self.record_data()
 
-            # Step environment
-            obs, _, _, _, info = self.env.step(action)
+            self.obs, _, _, _, self.info = self.env.step(action)
 
-            # Draw images
-            self.draw_image(info)
+            self.draw_image()
 
-            # Draw point clouds
             if self.args.enable_3d_plot:
-                self.draw_point_cloud(info)
+                self.draw_point_cloud()
 
-            # Manage phase
-            self.manage_phase()
+            self.phase_manager.post_update()
+
+            self.key = cv2.waitKey(1)
+            self.phase_manager.check_transition()
+
+            if self.key == 27:  # escape key
+                self.quit_flag = True
             if self.quit_flag:
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.phase_manager.phase == Phase.TELEOP and self.teleop_time_idx > 0:
-                iteration_duration_list.append(iteration_duration)
+            if self.phase_manager.is_phase("TeleopPhase") and self.teleop_time_idx > 0:
+                self.iteration_duration_list.append(iteration_duration)
+
             if iteration_duration < self.env.unwrapped.dt:
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
-        print(f"[{self.__class__.__name__}] Statistics on teleoperation")
-        if len(iteration_duration_list) > 0:
-            iteration_duration_list = np.array(iteration_duration_list)
-            print(
-                f"  - Real-time factor | {self.env.unwrapped.dt / iteration_duration_list.mean():.2f}"
-            )
-            print(
-                "  - Iteration duration [s] | "
-                f"mean: {iteration_duration_list.mean():.3f}, std: {iteration_duration_list.std():.3f} "
-                f"min: {iteration_duration_list.min():.3f}, max: {iteration_duration_list.max():.3f}"
-            )
+        self.print_statistics()
 
         # self.env.close()
 
     def reset(self):
-        # Reset managers
+        # Reset motion manager
         self.motion_manager.reset()
-        self.phase_manager.reset()
 
         # Reset or load data
         if self.args.replay_log is None:
@@ -228,51 +361,18 @@ class TeleopBase(metaclass=ABCMeta):
 
         # Reset environment
         self.data_manager.setup_env_world(world_idx)
-        obs, info = self.env.reset()
-
+        self.env.reset()
         print(
-            "[{}] episode_idx: {}, world_idx: {}".format(
-                self.demo_name,
-                self.data_manager.episode_idx,
-                self.data_manager.world_idx,
-            )
-        )
-        print(
-            f"[{self.__class__.__name__}] Press the 'n' key to start automatic grasping."
+            f"[{self.__class__.__name__}] Reset environment. demo_name: {self.demo_name}, world_idx: {self.data_manager.world_idx}, episode_idx: {self.data_manager.episode_idx}"
         )
 
-    def set_command(self):
-        if self.args.replay_log is not None and self.phase_manager.phase in (
-            Phase.TELEOP,
-            Phase.END,
-        ):
-            for replay_key in self.args.replay_keys:
-                self.motion_manager.set_command_data(
-                    replay_key,
-                    self.data_manager.get_single_data(replay_key, self.teleop_time_idx),
-                )
-        else:
-            self.set_arm_command()
-            self.set_gripper_command()
-            self.motion_manager.draw_markers()
+        # Reset phase manager
+        self.phase_manager.reset()
 
-    def set_arm_command(self):
-        if self.phase_manager.phase == Phase.TELEOP:
-            self.input_device.set_arm_command()
-
-    def set_gripper_command(self):
-        if self.phase_manager.phase == Phase.GRASP:
-            self.motion_manager.set_command_data(
-                DataKey.COMMAND_GRIPPER_JOINT_POS,
-                self.env.action_space.high[self.env.unwrapped.gripper_joint_idxes],
-            )
-        elif self.phase_manager.phase == Phase.TELEOP:
-            self.input_device.set_gripper_command()
-
-    def record_data(self, obs, info):
+    def record_data(self):
         # Add time
         self.data_manager.append_single_data(
-            DataKey.TIME, self.phase_manager.get_phase_elapsed_duration()
+            DataKey.TIME, self.phase_manager.phase.get_elapsed_duration()
         )
 
         # Add measured data
@@ -284,7 +384,7 @@ class TeleopBase(metaclass=ABCMeta):
             DataKey.MEASURED_EEF_WRENCH,
         ):
             self.data_manager.append_single_data(
-                key, self.motion_manager.get_measured_data(key, obs)
+                key, self.motion_manager.get_measured_data(key, self.obs)
             )
 
         # Add command data
@@ -312,26 +412,38 @@ class TeleopBase(metaclass=ABCMeta):
         for camera_name in self.env.unwrapped.camera_names:
             self.data_manager.append_single_data(
                 DataKey.get_rgb_image_key(camera_name),
-                info["rgb_images"][camera_name],
+                self.info["rgb_images"][camera_name],
             )
             self.data_manager.append_single_data(
                 DataKey.get_depth_image_key(camera_name),
-                info["depth_images"][camera_name],
+                self.info["depth_images"][camera_name],
             )
         for tactile_name in self.env.unwrapped.tactile_names:
             self.data_manager.append_single_data(
                 DataKey.get_rgb_image_key(tactile_name),
-                info["rgb_images"][tactile_name],
+                self.info["rgb_images"][tactile_name],
             )
 
-    def draw_image(self, info):
-        phase_image = self.phase_manager.get_phase_image()
+    def draw_image(self):
+        def get_color_func(phase):
+            if phase.name in ("InitialTeleopPhase", "StandbyTeleopPhase"):
+                return np.array([200, 200, 255])
+            elif phase.name in ("SyncPhase"):
+                return np.array([255, 255, 200])
+            elif phase.name in ("TeleopPhase", "ReplayPhase"):
+                return np.array([255, 200, 200])
+            elif phase.name in ("EndTeleopPhase", "EndReplayPhase"):
+                return np.array([200, 200, 200])
+            else:
+                return np.array([200, 255, 200])
+
+        phase_image = self.phase_manager.get_phase_image(get_color_func=get_color_func)
         rgb_images = []
         depth_images = []
         for camera_name in (
             self.env.unwrapped.camera_names + self.env.unwrapped.tactile_names
         ):
-            rgb_image = info["rgb_images"][camera_name]
+            rgb_image = self.info["rgb_images"][camera_name]
             image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
             resized_image_width = phase_image.shape[1] / 2
             resized_image_size = (
@@ -345,7 +457,7 @@ class TeleopBase(metaclass=ABCMeta):
                 )
             else:
                 depth_image = convert_depth_image_to_color_image(
-                    info["depth_images"][camera_name]
+                    self.info["depth_images"][camera_name]
                 )
                 depth_images.append(cv2.resize(depth_image, resized_image_size))
         window_image = cv2.vconcat(
@@ -360,14 +472,14 @@ class TeleopBase(metaclass=ABCMeta):
         )
         cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
 
-    def draw_point_cloud(self, info):
+    def draw_point_cloud(self):
         far_clip_list = (3.0, 3.0, 0.8)  # [m]
         for camera_idx, camera_name in enumerate(self.env.unwrapped.camera_names):
             point_cloud_skip = 10
-            small_depth_image = info["depth_images"][camera_name][
+            small_depth_image = self.info["depth_images"][camera_name][
                 ::point_cloud_skip, ::point_cloud_skip
             ]
-            small_rgb_image = info["rgb_images"][camera_name][
+            small_rgb_image = self.info["rgb_images"][camera_name][
                 ::point_cloud_skip, ::point_cloud_skip
             ]
             fovy = self.data_manager.get_meta_data(
@@ -407,73 +519,6 @@ class TeleopBase(metaclass=ABCMeta):
         plt.draw()
         plt.pause(0.001)
 
-    def manage_phase(self):
-        key = cv2.waitKey(1)
-        if self.phase_manager.phase == Phase.INITIAL:
-            if key == ord("n"):
-                self.phase_manager.set_next_phase()
-        elif self.phase_manager.phase == Phase.PRE_REACH:
-            pre_reach_duration = 0.7  # [s]
-            if self.phase_manager.get_phase_elapsed_duration() > pre_reach_duration:
-                self.phase_manager.set_next_phase()
-        elif self.phase_manager.phase == Phase.REACH:
-            reach_duration = 0.3  # [s]
-            if self.phase_manager.get_phase_elapsed_duration() > reach_duration:
-                print(
-                    f"[{self.__class__.__name__}] Press the 'n' key to start teleoperation after the gripper is closed."
-                )
-                self.phase_manager.set_next_phase()
-        elif self.phase_manager.phase == Phase.GRASP:
-            if key == ord("n"):
-                if self.args.replay_log is None:
-                    self.input_device.connect()
-                self.teleop_time_idx = 0
-                if self.args.replay_log is None:
-                    print(
-                        f"[{self.__class__.__name__}] Press the 'n' key to finish teleoperation."
-                    )
-                else:
-                    print(
-                        f"[{self.__class__.__name__}] Start to replay the log motion."
-                    )
-                self.phase_manager.set_next_phase()
-        elif self.phase_manager.phase == Phase.TELEOP:
-            self.teleop_time_idx += 1
-            if self.args.replay_log is None:
-                if key == ord("n"):
-                    print(
-                        f"[{self.__class__.__name__}] Press the 's' key if the teleoperation succeeded,"
-                        " or the 'f' key if it failed. (duration: {:.1f} [s])".format(
-                            self.phase_manager.get_phase_elapsed_duration()
-                        )
-                    )
-                    self.phase_manager.set_next_phase()
-            else:
-                if self.teleop_time_idx == len(
-                    self.data_manager.get_data_seq(DataKey.TIME)
-                ):
-                    self.teleop_time_idx -= 1
-                    print(
-                        f"[{self.__class__.__name__}] The log motion has finished replaying. Press the 'n' key to exit."
-                    )
-                    self.phase_manager.set_next_phase()
-        elif self.phase_manager.phase == Phase.END:
-            if self.args.replay_log is None:
-                if key == ord("s"):
-                    # Save data
-                    self.save_data()
-                    self.reset_flag = True
-                elif key == ord("f"):
-                    print(
-                        f"[{self.__class__.__name__}] Teleoperation failed: Reset without saving"
-                    )
-                    self.reset_flag = True
-            else:
-                if key == ord("n"):
-                    self.quit_flag = True
-        if key == 27:  # escape key
-            self.quit_flag = True
-
     def save_data(self, filename=None):
         if filename is None:
             filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.hdf5".format(
@@ -488,3 +533,16 @@ class TeleopBase(metaclass=ABCMeta):
         print(
             f"[{self.__class__.__name__}] Teleoperation succeeded: Save the data as {filename}"
         )
+
+    def print_statistics(self):
+        print(f"[{self.__class__.__name__}] Statistics on teleoperation")
+        if len(self.iteration_duration_list) > 0:
+            iteration_duration_arr = np.array(self.iteration_duration_list)
+            print(
+                f"  - Real-time factor | {self.env.unwrapped.dt / iteration_duration_arr.mean():.2f}"
+            )
+            print(
+                "  - Iteration duration [s] | "
+                f"mean: {iteration_duration_arr.mean():.3f}, std: {iteration_duration_arr.std():.3f} "
+                f"min: {iteration_duration_arr.min():.3f}, max: {iteration_duration_arr.max():.3f}"
+            )

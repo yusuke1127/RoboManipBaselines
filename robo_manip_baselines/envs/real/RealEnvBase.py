@@ -1,7 +1,7 @@
 import os
 import re
 import time
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import cv2
 import gymnasium as gym
@@ -9,7 +9,7 @@ import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
 
-class RealEnvBase(gym.Env, metaclass=ABCMeta):
+class RealEnvBase(gym.Env, ABC):
     metadata = {
         "render_modes": [],
     }
@@ -21,8 +21,6 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02  # [s]
-        if kwargs.get("scale_dt") is not None:
-            self.dt *= kwargs["scale_dt"]
         self.world_random_scale = None
 
     def setup_realsense(self, camera_ids):

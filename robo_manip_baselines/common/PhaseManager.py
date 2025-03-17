@@ -1,67 +1,57 @@
 import cv2
 import numpy as np
 
-from .Phase import Phase
+from .MiscUtils import remove_suffix
 
 
 class PhaseManager(object):
     """Phase manager."""
 
-    def __init__(self, env, phase_order, phase=None):
-        self.env = env
+    def __init__(self, phase_order):
         self.phase_order = phase_order
-
-        if phase is None:
-            self.initial_phase = self.phase_order[0]
-        else:
-            self.initial_phase = phase
 
         self.reset()
 
     def reset(self):
-        """Reset."""
-        self.set_phase(self.initial_phase)
+        self._set_phase(0)
 
-    def set_phase(self, phase):
-        """Set phase."""
-        self.phase = phase
+    def pre_update(self):
+        self.phase.pre_update()
 
-        if self.env is not None:
-            self.phase_start_time = self.env.unwrapped.get_time()
+    def post_update(self):
+        self.phase.post_update()
 
-    def set_next_phase(self):
-        """Set the next phase."""
-        idx = self.phase_order.index(self.phase)
+    def check_transition(self):
+        if self.phase.check_transition():
+            self._set_phase(self.phase_idx + 1)
 
-        if idx == len(self.phase_order) - 1:
+    def _set_phase(self, phase_idx):
+        if not (0 <= phase_idx < len(self.phase_order)):
             raise RuntimeError(
-                f"[{self.__class__.__name__}] Cannot go from the last phase to the next."
+                f"[{self.__class__.__name__}] Invalid phase index: {phase_idx}"
             )
 
-        self.set_phase(self.phase_order[idx + 1])
+        self.phase_idx = phase_idx
+        self.phase.start()
 
-    def get_phase_image(self, size=(50, 320)):
-        """Get the image corresponding to the phase."""
-        phase_image = np.zeros(size + (3,), dtype=np.uint8)
+    @property
+    def phase(self):
+        return self.phase_order[self.phase_idx]
 
-        if self.phase == Phase.INITIAL:
-            phase_image[:, :] = np.array([200, 255, 200])
-        elif self.phase in (
-            Phase.PRE_REACH,
-            Phase.REACH,
-            Phase.GRASP,
-        ):
-            phase_image[:, :] = np.array([255, 255, 200])
-        elif self.phase in (Phase.TELEOP, Phase.ROLLOUT):
-            phase_image[:, :] = np.array([255, 200, 200])
-        elif self.phase == Phase.END:
-            phase_image[:, :] = np.array([200, 200, 255])
-        else:
-            raise ValueError(f"[{self.__class__.__name__}] Unknown phase: {self.phase}")
+    def is_phase(self, phase_name):
+        return self.phase.name == phase_name
+
+    def is_phases(self, phase_name_list):
+        return any(self.is_phase(phase_name) for phase_name in phase_name_list)
+
+    def get_phase_image(self, size=(320, 50), get_color_func=lambda phase: 255):
+        phase_image = np.full(
+            size[::-1] + (3,), get_color_func(self.phase), dtype=np.uint8
+        )
 
         cv2.putText(
             phase_image,
-            self.phase.upper(),
+            remove_suffix(self.phase.name, "Phase"),
             (5, 35),
             cv2.FONT_HERSHEY_DUPLEX,
             0.8,
@@ -70,12 +60,3 @@ class PhaseManager(object):
         )
 
         return phase_image
-
-    def get_phase_elapsed_duration(self):
-        """Get the elapsed duration of the current phase."""
-        if self.env is None:
-            raise RuntimeError(
-                f"[{self.__class__.__name__}] get_phase_elapsed_duration() cannot be called when env is None."
-            )
-
-        return self.env.unwrapped.get_time() - self.phase_start_time

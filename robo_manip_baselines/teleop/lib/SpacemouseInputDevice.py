@@ -9,12 +9,14 @@ from .InputDeviceBase import InputDeviceBase
 class SpacemouseInputDevice(InputDeviceBase):
     """Spacemouse for teleoperation input device."""
 
-    def __init__(self, motion_manager):
+    def __init__(
+        self, motion_manager, pos_scale=1e-2, rpy_scale=5e-3, gripper_scale=5.0
+    ):
         super().__init__(motion_manager)
 
-        self.command_pos_scale = 1e-2
-        self.command_rpy_scale = 5e-3
-        self.gripper_scale = 5.0
+        self.pos_scale = pos_scale
+        self.rpy_scale = rpy_scale
+        self.gripper_scale = gripper_scale
 
     def connect(self):
         if self.connected:
@@ -36,15 +38,16 @@ class SpacemouseInputDevice(InputDeviceBase):
         for i in range(10):
             self.state = pyspacemouse.read()
 
-    def set_arm_command(self):
-        delta_pos = self.command_pos_scale * np.array(
+    def set_command_data(self):
+        # Set arm command
+        delta_pos = self.pos_scale * np.array(
             [
                 -1.0 * self.state.y,
                 self.state.x,
                 self.state.z,
             ]
         )
-        delta_rpy = self.command_rpy_scale * np.array(
+        delta_rpy = self.rpy_scale * np.array(
             [
                 -1.0 * self.state.roll,
                 -1.0 * self.state.pitch,
@@ -58,7 +61,7 @@ class SpacemouseInputDevice(InputDeviceBase):
 
         self.motion_manager.set_command_data(DataKey.COMMAND_EEF_POSE, target_se3)
 
-    def set_gripper_command(self):
+        # Set gripper command
         gripper_joint_pos = self.motion_manager.get_command_data(
             DataKey.COMMAND_GRIPPER_JOINT_POS
         )

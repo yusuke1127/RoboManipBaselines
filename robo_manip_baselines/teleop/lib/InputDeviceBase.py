@@ -1,7 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 
-class InputDeviceBase(metaclass=ABCMeta):
+class InputDeviceBase(ABC):
     """Base class for teleoperation input device."""
 
     def __init__(self, motion_manager):
@@ -14,14 +14,13 @@ class InputDeviceBase(metaclass=ABCMeta):
     def connect(self):
         pass
 
+    def is_ready(self):
+        return True
+
     @abstractmethod
     def read(self):
         pass
 
     @abstractmethod
-    def set_arm_command(self):
-        pass
-
-    @abstractmethod
-    def set_gripper_command(self):
+    def set_command_data(self):
         pass
