@@ -1,3 +1,3 @@
 from .lib.SarnnPolicy import SarnnPolicy
-from .lib.RmbSarnnDataset import RmbSarnnDataset
+from .lib.SarnnDataset import SarnnDataset
 from .lib.RolloutSarnn import RolloutSarnn

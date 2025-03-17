@@ -7,13 +7,13 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 
 from robo_manip_baselines.common import DataKey, TrainBase
-from robo_manip_baselines.sarnn import RmbSarnnDataset, SarnnPolicy
+from robo_manip_baselines.sarnn import SarnnDataset, SarnnPolicy
 
 
 class TrainSarnn(TrainBase):
     policy_name = "SARNN"
     policy_dir = os.path.join(os.path.dirname(__file__), "..")
-    DatasetClass = RmbSarnnDataset
+    DatasetClass = SarnnDataset
 
     def __init__(self):
         super().__init__()

@@ -12,7 +12,7 @@ from robo_manip_baselines.common import (
 )
 
 
-class RmbSarnnDataset(DatasetBase):
+class SarnnDataset(DatasetBase):
     """Dataset to train SARNN policy."""
 
     def __len__(self):

@@ -9,14 +9,14 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/ac
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
-from robo_manip_baselines.act import RmbActDataset
+from robo_manip_baselines.act import ActDataset
 from robo_manip_baselines.common import TrainBase
 
 
 class TrainAct(TrainBase):
     policy_name = "ACT"
     policy_dir = os.path.join(os.path.dirname(__file__), "..")
-    DatasetClass = RmbActDataset
+    DatasetClass = ActDataset
 
     def set_additional_args(self, parser):
         parser.set_defaults(batch_size=8)

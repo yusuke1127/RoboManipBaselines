@@ -15,7 +15,7 @@ from diffusion_policy.dataset.base_dataset import BaseImageDataset
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 
 
-class RmbDiffusionPolicyDataset(BaseImageDataset):
+class DiffusionPolicyDataset(BaseImageDataset):
     def __init__(
         self,
         zarr_path,

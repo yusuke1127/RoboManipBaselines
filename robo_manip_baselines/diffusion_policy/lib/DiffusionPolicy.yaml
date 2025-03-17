@@ -1,4 +1,4 @@
-name: RmbDiffusionPolicy
+name: DiffusionPolicy
 
 enable_wandb: True # added in robo_manip_baselines
 
@@ -141,7 +141,7 @@ task:
       shape: [7]
 
   dataset:
-    _target_: robo_manip_baselines.diffusion_policy.RmbDiffusionPolicyDataset
+    _target_: robo_manip_baselines.diffusion_policy.DiffusionPolicyDataset
     zarr_path: data/teleop_data/learning_data.zarr
     horizon: ${horizon}
     pad_before: ${eval:'${n_obs_steps}-1'}
