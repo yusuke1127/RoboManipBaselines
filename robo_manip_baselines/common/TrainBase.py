@@ -5,7 +5,7 @@ import os
 import pickle
 import random
 import sys
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from copy import deepcopy
 
 import h5py
@@ -19,7 +19,7 @@ from .DataUtils import get_skipped_data_seq
 from .MathUtils import set_random_seed
 
 
-class TrainBase(metaclass=ABCMeta):
+class TrainBase(ABC):
     def __init__(self):
         self.setup_args()
 

@@ -119,9 +119,9 @@ class RolloutSarnn(RolloutBase):
 
         return images
 
-    def set_command(self):
+    def set_command_data(self):
         action_keys = [DataKey.get_command_key(key) for key in self.state_keys]
-        super().set_command(action_keys)
+        super().set_command_data(action_keys)
 
     def draw_plot(self):
         # Clear plot
