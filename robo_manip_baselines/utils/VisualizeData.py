@@ -45,7 +45,6 @@ def key_event(event):
 
 class VisualizeData:
     def __init__(self, teleop_filename, skip, output_mp4_filename, mp4_codec):
-
         print(f"[{self.__class__.__name__}] {self.data_setup.__name__} ...")
         self.data_setup(teleop_filename, skip)
 
@@ -240,7 +239,6 @@ class VisualizeData:
         )
 
     def plot(self):
-
         for time_idx in tqdm(
             range(0, len(self.data_manager.get_data_seq(DataKey.TIME)), self.skip),
             desc=self.ax[0, 0].plot.__name__,
