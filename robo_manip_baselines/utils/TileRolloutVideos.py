@@ -430,7 +430,6 @@ class TileRolloutVideos:
         keep_white_margin,
         max_video_width,
     ):
-
         if not self.quiet:
             print(
                 f"[{self.__class__.__name__}] {self.resize_video_ifneeded.__name__} ..."
@@ -488,7 +487,6 @@ class TileRolloutVideos:
         return initial_frames, frame_periods
 
     def tile_video(self, final_frames, frame_periods):
-
         if not self.quiet:
             print(f"[{self.__class__.__name__}] {self.tile_video.__name__} ...")
 
@@ -530,7 +528,6 @@ class TileRolloutVideos:
         return final_frames
 
     def write_video(self, final_frames, output_file_name):
-
         if not self.quiet:
             print(f"[{self.__class__.__name__}] {self.write_video.__name__} ...")
 
