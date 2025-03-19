@@ -8,14 +8,14 @@ import cv2
 class DisplayCameraImage:
     def __init__(self, camera_device_name):
         self.camera_device_name = camera_device_name
-        self.open_camera_stream(camera_device_name)
+        self.cap = self.find_device_capture(camera_device_name)
 
-    def open_camera_stream(self, camera_device_name):
+    def find_device_capture(self, camera_device_name):
         print(f"[{self.__class__.__name__}] {camera_device_name=}")
-        self.cap = None
+        cap = None
         for device_name in os.listdir("/sys/class/video4linux"):
             print(
-                f"[{self.__class__.__name__}] {self.open_camera_stream.__name__}, {device_name=}"
+                f"[{self.__class__.__name__}] {self.find_device_capture.__name__}, {device_name=}"
             )
             real_device_name = os.path.realpath(
                 "/sys/class/video4linux/" + device_name + "/name"
@@ -25,19 +25,20 @@ class DisplayCameraImage:
             if camera_device_name in detected_device_id:
                 device_num = int(re.search(r"\d+$", device_name).group(0))
                 print(
-                    f"[{self.__class__.__name__}] {self.open_camera_stream.__name__}, "
+                    f"[{self.__class__.__name__}] {self.find_device_capture.__name__}, "
                     f"Found device. ID: {detected_device_id}"
                 )
-                self.cap = cv2.VideoCapture(device_num)
-                if self.cap is None or not self.cap.isOpened():
+                cap = cv2.VideoCapture(device_num)
+                if cap is None or not cap.isOpened():
                     print(
-                        f"[{self.__class__.__name__}] {self.open_camera_stream.__name__}, "
+                        f"[{self.__class__.__name__}] {self.find_device_capture.__name__}, "
                         f"Unable to open video source ({device_num=})."
                     )
                     continue
                 break
-        if self.cap is None:
+        if cap is None:
             raise LookupError()
+        return cap
 
     def display_camera_output(
         self, horizontal_size, vertical_size, x_position, y_position
@@ -48,7 +49,7 @@ class DisplayCameraImage:
         )
         cv2.moveWindow(f"{self.camera_device_name} Live", x_position, y_position)
 
-        print(f"[{self.__class__.__name__}] press q on image to exit")
+        print(f"[{self.__class__.__name__}] Press q on image to exit.")
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if ret:
