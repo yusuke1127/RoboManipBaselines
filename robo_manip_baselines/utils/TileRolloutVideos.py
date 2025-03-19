@@ -190,6 +190,8 @@ class TileRolloutVideos:
         self.satur_detection_region_ratio = satur_detection_region_ratio
 
         self.input_file_name = None
+        self.task_period_list = None
+        self.frame_rate = None
 
     @staticmethod
     def resize_video_ifneeded(input_file_name, max_video_width, quiet):
@@ -276,7 +278,7 @@ class TileRolloutVideos:
         removed_file_name = os.path.join(tempfile.mkdtemp(), "removed_white_margin.mp4")
         try:
             video_margin_removed.output(removed_file_name).run(overwrite_output=False)
-        except ffmpeg._run.Error:
+        except ffmpeg.Error:
             sys.stderr.write(f"{(input_file_name, removed_file_name)=}")
             raise
 
@@ -659,20 +661,9 @@ def parse_arg():
     args = parser.parse_args()
 
     for i in range(len(args.satur_detection_region_ratio)):
-        condition_str = f"0.0 <= args.satur_detection_region_ratio[{i}] <= 1.0"
-        assert eval(condition_str), (
-            "\n\t"
-            "asserted: " + condition_str + "\n\t"
-            f"{args.satur_detection_region_ratio[i]=}"
-        )
+        assert 0.0 <= args.satur_detection_region_ratio[i] <= 1.0
 
-    for i in range(len(args.satur_detection_region_ratio)):
-        condition_str = "args.input_file_name != args.output_file_name"
-        assert eval(condition_str), (
-            "\n\t"
-            "asserted: " + condition_str + "\n\t"
-            f"{(args.input_file_name, args.output_file_name)=}"
-        )
+    assert args.input_file_name != args.output_file_name
 
     if not args.quiet:
         print(f"{args=}")
