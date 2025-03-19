@@ -1,2 +1,2 @@
-from .lib.RmbDiffusionPolicyDataset import RmbDiffusionPolicyDataset
+from .lib.DiffusionPolicyDataset import DiffusionPolicyDataset
 from .lib.RolloutDiffusionPolicy import RolloutDiffusionPolicy

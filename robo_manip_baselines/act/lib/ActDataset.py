@@ -10,7 +10,7 @@ from robo_manip_baselines.common import (
 )
 
 
-class RmbActDataset(DatasetBase):
+class ActDataset(DatasetBase):
     """Dataset to train ACT policy."""
 
     def __len__(self):
