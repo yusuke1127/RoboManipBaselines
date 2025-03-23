@@ -210,12 +210,12 @@ class RolloutBase(ABC):
         self.canvas = FigureCanvasAgg(self.fig)
         self.canvas.draw()
         cv2.imshow(
-            "Policy image",
+            self.policy_name,
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )
 
         if self.args.win_xy_policy is not None:
-            cv2.moveWindow("Policy image", *self.args.win_xy_policy)
+            cv2.moveWindow(self.policy_name, *self.args.win_xy_policy)
         cv2.waitKey(1)
 
         if len(self.action_keys) > 0:
