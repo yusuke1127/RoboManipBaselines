@@ -64,7 +64,7 @@ class DatasetBase(torch.utils.data.Dataset):
         """Pre-convert data. Arguments must be numpy arrays (not torch tensors)."""
         state = normalize_data(state, self.model_meta_info["state"])
         action = normalize_data(action, self.model_meta_info["action"])
-        images = np.transpose(images, (*range(images.ndim - 3), -1, -3, -2))
+        images = np.moveaxis(images, -1, -3)
 
         return state, action, images
 

@@ -111,9 +111,9 @@ class RolloutSarnn(RolloutBase):
 
             image = crop_and_resize(image[np.newaxis], image_crop_size, image_size)[0]
 
-            image = np.einsum("h w c -> c h w", image)
+            image = np.moveaxis(image, -1, -3)
             image = torch.tensor(image, dtype=torch.uint8)
-            image = self.image_transforms(image)[np.newaxis].to(self.device)
+            image = self.image_transforms(image)[torch.newaxis].to(self.device)
 
             images.append(image)
 
@@ -162,13 +162,9 @@ class RolloutSarnn(RolloutBase):
             )
         ):
             self.ax[0, camera_idx + 1].imshow(image)
-            self.ax[0, camera_idx + 1].set_title(
-                f"{camera_name} observed image", fontsize=20
-            )
+            self.ax[0, camera_idx + 1].set_title(f"obs {camera_name}", fontsize=20)
             self.ax[1, camera_idx + 1].imshow(predicted_image)
-            self.ax[1, camera_idx + 1].set_title(
-                f"{camera_name} predicted image", fontsize=20
-            )
+            self.ax[1, camera_idx + 1].set_title(f"pred {camera_name}", fontsize=20)
 
             for attention_idx in range(
                 self.model_meta_info["policy"]["args"]["num_attentions"]
@@ -190,9 +186,9 @@ class RolloutSarnn(RolloutBase):
             ax = self.ax[ax_idx, 0]
             ax.plot(data_list[-1 * history_size :] * self.action_plot_scale)
             if ax_idx == 0:
-                title = "scaled observed state"
+                title = "obs state"
             else:
-                title = "scaled predicted state"
+                title = "pred state"
             ax.set_title(title, fontsize=20)
             ax.set_xlabel("step", fontsize=16)
             ax.set_xlim(0, history_size - 1)

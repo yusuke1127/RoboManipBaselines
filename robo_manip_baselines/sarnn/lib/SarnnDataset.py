@@ -89,7 +89,7 @@ class SarnnDataset(DatasetBase):
     def pre_convert_data(self, state, image_list):
         """Pre-convert data. Arguments must be numpy arrays (not torch tensors)."""
         state = normalize_data(state, self.model_meta_info["state"])
-        image_list = [np.transpose(image, (0, 3, 1, 2)) for image in image_list]
+        image_list = [np.moveaxis(image, -1, -3) for image in image_list]
 
         return state, image_list
 

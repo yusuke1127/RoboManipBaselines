@@ -216,15 +216,17 @@ class TrainDiffusionPolicy(TrainBase):
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
                 # Update best checkpoint
-                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
+                best_ckpt_info = self.update_best_ckpt(
+                    best_ckpt_info, epoch_summary, policy=policy
+                )
             policy.train()
 
             # Save current checkpoint
             if epoch % max(self.args.num_epochs // 10, 1) == 0:
-                self.save_current_ckpt(f"epoch{epoch:0>3}")
+                self.save_current_ckpt(f"epoch{epoch:0>3}", policy=policy)
 
         # Save last checkpoint
-        self.save_current_ckpt("last")
+        self.save_current_ckpt("last", policy=policy)
 
         # Save best checkpoint
         self.save_best_ckpt(best_ckpt_info)
