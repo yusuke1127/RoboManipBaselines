@@ -1,259 +1,236 @@
+import argparse
 import copy
 import os
-import pathlib
 
-import hydra
 import numpy as np
 import torch
-import tqdm
-from diffusion_policy.common.json_logger import JsonLogger
+from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
-from diffusion_policy.dataset.base_dataset import BaseImageDataset
 from diffusion_policy.model.common.lr_scheduler import get_scheduler
 from diffusion_policy.model.diffusion.ema_model import EMAModel
-from diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace import (
-    TrainDiffusionUnetHybridWorkspace,
+from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
+    DiffusionUnetHybridImagePolicy,
 )
-from omegaconf import OmegaConf
-from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-OmegaConf.register_new_resolver("eval", eval, replace=True)
+from robo_manip_baselines.common import DataKey, TrainBase
+from robo_manip_baselines.diffusion_policy import DiffusionPolicyDataset
 
 
-class TrainDiffusionPolicy(TrainDiffusionUnetHybridWorkspace):
-    include_keys = ["global_step", "epoch"]
+class TrainDiffusionPolicy(TrainBase):
+    policy_name = "DiffusionPolicy"
+    policy_dir = os.path.join(os.path.dirname(__file__), "..")
+    DatasetClass = DiffusionPolicyDataset
 
-    def __init__(self, cfg: OmegaConf, output_dir=None):
-        super().__init__(cfg, output_dir=output_dir)
+    def setup_args(self):
+        super().setup_args()
 
-    def run(self):
-        cfg = copy.deepcopy(self.cfg)
+        # Set image size list
+        def refine_size_list(size_list):
+            if len(size_list) == 2:
+                return [tuple(size_list)] * len(self.args.camera_names)
+            else:
+                assert len(size_list) == len(self.args.camera_names) * 2
+                return [
+                    (size_list[i], size_list[i + 1])
+                    for i in range(0, len(size_list), 2)
+                ]
 
-        # resume training
-        if cfg.training.resume:
-            lastest_ckpt_path = self.get_checkpoint_path()
-            if lastest_ckpt_path.is_file():
-                print(f"Resuming from checkpoint {lastest_ckpt_path}")
-                self.load_checkpoint(path=lastest_ckpt_path)
+        self.args.image_size_list = refine_size_list(self.args.image_size_list)
 
-        # configure dataset
-        dataset: BaseImageDataset
-        dataset = hydra.utils.instantiate(cfg.task.dataset)
-        assert isinstance(dataset, BaseImageDataset)
-        train_dataloader = DataLoader(dataset, **cfg.dataloader)
-        normalizer = dataset.get_normalizer()
+    def set_additional_args(self, parser):
+        parser.set_defaults(batch_size=64)
+        parser.set_defaults(num_epochs=2000)
+        parser.set_defaults(lr=1e-4)
 
-        # configure validation dataset
-        val_dataset = dataset.get_validation_dataset()
-        val_dataloader = DataLoader(val_dataset, **cfg.val_dataloader)
-
-        self.model.set_normalizer(normalizer)
-        if cfg.training.use_ema:
-            self.ema_model.set_normalizer(normalizer)
-
-        # configure lr scheduler
-        lr_scheduler = get_scheduler(
-            cfg.training.lr_scheduler,
-            optimizer=self.optimizer,
-            num_warmup_steps=cfg.training.lr_warmup_steps,
-            num_training_steps=(len(train_dataloader) * cfg.training.num_epochs)
-            // cfg.training.gradient_accumulate_every,
-            # pytorch assumes stepping LRScheduler every epoch
-            # however huggingface diffusers steps it every batch
-            last_epoch=self.global_step - 1,
+        parser.add_argument(
+            "--weight_decay", type=float, default=1e-6, help="weight decay"
         )
 
-        # configure ema
-        ema: EMAModel = None
-        if cfg.training.use_ema:
-            ema = hydra.utils.instantiate(cfg.ema, model=self.ema_model)
+        parser.add_argument(
+            "--use_ema",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Enable or disable exponential moving average (EMA)",
+        )
 
-        # configure logging
-        if cfg.enable_wandb:
-            import wandb
+        parser.add_argument(
+            "--horizon", type=int, default=16, help="prediction horizon"
+        )
+        parser.add_argument(
+            "--n_obs_steps",
+            type=int,
+            default=2,
+            help="number of steps in observation to input in the policy",
+        )
+        parser.add_argument(
+            "--n_action_steps",
+            type=int,
+            default=8,
+            help="number of steps in the action to output from the policy",
+        )
 
-            wandb_run = wandb.init(
-                dir=str(self.output_dir),
-                config=OmegaConf.to_container(cfg, resolve=True),
-                **cfg.logging,
+        parser.add_argument(
+            "--image_size_list",
+            type=int,
+            nargs="+",
+            default=[320, 240],
+            help="List of image size (width, height). Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
+        )
+
+    def setup_model_meta_info(self):
+        super().setup_model_meta_info()
+
+        self.model_meta_info["data"]["image_size_list"] = self.args.image_size_list
+        self.model_meta_info["data"]["horizon"] = self.args.horizon
+        self.model_meta_info["data"]["n_obs_steps"] = self.args.n_obs_steps
+        self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
+
+        self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
+
+    def setup_policy(self):
+        # Set policy args
+        shape_meta = {
+            "obs": {},
+            "action": {"shape": [len(self.model_meta_info["action"]["example"])]},
+        }
+        if len(self.args.state_keys) > 0:
+            shape_meta["obs"]["state"] = {
+                "shape": [len(self.model_meta_info["state"]["example"])],
+                "type": "low_dim",
+            }
+        for camera_name, image_size in zip(
+            self.args.camera_names, self.args.image_size_list
+        ):
+            shape_meta["obs"][DataKey.get_rgb_image_key(camera_name)] = {
+                "shape": [3, image_size[1], image_size[0]],
+                "type": "rgb",
+            }
+        self.model_meta_info["policy"]["args"] = {
+            "shape_meta": shape_meta,
+            "horizon": self.args.horizon,
+            "n_action_steps": self.args.n_action_steps,
+            "n_obs_steps": self.args.n_obs_steps,
+            "num_inference_steps": 100,
+            "obs_as_global_cond": True,
+            "crop_shape": None,
+            "diffusion_step_embed_dim": 128,
+            "down_dims": [512, 1024, 2048],
+            "kernel_size": 5,
+            "n_groups": 8,
+            "cond_predict_scale": True,
+            "obs_encoder_group_norm": True,
+            "eval_fixed_crop": True,
+        }
+        self.model_meta_info["policy"]["noise_scheduler_args"] = {
+            "beta_end": 0.02,
+            "beta_schedule": "squaredcos_cap_v2",
+            "beta_start": 0.0001,
+            "clip_sample": True,
+            "num_train_timesteps": 100,
+            "prediction_type": "epsilon",
+            "variance_type": "fixed_small",
+        }
+
+        # Construct policy
+        noise_scheduler = DDPMScheduler(
+            **self.model_meta_info["policy"]["noise_scheduler_args"]
+        )
+        self.policy = DiffusionUnetHybridImagePolicy(
+            noise_scheduler=noise_scheduler,
+            **self.model_meta_info["policy"]["args"],
+        )
+
+        # Construct exponential moving average (EMA)
+        if self.args.use_ema:
+            self.ema_policy = copy.deepcopy(self.policy)
+            self.ema = EMAModel(
+                model=self.ema_policy,
+                update_after_step=0,
+                inv_gamma=1.0,
+                power=0.75,
+                min_value=0.0,
+                max_value=0.9999,
             )
-            wandb.config.update(
-                {
-                    "output_dir": self.output_dir,
-                }
-            )
 
-        # device transfer
-        device = torch.device(cfg.training.device)
-        self.model.to(device)
-        if self.ema_model is not None:
-            self.ema_model.to(device)
-        optimizer_to(self.optimizer, device)
+        # Construct optimizer
+        self.optimizer = torch.optim.AdamW(
+            self.policy.parameters(),
+            lr=self.args.lr,
+            weight_decay=self.args.weight_decay,
+            betas=(0.95, 0.999),
+            eps=1e-8,
+        )
+        self.lr_scheduler = get_scheduler(
+            name="cosine",
+            optimizer=self.optimizer,
+            num_warmup_steps=500,
+            num_training_steps=(len(self.train_dataloader) * self.args.num_epochs),
+        )
 
-        # save batch for sampling
-        train_sampling_batch = None
+        # Transfer to device
+        self.policy.cuda()
+        if self.args.use_ema:
+            self.ema_policy.cuda()
+        optimizer_to(self.optimizer, "cuda")
 
-        if cfg.training.debug:
-            cfg.training.num_epochs = 2
-            cfg.training.max_train_steps = 3
-            cfg.training.max_val_steps = 3
-            cfg.training.rollout_every = 1
-            cfg.training.checkpoint_every = 1
-            cfg.training.val_every = 1
-            cfg.training.sample_every = 1
+        # Print policy information
+        self.print_policy_info()
+        print(f"  - use ema: {self.args.use_ema}")
+        print(
+            f"  - horizon: {self.args.horizon}, obs steps: {self.args.n_obs_steps}, action steps: {self.args.n_action_steps}"
+        )
+        print(f"  - image size list: {self.args.image_size_list}")
 
-        # training loop
-        log_path = os.path.join(self.output_dir, "logs.json.txt")
-        with JsonLogger(log_path) as json_logger:
-            for local_epoch_idx in range(cfg.training.num_epochs):
-                step_log = dict()
-                # ========= train for this epoch ==========
-                train_losses = list()
-                with tqdm.tqdm(
-                    train_dataloader,
-                    desc=f"Training epoch {self.epoch}",
-                    leave=False,
-                    mininterval=cfg.training.tqdm_interval_sec,
-                ) as tepoch:
-                    for batch_idx, batch in enumerate(tepoch):
-                        # device transfer
-                        batch = dict_apply(
-                            batch, lambda x: x.to(device, non_blocking=True)
-                        )
-                        if train_sampling_batch is None:
-                            train_sampling_batch = batch
+    def train_loop(self):
+        best_ckpt_info = {"loss": np.inf}
+        for epoch in tqdm(range(self.args.num_epochs)):
+            # Run train step
+            batch_result_list = []
+            for data in self.train_dataloader:
+                loss = self.policy.compute_loss(dict_apply(data, lambda x: x.cuda()))
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.lr_scheduler.step()
+                if self.args.use_ema:
+                    self.ema.step(self.policy)
+                batch_result_list.append(
+                    self.detach_batch_result(
+                        {"loss": loss, "lr": self.lr_scheduler.get_last_lr()[0]}
+                    )
+                )
+            self.log_epoch_summary(batch_result_list, "train", epoch)
 
-                        # compute loss
-                        raw_loss = self.model.compute_loss(batch)
-                        loss = raw_loss / cfg.training.gradient_accumulate_every
-                        loss.backward()
+            # Run validation step
+            if self.args.use_ema:
+                policy = self.ema_policy
+            else:
+                policy = self.policy
+            policy.eval()
+            with torch.inference_mode():
+                batch_result_list = []
+                for data in self.val_dataloader:
+                    loss = policy.compute_loss(dict_apply(data, lambda x: x.cuda()))
+                    batch_result_list.append(self.detach_batch_result({"loss": loss}))
+                epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
-                        # step optimizer
-                        if (
-                            self.global_step % cfg.training.gradient_accumulate_every
-                            == 0
-                        ):
-                            self.optimizer.step()
-                            self.optimizer.zero_grad()
-                            lr_scheduler.step()
+                # Update best checkpoint
+                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
+            policy.train()
 
-                        # update ema
-                        if cfg.training.use_ema:
-                            ema.step(self.model)
+            # Save current checkpoint
+            if epoch % max(self.args.num_epochs // 10, 1) == 0:
+                self.save_current_ckpt(f"epoch{epoch:0>3}")
 
-                        # logging
-                        raw_loss_cpu = raw_loss.item()
-                        tepoch.set_postfix(loss=raw_loss_cpu, refresh=False)
-                        train_losses.append(raw_loss_cpu)
-                        step_log = {
-                            "train_loss": raw_loss_cpu,
-                            "global_step": self.global_step,
-                            "epoch": self.epoch,
-                            "lr": lr_scheduler.get_last_lr()[0],
-                        }
+        # Save last checkpoint
+        self.save_current_ckpt("last")
 
-                        is_last_batch = batch_idx == (len(train_dataloader) - 1)
-                        if not is_last_batch:
-                            # log of last step is combined with validation and rollout
-                            if cfg.enable_wandb:
-                                wandb_run.log(step_log, step=self.global_step)
-                            json_logger.log(step_log)
-                            self.global_step += 1
-
-                        if (cfg.training.max_train_steps is not None) and batch_idx >= (
-                            cfg.training.max_train_steps - 1
-                        ):
-                            break
-
-                # at the end of each epoch
-                # replace train_loss with epoch average
-                train_loss = np.mean(train_losses)
-                step_log["train_loss"] = train_loss
-
-                # ========= eval for this epoch ==========
-                policy = self.model
-                if cfg.training.use_ema:
-                    policy = self.ema_model
-                policy.eval()
-
-                # run validation
-                if (self.epoch % cfg.training.val_every) == 0:
-                    with torch.no_grad():
-                        val_losses = list()
-                        with tqdm.tqdm(
-                            val_dataloader,
-                            desc=f"Validation epoch {self.epoch}",
-                            leave=False,
-                            mininterval=cfg.training.tqdm_interval_sec,
-                        ) as tepoch:
-                            for batch_idx, batch in enumerate(tepoch):
-                                batch = dict_apply(
-                                    batch, lambda x: x.to(device, non_blocking=True)
-                                )
-                                loss = self.model.compute_loss(batch)
-                                val_losses.append(loss)
-                                if (
-                                    cfg.training.max_val_steps is not None
-                                ) and batch_idx >= (cfg.training.max_val_steps - 1):
-                                    break
-                        if len(val_losses) > 0:
-                            val_loss = torch.mean(torch.tensor(val_losses)).item()
-                            # log epoch average validation loss
-                            step_log["val_loss"] = val_loss
-
-                # run diffusion sampling on a training batch
-                if (self.epoch % cfg.training.sample_every) == 0:
-                    with torch.no_grad():
-                        # sample trajectory from training set, and evaluate difference
-                        batch = dict_apply(
-                            train_sampling_batch,
-                            lambda x: x.to(device, non_blocking=True),
-                        )
-                        obs_dict = batch["obs"]
-                        gt_action = batch["action"]
-
-                        result = policy.predict_action(obs_dict)
-                        pred_action = result["action_pred"]
-                        mse = torch.nn.functional.mse_loss(pred_action, gt_action)
-                        step_log["train_action_mse_error"] = mse.item()
-                        del batch
-                        del obs_dict
-                        del gt_action
-                        del result
-                        del pred_action
-                        del mse
-
-                # checkpoint
-                if (self.epoch % cfg.training.checkpoint_every) == 0:
-                    # checkpointing
-                    if cfg.checkpoint.save_last_ckpt:
-                        self.save_checkpoint(tag=f"{self.epoch}")
-                    if cfg.checkpoint.save_last_snapshot:
-                        self.save_snapshot(tag=f"{self.epoch}")
-                # ========= eval end for this epoch ==========
-                policy.train()
-
-                # end of epoch
-                # log of last step is combined with validation and rollout
-                if cfg.enable_wandb:
-                    wandb_run.log(step_log, step=self.global_step)
-                json_logger.log(step_log)
-                self.global_step += 1
-                self.epoch += 1
-
-
-@hydra.main(
-    version_base=None,
-    config_path=str(pathlib.Path("..").joinpath("lib")),
-    config_name="DiffusionPolicy.yaml",
-)
-def main(cfg: OmegaConf):
-    # resolve immediately so all the ${now:} resolvers will use the same time.
-    OmegaConf.resolve(cfg)
-
-    workspace = TrainDiffusionPolicy(cfg)
-    workspace.run()
+        # Save best checkpoint
+        self.save_best_ckpt(best_ckpt_info)
 
 
 if __name__ == "__main__":
-    main()
+    train = TrainDiffusionPolicy()
+    train.run()
+    train.close()
