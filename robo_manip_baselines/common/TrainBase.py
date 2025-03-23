@@ -353,7 +353,8 @@ class TrainBase(ABC):
 
     def detach_batch_result(self, batch_result):
         for k, v in batch_result.items():
-            batch_result[k] = v.item()
+            if isinstance(v, torch.Tensor):
+                batch_result[k] = v.item()
         return batch_result
 
     def log_epoch_summary(self, batch_result_list, label, epoch):
