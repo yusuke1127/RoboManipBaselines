@@ -62,6 +62,6 @@ class RolloutMlp(RolloutBase):
         # Finalize plot
         self.canvas.draw()
         cv2.imshow(
-            "Policy image",
+            self.policy_name,
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )
