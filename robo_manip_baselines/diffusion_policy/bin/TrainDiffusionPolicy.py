@@ -223,7 +223,7 @@ class TrainDiffusionPolicy(TrainBase):
 
             # Save current checkpoint
             if epoch % max(self.args.num_epochs // 10, 1) == 0:
-                self.save_current_ckpt(f"epoch{epoch:0>3}", policy=policy)
+                self.save_current_ckpt(f"epoch{epoch:0>4}", policy=policy)
 
         # Save last checkpoint
         self.save_current_ckpt("last", policy=policy)
