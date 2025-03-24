@@ -27,10 +27,6 @@ class RealEnvBase(gym.Env, ABC):
         self.cameras = {}
         detected_camera_ids = get_device_ids()
         for camera_name, camera_id in camera_ids.items():
-            if camera_id is None:
-                self.cameras[camera_name] = None
-                continue
-
             if camera_id not in detected_camera_ids:
                 raise RuntimeError(
                     f"[{self.__class__.__name__}] Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
@@ -55,6 +51,9 @@ class RealEnvBase(gym.Env, ABC):
 
     def setup_gelsight(self, tactile_ids):
         self.tactiles = {}
+
+        if tactile_ids is None:
+            return
 
         for tactile_name, tactile_id in tactile_ids.items():
             for device_name in os.listdir("/sys/class/video4linux"):
@@ -214,10 +213,7 @@ class RealEnvBase(gym.Env, ABC):
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        camera = self.cameras[camera_name]
-        if camera is None:
-            return 45.0  # dummy
-        return camera.depth_fovy
+        return self.cameras[camera_name].depth_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
