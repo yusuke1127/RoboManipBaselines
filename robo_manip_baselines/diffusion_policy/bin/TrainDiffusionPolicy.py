@@ -2,7 +2,6 @@ import argparse
 import copy
 import os
 
-import numpy as np
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
@@ -183,7 +182,6 @@ class TrainDiffusionPolicy(TrainBase):
         print(f"  - image size list: {self.args.image_size_list}")
 
     def train_loop(self):
-        best_ckpt_info = {"loss": np.inf}
         for epoch in tqdm(range(self.args.num_epochs)):
             # Run train step
             batch_result_list = []
@@ -216,9 +214,7 @@ class TrainDiffusionPolicy(TrainBase):
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
                 # Update best checkpoint
-                best_ckpt_info = self.update_best_ckpt(
-                    best_ckpt_info, epoch_summary, policy=policy
-                )
+                self.update_best_ckpt(epoch_summary, policy=policy)
             policy.train()
 
             # Save current checkpoint
@@ -229,7 +225,7 @@ class TrainDiffusionPolicy(TrainBase):
         self.save_current_ckpt("last", policy=policy)
 
         # Save best checkpoint
-        self.save_best_ckpt(best_ckpt_info)
+        self.save_best_ckpt()
 
 
 if __name__ == "__main__":

@@ -345,6 +345,7 @@ class TrainBase(ABC):
         print(
             f"[{self.__class__.__name__}] Train with saving checkpoints: {self.args.checkpoint_dir}"
         )
+        self.best_ckpt_info = {"loss": np.inf, "epoch": -1}
         self.train_loop()
 
     @abstractmethod
@@ -359,26 +360,33 @@ class TrainBase(ABC):
 
     def log_epoch_summary(self, batch_result_list, label, epoch):
         epoch_summary = {"epoch": epoch}
+
+        if label == "train":
+            epoch_summary["GPU_usage [GB]"] = (
+                torch.cuda.max_memory_reserved() / 1024**3
+            )  # [GB]
+            epoch_summary["best_epoch"] = self.best_ckpt_info["epoch"]
+
         for k in batch_result_list[0]:
             epoch_summary[k] = np.mean(
                 [batch_result[k] for batch_result in batch_result_list]
             )
+
         for k, v in epoch_summary.items():
             self.writer.add_scalar(f"{k}/{label}", v, epoch)
+
         return epoch_summary
 
-    def update_best_ckpt(self, best_ckpt_info, epoch_summary, policy=None):
+    def update_best_ckpt(self, epoch_summary, policy=None):
         if policy is None:
             policy = self.policy
 
-        if epoch_summary["loss"] < best_ckpt_info["loss"]:
-            best_ckpt_info = {
+        if epoch_summary["loss"] < self.best_ckpt_info["loss"]:
+            self.best_ckpt_info = {
                 "epoch": epoch_summary["epoch"],
                 "loss": epoch_summary["loss"],
                 "state_dict": copy.deepcopy(policy.state_dict()),
             }
-
-        return best_ckpt_info
 
     def save_current_ckpt(self, ckpt_suffix, policy=None):
         if policy is None:
@@ -387,11 +395,11 @@ class TrainBase(ABC):
         ckpt_path = os.path.join(self.args.checkpoint_dir, f"policy_{ckpt_suffix}.ckpt")
         torch.save(policy.state_dict(), ckpt_path)
 
-    def save_best_ckpt(self, best_ckpt_info):
+    def save_best_ckpt(self):
         ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_best.ckpt")
-        torch.save(best_ckpt_info["state_dict"], ckpt_path)
+        torch.save(self.best_ckpt_info["state_dict"], ckpt_path)
         print(
-            f"[{self.__class__.__name__}] Best val loss is {best_ckpt_info['loss']:.3f} at epoch {best_ckpt_info['epoch']}"
+            f"[{self.__class__.__name__}] Best val loss is {self.best_ckpt_info['loss']:.3f} at epoch {self.best_ckpt_info['epoch']}"
         )
 
     def close(self):
