@@ -210,12 +210,12 @@ class RolloutBase(ABC):
         self.canvas = FigureCanvasAgg(self.fig)
         self.canvas.draw()
         cv2.imshow(
-            "Policy image",
+            self.policy_name,
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )
 
         if self.args.win_xy_policy is not None:
-            cv2.moveWindow("Policy image", *self.args.win_xy_policy)
+            cv2.moveWindow(self.policy_name, *self.args.win_xy_policy)
         cv2.waitKey(1)
 
         if len(self.action_keys) > 0:
@@ -304,9 +304,9 @@ class RolloutBase(ABC):
             axis=0,
         )
 
-        images = np.einsum("k h w c -> k c h w", images)
+        images = np.moveaxis(images, -1, -3)
         images = torch.tensor(images, dtype=torch.uint8)
-        images = self.image_transforms(images)[np.newaxis].to(self.device)
+        images = self.image_transforms(images)[torch.newaxis].to(self.device)
 
         return images
 
@@ -332,12 +332,12 @@ class RolloutBase(ABC):
     def plot_images(self, axes):
         for camera_idx, camera_name in enumerate(self.camera_names):
             axes[camera_idx].imshow(self.info["rgb_images"][camera_name])
-            axes[camera_idx].set_title(f"{camera_name} image", fontsize=20)
+            axes[camera_idx].set_title(camera_name, fontsize=20)
 
     def plot_action(self, ax):
         history_size = 100
         ax.plot(self.policy_action_list[-1 * history_size :] * self.action_plot_scale)
-        ax.set_title("scaled action", fontsize=20)
+        ax.set_title("action", fontsize=20)
         ax.set_xlabel("step", fontsize=16)
         ax.set_xlim(0, history_size - 1)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))

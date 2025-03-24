@@ -1,4 +1,5 @@
 import argparse
+import copy
 import datetime
 import glob
 import os
@@ -6,7 +7,6 @@ import pickle
 import random
 import sys
 from abc import ABC, abstractmethod
-from copy import deepcopy
 
 import h5py
 import numpy as np
@@ -353,7 +353,8 @@ class TrainBase(ABC):
 
     def detach_batch_result(self, batch_result):
         for k, v in batch_result.items():
-            batch_result[k] = v.item()
+            if isinstance(v, torch.Tensor):
+                batch_result[k] = v.item()
         return batch_result
 
     def log_epoch_summary(self, batch_result_list, label, epoch):
@@ -366,18 +367,25 @@ class TrainBase(ABC):
             self.writer.add_scalar(f"{k}/{label}", v, epoch)
         return epoch_summary
 
-    def update_best_ckpt(self, best_ckpt_info, epoch_summary):
+    def update_best_ckpt(self, best_ckpt_info, epoch_summary, policy=None):
+        if policy is None:
+            policy = self.policy
+
         if epoch_summary["loss"] < best_ckpt_info["loss"]:
             best_ckpt_info = {
                 "epoch": epoch_summary["epoch"],
                 "loss": epoch_summary["loss"],
-                "state_dict": deepcopy(self.policy.state_dict()),
+                "state_dict": copy.deepcopy(policy.state_dict()),
             }
+
         return best_ckpt_info
 
-    def save_current_ckpt(self, ckpt_suffix):
+    def save_current_ckpt(self, ckpt_suffix, policy=None):
+        if policy is None:
+            policy = self.policy
+
         ckpt_path = os.path.join(self.args.checkpoint_dir, f"policy_{ckpt_suffix}.ckpt")
-        torch.save(self.policy.state_dict(), ckpt_path)
+        torch.save(policy.state_dict(), ckpt_path)
 
     def save_best_ckpt(self, best_ckpt_info):
         ckpt_path = os.path.join(self.args.checkpoint_dir, "policy_best.ckpt")

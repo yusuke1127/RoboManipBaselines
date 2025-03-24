@@ -4,8 +4,8 @@ import numpy as np
 
 def crop_and_resize(
     image,  # (B, H, W, C)
-    crop_size,
-    resize_size,
+    crop_size,  # (width, height)
+    resize_size,  # (width, height)
 ):
     """
     Crop and resize an image. Arguments must be numpy array (not torch tensor).
@@ -13,7 +13,8 @@ def crop_and_resize(
     Crop processing is performed so that the centers of the images before and after cropping are aligned.
     """
     # Crop
-    input_size = image.shape[1:3]
+    input_size = image.shape[1:3]  # (height, width)
+    crop_size = (crop_size[1], crop_size[0])  # (height, width)
     crop_start_pixel = [input_size[dim] // 2 - crop_size[dim] // 2 for dim in (0, 1)]
     crop_end_pixel = [crop_start_pixel[dim] + crop_size[dim] for dim in (0, 1)]
     image = image[
