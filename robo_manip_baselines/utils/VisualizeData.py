@@ -2,7 +2,7 @@ import argparse
 import io
 import os
 
-import imageio.v2 as imageio
+import cv2
 import matplotlib.pylab as plt
 import numpy as np
 from tqdm import tqdm
@@ -13,7 +13,7 @@ from robo_manip_baselines.common import (
     convert_depth_image_to_point_cloud,
 )
 
-break_flag = False
+BREAK_FLAG = False
 
 
 def parse_argument():
@@ -23,31 +23,96 @@ def parse_argument():
     parser.add_argument("teleop_filename", type=str)
     parser.add_argument("--skip", default=10, type=int, help="skip", required=False)
     parser.add_argument(
-        "--save_gif_filename",
+        "-o",
+        "--output_mp4_filename",
         type=str,
-        default="./output_" + os.path.splitext(os.path.basename(__file__))[0] + ".gif",
+        required=False,
+        help="save result as mp4 file when this option is set",
+    )
+    parser.add_argument(
+        "--mp4_codec",
+        type=str,
+        default="mp4v",
     )
     return parser.parse_args()
 
 
 def key_event(event):
-    if event.key == "q" or event.key == "escape":
-        global break_flag
-        break_flag = True
+    if event.key in ["q", "escape"]:
+        global BREAK_FLAG
+        BREAK_FLAG = True
 
 
 class VisualizeData:
-    def __init__(self, teleop_filename, skip, save_gif_filename):
-        self.skip = skip
-        self.save_gif_filename = save_gif_filename
+    def __init__(self, teleop_filename, skip, output_mp4_filename, mp4_codec):
+        print(f"[{self.__class__.__name__}] {self.data_setup.__name__} ...")
+        self.data_setup(teleop_filename, skip)
 
+        print(f"[{self.__class__.__name__}] {self.figure_axes_setup.__name__} ...")
+        self.figure_axes_setup()
+
+        print(f"[{self.__class__.__name__}] {self.video_writer_setup.__name__} ...")
+        self.video_writer_setup(output_mp4_filename, mp4_codec)
+
+        print(
+            f"[{self.__class__.__name__}] {self.axes_limits_configuration.__name__} ..."
+        )
+        self.axes_limits_configuration()
+
+        print(
+            f"[{self.__class__.__name__}] {self.plot_lists_initialization.__name__} ..."
+        )
+        self.plot_lists_initialization()
+
+    def video_writer_setup(self, output_mp4_filename, mp4_codec):
+        self.mp4_codec = mp4_codec
+        self.output_mp4_filename = output_mp4_filename
+
+        if self.output_mp4_filename:
+            base, ext = os.path.splitext(self.output_mp4_filename)
+            if ext.lower() != ".mp4":
+                print(
+                    f"[{self.__class__.__name__}] "
+                    "Warning: "
+                    f"The file '{self.output_mp4_filename}' has an incorrect extension '{ext}'. "
+                    f"Changing it to '{base}.mp4'."
+                )
+                self.output_mp4_filename = base + ".mp4"
+
+            output_mp4_dirname = os.path.dirname(self.output_mp4_filename)
+            if output_mp4_dirname:
+                os.makedirs(os.path.dirname(self.output_mp4_filename), exist_ok=True)
+            width = int(self.fig.get_figwidth() * self.fig.dpi)
+            height = int(self.fig.get_figheight() * self.fig.dpi)
+            fourcc = cv2.VideoWriter_fourcc(*self.mp4_codec)
+            self.video_writer = cv2.VideoWriter(
+                self.output_mp4_filename, fourcc, 10, (width, height)
+            )
+        else:
+            self.video_writer = None
+
+    def data_setup(self, teleop_filename, skip):
+        cls_str = f"[{self.__class__.__name__}] {self.data_setup.__name__},"
+
+        print(f"{cls_str} set skip parameter ...")
+        self.skip = skip
+
+        print(f"{cls_str} initialize data manager ...")
         self.data_manager = DataManager(env=None)
+
+        print(f"{cls_str} load teleop data from file ...")
         self.data_manager.load_data(teleop_filename)
 
+        print(f"{cls_str} retrieve 'camera_names' metadata ...")
         camera_names = self.data_manager.get_meta_data("camera_names").tolist()
+
+        print(f"{cls_str} retrieve 'tactile_names' metadata ...")
         tactile_names = self.data_manager.get_meta_data("tactile_names").tolist()
+
+        print(f"{cls_str} combine metadata lists ...")
         self.sensor_names = camera_names + tactile_names
 
+    def figure_axes_setup(self):
         plt.rcParams["keymap.quit"] = ["q", "escape"]
         self.frames = []
         self.fig, self.ax = plt.subplots(
@@ -60,6 +125,7 @@ class VisualizeData:
                 len(self.sensor_names) + 1, 4, 4 * (ax_idx + 1) - 1, projection="3d"
             )
 
+    def axes_limits_configuration(self):
         time_range = (
             self.data_manager.get_data_seq(DataKey.TIME)[0],
             self.data_manager.get_data_seq(DataKey.TIME)[-1],
@@ -85,6 +151,7 @@ class VisualizeData:
         self.ax03_twin = self.ax[0, 3].twinx()
         self.ax03_twin.set_ylim(-1.0, 1.0)
 
+    def plot_lists_initialization(self):
         self.scatter_list = [None] * 3
         self.time_list = []
         self.action_list = []
@@ -176,7 +243,7 @@ class VisualizeData:
             range(0, len(self.data_manager.get_data_seq(DataKey.TIME)), self.skip),
             desc=self.ax[0, 0].plot.__name__,
         ):
-            if break_flag:
+            if BREAK_FLAG:
                 break
 
             self.time_list.append(
@@ -265,20 +332,24 @@ class VisualizeData:
             plt.draw()
             plt.pause(0.001)
 
-            buf = io.BytesIO()
-            self.fig.savefig(buf, format="jpg")
-            buf.seek(0)
-            img = imageio.imread(buf)
-            self.frames.append(img)
-            buf.close()
+            if self.video_writer is not None:
+                buf = io.BytesIO()
+                self.fig.savefig(buf, format="jpg")
+                buf.seek(0)
+                img_array = np.frombuffer(buf.read(), dtype=np.uint8)
+                img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                self.video_writer.write(img)
+                buf.close()
 
             self.fig.canvas.mpl_connect("key_press_event", key_event)
 
-        os.makedirs(os.path.dirname(self.save_gif_filename), exist_ok=True)
-        imageio.mimsave(self.save_gif_filename, self.frames, fps=10)
-        print(
-            f"[{self.__class__.__name__}] File '{self.save_gif_filename}' has been successfully saved."
-        )
+        if self.video_writer is not None:
+            self.video_writer.release()
+            print(
+                f"[{self.__class__.__name__}] "
+                f"File '{self.output_mp4_filename}' has been successfully saved."
+            )
+
         print(f"[{self.__class__.__name__}] Press 'Q' or 'Esc' to quit.")
 
         plt.show()
@@ -286,5 +357,8 @@ class VisualizeData:
 
 if __name__ == "__main__":
     args = parse_argument()
-    viz = VisualizeData(args.teleop_filename, args.skip, args.save_gif_filename)
+    print(f"{args=}")
+    viz = VisualizeData(
+        args.teleop_filename, args.skip, args.output_mp4_filename, args.mp4_codec
+    )
     viz.plot()
