@@ -1,7 +1,6 @@
 import os
 import sys
 
-import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -69,7 +68,6 @@ class TrainAct(TrainBase):
         print(f"  - chunk size: {self.args.chunk_size}")
 
     def train_loop(self):
-        best_ckpt_info = {"loss": np.inf}
         for epoch in tqdm(range(self.args.num_epochs)):
             # Run train step
             self.policy.train()
@@ -93,7 +91,7 @@ class TrainAct(TrainBase):
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
                 # Update best checkpoint
-                best_ckpt_info = self.update_best_ckpt(best_ckpt_info, epoch_summary)
+                self.update_best_ckpt(epoch_summary)
 
             # Save current checkpoint
             if epoch % max(self.args.num_epochs // 10, 1) == 0:
@@ -103,7 +101,7 @@ class TrainAct(TrainBase):
         self.save_current_ckpt("last")
 
         # Save best checkpoint
-        self.save_best_ckpt(best_ckpt_info)
+        self.save_best_ckpt()
 
 
 if __name__ == "__main__":
