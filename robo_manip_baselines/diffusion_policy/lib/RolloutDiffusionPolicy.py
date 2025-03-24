@@ -1,157 +1,152 @@
-import argparse
-import os
-import sys
-
 import cv2
-import hydra
 import matplotlib.pylab as plt
 import numpy as np
 import torch
-from diffusion_policy.common.pytorch_util import dict_apply
+from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
+    DiffusionUnetHybridImagePolicy,
+)
 
-from robo_manip_baselines.common import DataKey
+from robo_manip_baselines.common import DataKey, denormalize_data, normalize_data
 from robo_manip_baselines.rollout import RolloutBase
-
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 
 class RolloutDiffusionPolicy(RolloutBase):
-    def setup_args(self, parser=None):
-        if parser is None:
-            parser = argparse.ArgumentParser(
-                formatter_class=argparse.ArgumentDefaultsHelpFormatter
-            )
-
-        parser.add_argument(
-            "--checkpoint",
-            type=str,
-            help="checkpoint file of diffusion policy (*.ckpt)",
-            required=True,
-        )
-
-        super().setup_args(parser)
-
-        if self.args.skip is None:
-            self.args.skip = 3
-        if self.args.skip_draw is None:
-            self.args.skip_draw = self.args.skip
+    policy_name = "DiffusionPolicy"
 
     def setup_policy(self):
-        # Define policy
-        ckpt_data = torch.load(self.args.checkpoint)
-        cfg = ckpt_data["cfg"]
-        self.policy = hydra.utils.instantiate(cfg.policy)
+        # Print policy information
+        self.print_policy_info()
+        print(f"  - use ema: {self.model_meta_info['policy']['use_ema']}")
+        print(
+            f"  - horizon: {self.model_meta_info['data']['horizon']}, obs steps: {self.model_meta_info['data']['n_obs_steps']}, action steps: {self.model_meta_info['data']['n_action_steps']}"
+        )
+        print(f"  - image size list: {self.model_meta_info['data']['image_size_list']}")
 
-        # Load weight
-        print(f"[RolloutDiffusionPolicy] Load {self.args.checkpoint}")
-        self.policy.load_state_dict(ckpt_data["state_dicts"]["ema_model"])
-        self.policy.cuda()
-        self.policy.eval()
+        # Construct policy
+        noise_scheduler = DDPMScheduler(
+            **self.model_meta_info["policy"]["noise_scheduler_args"]
+        )
+        self.policy = DiffusionUnetHybridImagePolicy(
+            noise_scheduler=noise_scheduler,
+            **self.model_meta_info["policy"]["args"],
+        )
 
-        # Set variables
-        self.joint_dim = cfg.shape_meta.action.shape[0]
-        self.joint_scales = [1.0] * (self.joint_dim - 1) + [0.01]
-        self.image_size = tuple(cfg.task.image_shape[1:][::-1])
-        self.n_obs_steps = cfg.n_obs_steps
-        self.front_image_history = None
-        self.obs_joint_history = None
-        self.future_action_seq = []
-        self.policy_action_list = np.empty((0, self.joint_dim))
+        # Load checkpoint
+        self.load_ckpt()
 
     def setup_plot(self):
-        fig_ax = plt.subplots(1, 2, figsize=(13.5, 6.0), dpi=60, squeeze=False)
-        super().setup_plot(fig_ax=fig_ax)
+        fig_ax = plt.subplots(
+            2,
+            len(self.camera_names),
+            figsize=(13.5, 6.0),
+            dpi=60,
+            squeeze=False,
+            constrained_layout=True,
+        )
+        super().setup_plot(fig_ax)
+
+    def setup_variables(self):
+        super().setup_variables()
+
+        self.state_buf = None
+        self.images_buf = None
+        self.policy_action_buf = None
 
     def infer_policy(self):
-        if self.rollout_time_idx % self.args.skip != 0:
-            return False
+        # Infer
+        if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
+            input_data = {}
+            if len(self.state_keys) > 0:
+                input_data["state"] = self.get_state()
+            for camera_name, image in zip(self.camera_names, self.get_images()):
+                input_data[DataKey.get_rgb_image_key(camera_name)] = image
+            action = self.policy.predict_action(input_data)["action"][0]
+            self.policy_action_buf = list(
+                action.cpu().detach().numpy().astype(np.float64)
+            )
 
-        # Set observation history
-        self.front_image = cv2.resize(self.info["rgb_images"]["front"], self.image_size)
-        if self.front_image_history is None:
-            self.front_image_history = []
-            for _ in range(self.n_obs_steps):
-                self.front_image_history.append(self.front_image.copy())
-        else:
-            self.front_image_history.pop(0)
-            self.front_image_history.append(self.front_image)
-        obs_joint = self.motion_manager.get_measured_data(
-            DataKey.MEASURED_JOINT_POS, self.obs
+        # Store action
+        self.policy_action = denormalize_data(
+            self.policy_action_buf.pop(0), self.model_meta_info["action"]
         )
-        if self.obs_joint_history is None:
-            self.obs_joint_history = []
-            for _ in range(self.n_obs_steps):
-                self.obs_joint_history.append(obs_joint.copy())
-        else:
-            self.obs_joint_history.pop(0)
-            self.obs_joint_history.append(obs_joint)
-
-        if len(self.future_action_seq) == 0:
-            inference_called = True
-
-            # Preprocess
-            front_image_history_input = np.moveaxis(
-                np.array(self.front_image_history).astype(np.float32) / 255, -1, 1
-            )
-            obs_joint_history_input = np.array(self.obs_joint_history).astype(
-                np.float32
-            )
-            obs_dict_input = {
-                "image": np.expand_dims(front_image_history_input, 0),
-                "joint": np.expand_dims(obs_joint_history_input, 0),
-            }
-            obs_dict_input = dict_apply(
-                obs_dict_input,
-                lambda x: torch.from_numpy(x).to(device=self.policy.device),
-            )
-
-            # Infer
-            action_dict_output = self.policy.predict_action(obs_dict_input)
-            action_dict_output = dict_apply(
-                action_dict_output, lambda x: x.detach().to("cpu").numpy()
-            )
-            self.future_action_seq = list(action_dict_output["action"][0])
-        else:
-            inference_called = False
-
-        # Store predicted action
-        self.policy_action = self.future_action_seq.pop(0)
         self.policy_action_list = np.concatenate(
-            [self.policy_action_list, np.expand_dims(self.policy_action, 0)]
+            [self.policy_action_list, self.policy_action[np.newaxis]]
         )
 
-        return inference_called
+    def get_state(self):
+        # Get latest value
+        state = np.concatenate(
+            [
+                self.motion_manager.get_data(state_key, self.obs)
+                for state_key in self.state_keys
+            ]
+        )
+        state = normalize_data(state, self.model_meta_info["state"])
+        state = torch.tensor(state, dtype=torch.float32)
+
+        # Store and return
+        if self.state_buf is None:
+            self.state_buf = [
+                state for _ in range(self.model_meta_info["data"]["n_obs_steps"])
+            ]
+        else:
+            self.state_buf.pop(0)
+            self.state_buf.append(state)
+
+        state = torch.stack(self.state_buf, dim=0)[torch.newaxis].to(self.device)
+
+        return state
+
+    def get_images(self):
+        # Get latest value
+        images = []
+        for camera_name, image_size in zip(
+            self.camera_names, self.model_meta_info["data"]["image_size_list"]
+        ):
+            image = self.info["rgb_images"][camera_name]
+
+            image = cv2.resize(image, image_size)
+
+            image = np.moveaxis(image, -1, -3)
+            image = torch.tensor(image, dtype=torch.uint8)
+            image = self.image_transforms(image)
+
+            images.append(image)
+
+        # Store and return
+        if self.images_buf is None:
+            self.images_buf = [
+                [image for _ in range(self.model_meta_info["data"]["n_obs_steps"])]
+                for image in images
+            ]
+        else:
+            for single_images_buf, image in zip(self.images_buf, images):
+                single_images_buf.pop(0)
+                single_images_buf.append(image)
+
+        images = [
+            torch.stack(single_images_buf, dim=0)[torch.newaxis].to(self.device)
+            for single_images_buf in self.images_buf
+        ]
+
+        return images
 
     def draw_plot(self):
-        if self.rollout_time_idx % self.args.skip_draw != 0:
-            return
-
+        # Clear plot
         for _ax in np.ravel(self.ax):
             _ax.cla()
             _ax.axis("off")
 
-        # Draw observed image
-        self.ax[0, 0].imshow(self.front_image)
-        self.ax[0, 0].set_title("Observed image", fontsize=20)
+        # Plot images
+        self.plot_images(self.ax[0, 0 : len(self.camera_names)])
 
-        # Plot joint
-        xlim = 500 // self.args.skip
-        self.ax[0, 1].set_yticks([-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi])
-        self.ax[0, 1].set_xlim(0, xlim)
-        for joint_idx in range(self.policy_action_list.shape[1]):
-            self.ax[0, 1].plot(
-                np.arange(self.policy_action_list.shape[0]),
-                self.policy_action_list[:, joint_idx] * self.joint_scales[joint_idx],
-            )
-        self.ax[0, 1].set_xlabel("Step", fontsize=16)
-        self.ax[0, 1].set_title("Joint", fontsize=20)
-        self.ax[0, 1].tick_params(axis="x", labelsize=16)
-        self.ax[0, 1].tick_params(axis="y", labelsize=16)
-        self.ax[0, 1].axis("on")
+        # Plot action
+        self.plot_action(self.ax[1, 0])
 
-        self.fig.tight_layout()
+        # Finalize plot
         self.canvas.draw()
         cv2.imshow(
-            "Policy image",
+            self.policy_name,
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )

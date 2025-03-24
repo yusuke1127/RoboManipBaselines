@@ -8,7 +8,7 @@
         ignore = untracked
 [submodule "third_party/diffusion_policy"]
 	path = third_party/diffusion_policy
-	url = https://github.com/real-stanford/diffusion_policy.git
+	url = https://github.com/mmurooka/diffusion_policy.git
         ignore = untracked
 [submodule "third_party/r3m"]
 	path = third_party/r3m
