@@ -70,7 +70,27 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
         self.assert_env_info_valid(dummy_real_env)
         self.show_image_loop(dummy_real_env)
 
+    @unittest.skip("Skipping.")
     def test_dummy_real_env_get_info_case2(self):
+        dummy_real_env = DummyRealEnv(
+            gelsight_ids={
+                "tactile_left": "GelSight Mini R0B 2BNK-CE0U: Ge",
+            }
+        )
+        self.assert_env_info_valid(dummy_real_env)
+        self.show_image_loop(dummy_real_env)
+
+    @unittest.skip("Skipping.")
+    def test_dummy_real_env_get_info_case3(self):
+        dummy_real_env = DummyRealEnv(
+            gelsight_ids={
+                "tactile_right": "GelSight Mini R0B 2BG8-0H3X: Ge",
+            }
+        )
+        self.assert_env_info_valid(dummy_real_env)
+        self.show_image_loop(dummy_real_env)
+
+    def test_dummy_real_env_get_info_case4(self):
         dummy_real_env = DummyRealEnv(
             gelsight_ids={
                 "tactile_left": "GelSight Mini R0B 2BNK-CE0U: Ge",
