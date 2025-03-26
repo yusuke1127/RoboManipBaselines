@@ -161,6 +161,17 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
         dummy_real_env = DummyRealEnv(
             camera_ids={"front": CAMERA_ID_FRONT},
             gelsight_ids={
+                "tactile_right": TACTILE_ID_RIGHT,
+            },
+        )
+        self.assert_env_info_valid(dummy_real_env)
+        self.show_image_loop(dummy_real_env)
+
+    @unittest.skip("Skipping.")
+    def test_dummy_real_env_get_info_case8(self):
+        dummy_real_env = DummyRealEnv(
+            camera_ids={"front": CAMERA_ID_FRONT},
+            gelsight_ids={
                 "tactile_left": TACTILE_ID_LEFT,
                 "tactile_right": TACTILE_ID_RIGHT,
             },
