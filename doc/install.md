@@ -40,16 +40,12 @@ $ pip install -e .
 ```
 
 ### [Diffusion policy](../robo_manip_baselines/diffusion_policy)
-Install dependent libraries including [r3m](https://github.com/facebookresearch/r3m) and [diffusion policy](https://github.com/real-stanford/diffusion_policy):
+Install dependent libraries including [diffusion policy](https://github.com/real-stanford/diffusion_policy):
 ```console
 $ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
 
 # Go to the top directory of this repository
 $ pip install -e .[diffusion-policy]
-
-# Go to the top directory of this repository
-$ cd third_party/r3m
-$ pip install -e .
 
 # Go to the top directory of this repository
 $ cd third_party/diffusion_policy
