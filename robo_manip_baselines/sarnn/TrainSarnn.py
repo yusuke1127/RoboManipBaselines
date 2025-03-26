@@ -344,9 +344,3 @@ class TrainSarnn(TrainBase):
         )
 
         return loss
-
-
-if __name__ == "__main__":
-    train = TrainSarnn()
-    train.run()
-    train.close()

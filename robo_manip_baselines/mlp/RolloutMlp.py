@@ -2,8 +2,7 @@ import cv2
 import matplotlib.pylab as plt
 import numpy as np
 
-from robo_manip_baselines.common import denormalize_data
-from robo_manip_baselines.rollout import RolloutBase
+from robo_manip_baselines.common import RolloutBase, denormalize_data
 
 from .MlpPolicy import MlpPolicy
 

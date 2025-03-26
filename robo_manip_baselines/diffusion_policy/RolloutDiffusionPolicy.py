@@ -7,8 +7,12 @@ from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
     DiffusionUnetHybridImagePolicy,
 )
 
-from robo_manip_baselines.common import DataKey, denormalize_data, normalize_data
-from robo_manip_baselines.rollout import RolloutBase
+from robo_manip_baselines.common import (
+    DataKey,
+    RolloutBase,
+    denormalize_data,
+    normalize_data,
+)
 
 
 class RolloutDiffusionPolicy(RolloutBase):

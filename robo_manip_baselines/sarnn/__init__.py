@@ -1,3 +1,4 @@
-from .lib.SarnnPolicy import SarnnPolicy
-from .lib.SarnnDataset import SarnnDataset
-from .lib.RolloutSarnn import RolloutSarnn
+from .SarnnPolicy import SarnnPolicy
+from .SarnnDataset import SarnnDataset
+from .TrainSarnn import TrainSarnn
+from .RolloutSarnn import RolloutSarnn

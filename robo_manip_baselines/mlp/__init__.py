@@ -1,3 +1,4 @@
-from .lib.MlpPolicy import MlpPolicy
-from .lib.MlpDataset import MlpDataset
-from .lib.RolloutMlp import RolloutMlp
+from .MlpPolicy import MlpPolicy
+from .MlpDataset import MlpDataset
+from .TrainMlp import TrainMlp
+from .RolloutMlp import RolloutMlp

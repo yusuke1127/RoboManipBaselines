@@ -226,9 +226,3 @@ class TrainDiffusionPolicy(TrainBase):
 
         # Save best checkpoint
         self.save_best_ckpt()
-
-
-if __name__ == "__main__":
-    train = TrainDiffusionPolicy()
-    train.run()
-    train.close()

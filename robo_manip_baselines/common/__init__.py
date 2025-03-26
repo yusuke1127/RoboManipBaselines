@@ -12,6 +12,7 @@ from .PhaseBase import PhaseBase, ReachPhaseBase, GraspPhaseBase
 from .PhaseManager import PhaseManager
 from .DatasetBase import DatasetBase
 from .TrainBase import TrainBase
+from .RolloutBase import RolloutBase
 from .EnvUtils import get_env_names
 from .MathUtils import (
     set_random_seed,

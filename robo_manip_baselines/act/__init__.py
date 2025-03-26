@@ -1,2 +1,3 @@
-from .lib.ActDataset import ActDataset
-from .lib.RolloutAct import RolloutAct
+from .ActDataset import ActDataset
+from .TrainAct import TrainAct
+from .RolloutAct import RolloutAct

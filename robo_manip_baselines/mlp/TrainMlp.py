@@ -98,9 +98,3 @@ class TrainMlp(TrainBase):
 
         # Save best checkpoint
         self.save_best_ckpt()
-
-
-if __name__ == "__main__":
-    train = TrainMlp()
-    train.run()
-    train.close()

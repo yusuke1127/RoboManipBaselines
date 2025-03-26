@@ -1,2 +1,3 @@
-from .lib.DiffusionPolicyDataset import DiffusionPolicyDataset
-from .lib.RolloutDiffusionPolicy import RolloutDiffusionPolicy
+from .DiffusionPolicyDataset import DiffusionPolicyDataset
+from .TrainDiffusionPolicy import TrainDiffusionPolicy
+from .RolloutDiffusionPolicy import RolloutDiffusionPolicy

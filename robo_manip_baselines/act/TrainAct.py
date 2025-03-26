@@ -4,7 +4,7 @@ import sys
 import torch
 from tqdm import tqdm
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../third_party/act"))
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
@@ -102,9 +102,3 @@ class TrainAct(TrainBase):
 
         # Save best checkpoint
         self.save_best_ckpt()
-
-
-if __name__ == "__main__":
-    train = TrainAct()
-    train.run()
-    train.close()
