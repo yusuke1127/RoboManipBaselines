@@ -5,6 +5,14 @@ import numpy as np
 
 from robo_manip_baselines.envs.real.RealEnvBase import RealEnvBase
 
+SHOW_WIDTH = 480
+SHOW_HEIGHT = 360
+
+CAMERA_ID_FRONT = "145522067924"
+CAMERA_ID_HAND = "153122070885"
+TACTILE_ID_LEFT = "GelSight Mini R0B 2BNK-CE0U: Ge"
+TACTILE_ID_RIGHT = "GelSight Mini R0B 2BG8-0H3X: Ge"
+
 
 class DummyRealEnv(RealEnvBase):
     def __init__(self, camera_ids, gelsight_ids):
@@ -39,7 +47,10 @@ class DummyRealEnv(RealEnvBase):
 class TestRealEnvBaseGetInfo(unittest.TestCase):
     def assert_env_info_valid(self, dummy_real_env):
         info = dummy_real_env._get_info()
+        self.assert_camera_images_valid(dummy_real_env, info)
+        self.assert_tactile_images_valid(dummy_real_env, info)
 
+    def assert_camera_images_valid(self, dummy_real_env, info):
         for camera_name in dummy_real_env.camera_names:
             rgb_image = info["rgb_images"][camera_name]
             self.assertIsInstance(rgb_image, np.ndarray)
@@ -53,6 +64,7 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
             self.assertEqual(depth_image.dtype, np.float64)
             self.assertEqual(len(depth_image.shape), 2)
 
+    def assert_tactile_images_valid(self, dummy_real_env, info):
         for tactile_name in dummy_real_env.tactile_names:
             rgb_image = info["rgb_images"][tactile_name]
             self.assertIsInstance(rgb_image, np.ndarray)
@@ -73,6 +85,7 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
                     dummy_real_env.camera_names | dummy_real_env.tactile_names
                 ):
                     rgb_image = info["rgb_images"][camera_name]
+                    rgb_image = cv2.resize(rgb_image, (SHOW_WIDTH, SHOW_HEIGHT))
                     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
                     cv2.imshow(camera_name, bgr_image)
 
@@ -97,7 +110,7 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
         dummy_real_env = DummyRealEnv(
             camera_ids={},
             gelsight_ids={
-                "tactile_left": "GelSight Mini R0B 2BNK-CE0U: Ge",
+                "tactile_left": TACTILE_ID_LEFT,
             },
         )
         self.assert_env_info_valid(dummy_real_env)
@@ -108,7 +121,7 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
         dummy_real_env = DummyRealEnv(
             camera_ids={},
             gelsight_ids={
-                "tactile_right": "GelSight Mini R0B 2BG8-0H3X: Ge",
+                "tactile_right": TACTILE_ID_RIGHT,
             },
         )
         self.assert_env_info_valid(dummy_real_env)
@@ -119,8 +132,8 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
         dummy_real_env = DummyRealEnv(
             camera_ids={},
             gelsight_ids={
-                "tactile_left": "GelSight Mini R0B 2BNK-CE0U: Ge",
-                "tactile_right": "GelSight Mini R0B 2BG8-0H3X: Ge",
+                "tactile_left": TACTILE_ID_LEFT,
+                "tactile_right": TACTILE_ID_RIGHT,
             },
         )
         self.assert_env_info_valid(dummy_real_env)
@@ -129,16 +142,28 @@ class TestRealEnvBaseGetInfo(unittest.TestCase):
     @unittest.skip("Skipping.")
     def test_dummy_real_env_get_info_case5(self):
         dummy_real_env = DummyRealEnv(
-            camera_ids={"hand": "153122070885"},
+            camera_ids={"hand": CAMERA_ID_HAND},
             gelsight_ids={},
         )
         self.assert_env_info_valid(dummy_real_env)
         self.show_image_loop(dummy_real_env)
 
+    @unittest.skip("Skipping.")
     def test_dummy_real_env_get_info_case6(self):
         dummy_real_env = DummyRealEnv(
-            camera_ids={"front": "145522067924", "hand": "153122070885"},
+            camera_ids={"front": CAMERA_ID_FRONT, "hand": CAMERA_ID_HAND},
             gelsight_ids={},
+        )
+        self.assert_env_info_valid(dummy_real_env)
+        self.show_image_loop(dummy_real_env)
+
+    def test_dummy_real_env_get_info_case7(self):
+        dummy_real_env = DummyRealEnv(
+            camera_ids={"front": CAMERA_ID_FRONT},
+            gelsight_ids={
+                "tactile_left": TACTILE_ID_LEFT,
+                "tactile_right": TACTILE_ID_RIGHT,
+            },
         )
         self.assert_env_info_valid(dummy_real_env)
         self.show_image_loop(dummy_real_env)
