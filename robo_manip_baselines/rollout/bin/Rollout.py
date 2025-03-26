@@ -5,6 +5,8 @@ import sys
 
 import yaml
 
+from robo_manip_baselines.common import get_env_names
+
 
 def camel_to_snake(name):
     """Converts camelCase or PascalCase to snake_case (also converts the first letter to lowercase)"""
@@ -27,10 +29,19 @@ def main():
     parser.add_argument(
         "policy",
         type=str,
+        nargs="?",
+        default=None,
         choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy"],
         help="policy",
     )
-    parser.add_argument("env", type=str, help="environment")
+    parser.add_argument(
+        "env",
+        type=str,
+        help="environment",
+        nargs="?",
+        default=None,
+        choices=get_env_names(),
+    )
     parser.add_argument("--config", type=str, help="configuration file")
     parser.add_argument(
         "-h", "--help", action="store_true", help="Show this help message and continue"
@@ -38,8 +49,12 @@ def main():
 
     args, remaining_argv = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining_argv
-    if args.help:
+    if args.policy is None or args.env is None:
         parser.print_help()
+        return
+    elif args.help:
+        parser.print_help()
+        print("\n================================\n")
         sys.argv += ["--help"]
 
     if "Isaac" in args.env:

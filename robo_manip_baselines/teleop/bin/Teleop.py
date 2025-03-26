@@ -4,6 +4,8 @@ import sys
 
 import yaml
 
+from robo_manip_baselines.common import get_env_names
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -11,7 +13,14 @@ def main():
         description="This is a meta argument parser for the teleop switching between different environments. The actual arguments are handled by another internal argument parser.",
         add_help=False,
     )
-    parser.add_argument("env", type=str, help="environment")
+    parser.add_argument(
+        "env",
+        type=str,
+        help="environment",
+        nargs="?",
+        default=None,
+        choices=get_env_names(),
+    )
     parser.add_argument("--config", type=str, help="configuration file")
     parser.add_argument(
         "-h", "--help", action="store_true", help="Show this help message and continue"
@@ -19,8 +28,12 @@ def main():
 
     args, remaining_argv = parser.parse_known_args()
     sys.argv = [sys.argv[0]] + remaining_argv
-    if args.help:
+    if args.env is None:
         parser.print_help()
+        return
+    elif args.help:
+        parser.print_help()
+        print("\n================================\n")
         sys.argv += ["--help"]
 
     if "Isaac" in args.env:
