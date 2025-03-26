@@ -52,8 +52,6 @@ jobs:
       - name: Install Diffusion Policy
         if: matrix.optional-key == '[diffusion-policy]'
         run: |
-          cd third_party/r3m
-          pip install -e .
           cd ../diffusion_policy
           pip install -e .
       - name: Install Real UR5e
