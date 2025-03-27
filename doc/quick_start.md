@@ -21,6 +21,7 @@ $ pip install -e .
 
 Operate the robot in the simulation and save the data:
 ```console
+# Go to the top directory of this repository
 $ cd robo_manip_baselines
 $ # Connect a SpaceMouse 3D mouse to your PC
 $ python ./bin/Teleop.py MujocoUR5eCable --world_idx_list 0 5
@@ -31,6 +32,7 @@ The teleoperation data is saved in the `robo_manip_baselines/dataset/MujocoUR5eC
 ## Model training
 Train the ACT:
 ```console
+# Go to the top directory of this repository
 $ cd robo_manip_baselines
 $ python ./bin/Train.py Act --dataset_dir ./dataset/MujocoUR5eCable_20240101_120000
 ```
@@ -46,6 +48,7 @@ The learned parameters are saved in the `robo_manip_baselines/checkpoint/Act/<da
 ## Policy rollout
 Rollout the ACT in the simulation:
 ```console
+# Go to the top directory of this repository
 $ cd robo_manip_baselines
 $ python ./bin/Rollout.py Act MujocoUR5eCable \
 --checkpoint ./checkpoint/Act/MujocoUR5eCable_20240101_120000_Act_20240101_130000/policy_last.ckpt \
