@@ -14,13 +14,11 @@ import torch
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from torchvision.transforms import v2
 
-from robo_manip_baselines.common import (
-    DataKey,
-    MotionManager,
-    PhaseBase,
-    PhaseManager,
-    normalize_data,
-)
+from .DataKey import DataKey
+from .DataUtils import normalize_data
+from .MotionManager import MotionManager
+from .PhaseBase import PhaseBase
+from .PhaseManager import PhaseManager
 
 
 class InitialRolloutPhase(PhaseBase):

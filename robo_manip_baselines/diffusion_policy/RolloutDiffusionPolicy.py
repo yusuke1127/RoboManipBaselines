@@ -16,8 +16,6 @@ from robo_manip_baselines.common import (
 
 
 class RolloutDiffusionPolicy(RolloutBase):
-    policy_name = "DiffusionPolicy"
-
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()

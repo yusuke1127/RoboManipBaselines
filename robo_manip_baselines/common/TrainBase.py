@@ -2,6 +2,7 @@ import argparse
 import copy
 import datetime
 import glob
+import importlib
 import os
 import pickle
 import random
@@ -17,9 +18,14 @@ from torch.utils.tensorboard import SummaryWriter
 from .DataKey import DataKey
 from .DataUtils import get_skipped_data_seq
 from .MathUtils import set_random_seed
+from .MiscUtils import remove_prefix
 
 
 class TrainBase(ABC):
+    @property
+    def policy_name(self):
+        return remove_prefix(self.__class__.__name__, "Train")
+
     def __init__(self):
         self.setup_args()
 
@@ -137,8 +143,11 @@ class TrainBase(ABC):
             checkpoint_dirname = "{}_{}_{:%Y%m%d_%H%M%S}".format(
                 dataset_dirname, self.policy_name, datetime.datetime.now()
             )
+            module_dir = importlib.resources.files("robo_manip_baselines")
             self.args.checkpoint_dir = os.path.normpath(
-                os.path.join(self.policy_dir, "checkpoint", checkpoint_dirname)
+                os.path.join(
+                    module_dir, "checkpoint", self.policy_name, checkpoint_dirname
+                )
             )
 
     def set_additional_args(self, parser):

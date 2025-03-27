@@ -15,8 +15,6 @@ from .SarnnPolicy import SarnnPolicy
 
 
 class RolloutSarnn(RolloutBase):
-    policy_name = "SARNN"
-
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()

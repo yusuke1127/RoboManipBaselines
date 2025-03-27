@@ -5,7 +5,7 @@ import sys
 
 import yaml
 
-from robo_manip_baselines.common import get_env_names
+from robo_manip_baselines.common import get_env_names, remove_prefix
 
 
 def camel_to_snake(name):
@@ -76,7 +76,9 @@ def main():
 
     # The order of parent classes must not be changed in order to maintain the method resolution order (MRO)
     class Rollout(OperationEnvClass, RolloutPolicyClass):
-        pass
+        @property
+        def policy_name(self):
+            return remove_prefix(RolloutPolicyClass.__name__, "Rollout")
 
     if args.config is None:
         config = {}

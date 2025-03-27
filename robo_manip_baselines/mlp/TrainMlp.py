@@ -1,5 +1,3 @@
-import os
-
 import torch
 from torch.nn import functional as F
 from tqdm import tqdm
@@ -9,8 +7,6 @@ from robo_manip_baselines.mlp import MlpDataset, MlpPolicy
 
 
 class TrainMlp(TrainBase):
-    policy_name = "MLP"
-    policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = MlpDataset
 
     def set_additional_args(self, parser):

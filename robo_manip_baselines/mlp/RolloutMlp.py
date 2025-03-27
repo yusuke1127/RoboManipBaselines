@@ -8,8 +8,6 @@ from .MlpPolicy import MlpPolicy
 
 
 class RolloutMlp(RolloutBase):
-    policy_name = "MLP"
-
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()

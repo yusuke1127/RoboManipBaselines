@@ -13,8 +13,6 @@ from robo_manip_baselines.common import TrainBase
 
 
 class TrainAct(TrainBase):
-    policy_name = "ACT"
-    policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = ActDataset
 
     def set_additional_args(self, parser):

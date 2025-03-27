@@ -1,6 +1,5 @@
 import argparse
 import copy
-import os
 
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
@@ -17,8 +16,6 @@ from robo_manip_baselines.diffusion_policy import DiffusionPolicyDataset
 
 
 class TrainDiffusionPolicy(TrainBase):
-    policy_name = "DiffusionPolicy"
-    policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = DiffusionPolicyDataset
 
     def setup_args(self):

@@ -1,5 +1,3 @@
-import os
-
 import torch
 from eipl.utils import LossScheduler
 from torchvision.transforms import v2
@@ -10,8 +8,6 @@ from robo_manip_baselines.sarnn import SarnnDataset, SarnnPolicy
 
 
 class TrainSarnn(TrainBase):
-    policy_name = "SARNN"
-    policy_dir = os.path.join(os.path.dirname(__file__), "..")
     DatasetClass = SarnnDataset
 
     def __init__(self):

@@ -13,8 +13,6 @@ from robo_manip_baselines.common import RolloutBase, denormalize_data
 
 
 class RolloutAct(RolloutBase):
-    policy_name = "ACT"
-
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()
