@@ -1,21 +1,14 @@
 # Utilities
 
-## Data processing
-### Visualize npz file
+### Visualize demonstration data
 ```console
-$ python ./visualize_data.py <npz_file>
+$ python ./VisualizeData.py <hdf5_file>
 ```
-
-### Tile teleoperation videos
-```console
-$ python tile_teleop_videos.py <output_video_path> <npz_directory> --column_num 2 --envs env0 env1 env4 env5
-```
-The options `--column_num` and `--envs` can be omitted.
 
 ### Tile rollout videos
 The input is a video consisting of a sequence of multiple rollouts, and the output is a tiled video of each rollout.
 ```console
-$ python tile_rollout_videos.py <input_video_path> --output_file_name <output_video_path> --task_success_list 1 0 1 0 1 1 --column_num 3
+$ python ./TileRolloutVideos.py <input_video_path> --output_file_name <output_video_path> --task_success_list 1 0 1 0 1 1 --column_num 3
 ```
 The options `--output_file_name`, `--task_success_list`, and `--column_num` can be omitted.
 

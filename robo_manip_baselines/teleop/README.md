@@ -6,7 +6,7 @@ A full list of teleoperation environments can be found in [the environment catal
 You need [SpaceMouse Wireless](https://3dconnexion.com/us/product/spacemouse-wireless) for teleoperation.
 Connect SpaceMouse to your PC before launching the script.
 
-Start up the teleoperation environment by the following command.
+Start up the teleoperation environment by the following command:
 ```console
 # Go to the top directory of this repository
 $ cd robo_manip_baselines
