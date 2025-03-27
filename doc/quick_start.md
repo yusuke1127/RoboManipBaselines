@@ -19,11 +19,12 @@ $ pip install -e .
 > [!TIP]
 > Instead of collecting data by teleoperation, you can download the public dataset `TeleopMujocoUR5eCable_Dataset30` from [here](./dataset_list.md#Demonstrations-in-MuJoCo-environments).
 
+You need [SpaceMouse Wireless](https://3dconnexion.com/us/product/spacemouse-wireless) for teleoperation.
 Operate the robot in the simulation and save the data:
 ```console
 # Go to the top directory of this repository
 $ cd robo_manip_baselines
-$ # Connect a SpaceMouse 3D mouse to your PC
+$ # Connect a SpaceMouse to your PC
 $ python ./bin/Teleop.py MujocoUR5eCable --world_idx_list 0 5
 ```
 In our experience, models can be trained stably with roughly 30 data sets.

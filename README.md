@@ -27,12 +27,11 @@ Action Chunking with Transformers
 Diffusion Policy
 
 ## Data
-### Publicly available datasets
 See [the dataset list](./doc/dataset_list.md).
 
 See [the learned parameters](./doc/learned_parameters.md) for policies learned from these datasets.
 
-### Data collection by teleoperation
+## Teleoperation
 See [teleop](./robo_manip_baselines/teleop).
 
 ## Environments
