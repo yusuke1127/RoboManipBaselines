@@ -78,7 +78,7 @@ def main():
     OperationEnvClass = getattr(operation_module, f"Operation{args.env}")
 
     policy_module = importlib.import_module(
-        f"robo_manip_baselines.{camel_to_snake(args.policy)}"
+        f"robo_manip_baselines.policy.{camel_to_snake(args.policy)}"
     )
     RolloutPolicyClass = getattr(policy_module, f"Rollout{args.policy}")
 

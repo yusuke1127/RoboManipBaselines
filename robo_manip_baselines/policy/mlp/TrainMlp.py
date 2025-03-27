@@ -3,7 +3,9 @@ from torch.nn import functional as F
 from tqdm import tqdm
 
 from robo_manip_baselines.common import TrainBase
-from robo_manip_baselines.mlp import MlpDataset, MlpPolicy
+
+from .MlpDataset import MlpDataset
+from .MlpPolicy import MlpPolicy
 
 
 class TrainMlp(TrainBase):

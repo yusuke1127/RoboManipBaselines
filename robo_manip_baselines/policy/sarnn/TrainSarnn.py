@@ -4,7 +4,9 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 
 from robo_manip_baselines.common import DataKey, TrainBase
-from robo_manip_baselines.sarnn import SarnnDataset, SarnnPolicy
+
+from .SarnnDataset import SarnnDataset
+from .SarnnPolicy import SarnnPolicy
 
 
 class TrainSarnn(TrainBase):

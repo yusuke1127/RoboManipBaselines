@@ -45,7 +45,7 @@ def main():
         sys.argv += ["--help"]
 
     policy_module = importlib.import_module(
-        f"robo_manip_baselines.{camel_to_snake(args.policy)}"
+        f"robo_manip_baselines.policy.{camel_to_snake(args.policy)}"
     )
     TrainPolicyClass = getattr(policy_module, f"Train{args.policy}")
 

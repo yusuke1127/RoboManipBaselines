@@ -5,7 +5,7 @@ import cv2
 import matplotlib.pylab as plt
 import numpy as np
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../third_party/act"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 

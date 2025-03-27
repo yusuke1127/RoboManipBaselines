@@ -4,12 +4,13 @@ import sys
 import torch
 from tqdm import tqdm
 
-sys.path.append(os.path.join(os.path.dirname(__file__), "../../third_party/act"))
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../../third_party/act"))
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
-from robo_manip_baselines.act import ActDataset
 from robo_manip_baselines.common import TrainBase
+
+from .ActDataset import ActDataset
 
 
 class TrainAct(TrainBase):

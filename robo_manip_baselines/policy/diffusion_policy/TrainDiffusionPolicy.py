@@ -3,16 +3,17 @@ import copy
 
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from tqdm import tqdm
+
 from diffusion_policy.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy.model.common.lr_scheduler import get_scheduler
 from diffusion_policy.model.diffusion.ema_model import EMAModel
 from diffusion_policy.policy.diffusion_unet_hybrid_image_policy import (
     DiffusionUnetHybridImagePolicy,
 )
-from tqdm import tqdm
-
 from robo_manip_baselines.common import DataKey, TrainBase
-from robo_manip_baselines.diffusion_policy import DiffusionPolicyDataset
+
+from .DiffusionPolicyDataset import DiffusionPolicyDataset
 
 
 class TrainDiffusionPolicy(TrainBase):
