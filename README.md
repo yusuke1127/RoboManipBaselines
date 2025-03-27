@@ -8,10 +8,10 @@ Software that integrates various imitation learning methods and benchmark task e
 https://github.com/user-attachments/assets/ba4a772f-0de5-47da-a4ec-bdcbf13d7d58
 
 ## Quick start
-[This quick start](./doc/quick_start.md) allows you to collect data in the MuJoCo simulation and train and rollout the ACT policy.
+See [the quick start](./doc/quick_start.md) to collect data in the MuJoCo simulation and train and rollout the ACT policy.
 
 ## Install
-See [the installation documentation](./doc/install.md).
+See [the installation guide](./doc/install.md).
 
 ## Policies
 ### MLP
@@ -27,7 +27,7 @@ See [act](./robo_manip_baselines/policy/act).
 See [diffusion_policy](./robo_manip_baselines/policy/diffusion_policy).
 
 ## Data
-See [the dataset list](./doc/dataset_list.md).
+See [the dataset list](./doc/dataset_list.md) for demonstration datasets.
 
 See [the learned parameters](./doc/learned_parameters.md) for policies learned from these datasets.
 
