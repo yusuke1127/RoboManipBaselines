@@ -1,23 +1,26 @@
 # Spatial attention recurrent neural network (SARNN)
 
 ## Install
-See [here](../../doc/install.md#SARNN) for installation.
+See [here](../../../doc/install.md#SARNN) for installation.
 
 ## Dataset preparation
-Collect demonstration data by [teleoperation](../teleop).
+Collect demonstration data by [teleoperation](../../teleop).
 
 ## Model training
 Train a model:
 ```console
-$ python ./bin/TrainSarnn.py --dataset_dir ../teleop/teleop_data/<name> --checkpoint_dir ./checkpoint/<name>
+# Go to the top directory of this repository
+$ cd robo_manip_baselines
+$ python ./bin/Train.py Sarnn --dataset_dir ./dataset/<dataset_name> --checkpoint_dir ./checkpoint/Sarnn/<checkpoint_name>
 ```
 The `--image_crop_size_list` option should be specified appropriately for each task.
 
 ## Policy rollout
 Run a trained policy:
 ```console
-$ cd ../rollout
-$ python ./bin/Rollout.py Sarnn MujocoUR5eCable --checkpoint ../sarnn/checkpoint/<name>/policy_last.ckpt
+# Go to the top directory of this repository
+$ cd robo_manip_baselines
+$ python ./bin/Rollout.py Sarnn MujocoUR5eCable --checkpoint ./checkpoint/Sarnn/<checkpoint_name>/policy_last.ckpt
 ```
 
 ## Technical Details

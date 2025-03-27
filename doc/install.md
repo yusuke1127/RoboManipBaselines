@@ -19,6 +19,9 @@ This common installation enables data collection by teleoperation in the MuJoCo 
 ## Installation of each policy
 Complete [the common installation](#common-installation) first.
 
+### [MLP](../robo_manip_baselines/policy/mlp)
+The MLP policy can be used with only a common installation.
+
 ### [SARNN](../robo_manip_baselines/policy/sarnn)
 Install dependent libraries including [EIPL](https://github.com/ogata-lab/eipl):
 ```console

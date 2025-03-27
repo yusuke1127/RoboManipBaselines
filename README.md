@@ -14,13 +14,16 @@ https://github.com/user-attachments/assets/ba4a772f-0de5-47da-a4ec-bdcbf13d7d58
 See [the installation documentation](./doc/install.md).
 
 ## Policies
-### [SARNN](./robo_manip_baselines/sarnn)
+### [MLP](./robo_manip_baselines/policy/mlp)
+Multi-layer perceptron: Simplest policy
+
+### [SARNN](./robo_manip_baselines/policy/sarnn)
 Spatial attention recurrent neural network
 
-### [ACT](./robo_manip_baselines/act)
+### [ACT](./robo_manip_baselines/policy/act)
 Action Chunking with Transformers
 
-### [DiffusionPolicy](./robo_manip_baselines/diffusion_policy)
+### [DiffusionPolicy](./robo_manip_baselines/policy/diffusion_policy)
 Diffusion Policy
 
 ## Data
