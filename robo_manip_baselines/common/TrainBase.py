@@ -2,7 +2,6 @@ import argparse
 import copy
 import datetime
 import glob
-import importlib
 import os
 import pickle
 import random
@@ -143,10 +142,13 @@ class TrainBase(ABC):
             checkpoint_dirname = "{}_{}_{:%Y%m%d_%H%M%S}".format(
                 dataset_dirname, self.policy_name, datetime.datetime.now()
             )
-            module_dir = importlib.resources.files("robo_manip_baselines")
             self.args.checkpoint_dir = os.path.normpath(
                 os.path.join(
-                    module_dir, "checkpoint", self.policy_name, checkpoint_dirname
+                    os.path.dirname(__file__),
+                    "..",
+                    "checkpoint",
+                    self.policy_name,
+                    checkpoint_dirname,
                 )
             )
 

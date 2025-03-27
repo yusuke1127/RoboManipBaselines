@@ -1,3 +1,4 @@
+import os
 import time
 
 import cv2
@@ -170,14 +171,14 @@ class TeleopBaseVec(TeleopBase):
             else:
                 extra_label = f"augmented{aug_idx:0>3}"
                 aug_idx += 1
-            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}_{}.hdf5".format(
-                self.demo_name,
-                self.datetime_now,
-                self.data_manager.world_idx,
-                self.demo_name,
-                self.data_manager.world_idx,
-                self.data_manager.episode_idx,
-                extra_label,
+            filename = os.path.normpath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "dataset",
+                    f"{self.demo_name}_{self.datetime_now:%Y%m%d_%H%M%S}",
+                    f"{self.demo_name}_env{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}_{extra_label}.hdf5",
+                )
             )
             filename_list.append(filename)
         self.data_manager.save_data(filename_list)

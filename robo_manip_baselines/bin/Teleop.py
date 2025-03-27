@@ -1,13 +1,18 @@
 import argparse
 import importlib
+import os
 import sys
 
 import yaml
 
-from robo_manip_baselines.common import get_env_names
-
 
 def main():
+    env_utils_spec = importlib.util.spec_from_file_location(
+        "EnvUtils", os.path.join(os.path.dirname(__file__), "..", "common/EnvUtils.py")
+    )
+    env_utils_module = importlib.util.module_from_spec(env_utils_spec)
+    env_utils_spec.loader.exec_module(env_utils_module)
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This is a meta argument parser for the teleop switching between different environments. The actual arguments are handled by another internal argument parser.",
@@ -19,7 +24,7 @@ def main():
         help="environment",
         nargs="?",
         default=None,
-        choices=get_env_names(),
+        choices=env_utils_module.get_env_names(),
     )
     parser.add_argument("--config", type=str, help="configuration file")
     parser.add_argument(

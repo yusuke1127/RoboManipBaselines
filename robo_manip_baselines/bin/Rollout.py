@@ -1,11 +1,10 @@
 import argparse
 import importlib
+import os
 import re
 import sys
 
 import yaml
-
-from robo_manip_baselines.common import get_env_names, remove_prefix
 
 
 def camel_to_snake(name):
@@ -21,6 +20,12 @@ def camel_to_snake(name):
 
 
 def main():
+    env_utils_spec = importlib.util.spec_from_file_location(
+        "EnvUtils", os.path.join(os.path.dirname(__file__), "..", "common/EnvUtils.py")
+    )
+    env_utils_module = importlib.util.module_from_spec(env_utils_spec)
+    env_utils_spec.loader.exec_module(env_utils_module)
+
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This is a meta argument parser for the rollout switching between different policies and environments. The actual arguments are handled by another internal argument parser.",
@@ -40,7 +45,7 @@ def main():
         help="environment",
         nargs="?",
         default=None,
-        choices=get_env_names(),
+        choices=env_utils_module.get_env_names(),
     )
     parser.add_argument("--config", type=str, help="configuration file")
     parser.add_argument(
@@ -63,6 +68,9 @@ def main():
             gymtorch,  # noqa: F401
             gymutil,  # noqa: F401
         )
+
+    # This includes pytorch import, so it must be later than isaac import
+    from robo_manip_baselines.common import remove_prefix
 
     operation_module = importlib.import_module(
         f"robo_manip_baselines.envs.operation.Operation{args.env}"

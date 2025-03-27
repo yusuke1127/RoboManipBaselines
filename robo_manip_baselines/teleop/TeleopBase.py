@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import os
 import sys
 import time
 from abc import ABC
@@ -521,13 +522,14 @@ class TeleopBase(ABC):
 
     def save_data(self, filename=None):
         if filename is None:
-            filename = "teleop_data/{}_{:%Y%m%d_%H%M%S}/env{:0>1}/{}_env{:0>1}_{:0>3}.hdf5".format(
-                self.demo_name,
-                self.datetime_now,
-                self.data_manager.world_idx,
-                self.demo_name,
-                self.data_manager.world_idx,
-                self.data_manager.episode_idx,
+            filename = os.path.normpath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "dataset",
+                    f"{self.demo_name}_{self.datetime_now:%Y%m%d_%H%M%S}",
+                    f"{self.demo_name}_env{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}.hdf5",
+                )
             )
         self.data_manager.save_data(filename)
         print(
