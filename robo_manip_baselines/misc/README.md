@@ -1,4 +1,4 @@
-# Utilities
+# Misc
 
 ### Visualize demonstration data
 ```console

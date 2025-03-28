@@ -39,8 +39,8 @@ See [the environment catalog](doc/environment_catalog.md) for a full list of env
 
 See [envs](./robo_manip_baselines/envs) for installation procedures for each environment.
 
-## Utilities
-See [utils](./robo_manip_baselines/utils).
+## Misc
+See [misc](./robo_manip_baselines/misc) for miscellaneous standalone scripts.
 
 ## Evaluation results
 See [the evaluation results](doc/evaluation_results.md).
