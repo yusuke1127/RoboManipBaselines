@@ -9,7 +9,7 @@ from ..utils.MathUtils import (
 )
 
 
-class MotionManager(object):
+class MotionManager:
     """
     Motion manager for robot arm and gripper.
 

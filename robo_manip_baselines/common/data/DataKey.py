@@ -20,7 +20,7 @@ def _calc_dim_from_idxes(idxes):
         raise ValueError(f"[DataKey] Unsupported type of idxes: {type(idxes)}")
 
 
-class DataKey(object):
+class DataKey:
     """Data key."""
 
     # Time [s]

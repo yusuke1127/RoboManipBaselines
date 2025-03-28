@@ -13,7 +13,7 @@ from ..utils.MathUtils import (
 )
 
 
-class DataManager(object):
+class DataManager:
     """Data manager."""
 
     def __init__(self, env, demo_name=""):

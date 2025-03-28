@@ -4,7 +4,7 @@ import numpy as np
 from ..utils.MiscUtils import remove_suffix
 
 
-class PhaseManager(object):
+class PhaseManager:
     """Phase manager."""
 
     def __init__(self, phase_order):
