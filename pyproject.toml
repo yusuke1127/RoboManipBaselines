@@ -21,7 +21,9 @@ dependencies = [
   "gymnasium==1.0.0",
   "mujoco==3.1.6",
   "matplotlib>=3.3.4",
-  "imageio >=2.14.1",
+  "imageio>=2.14.1",
+  "videoio==0.3.0",
+  "ffmpeg-python",
   "pyyaml",
   "tqdm",
   "numpy",
@@ -83,7 +85,6 @@ benchmarks = [
   "ruamel.yaml",
   "python-pptx",
   "imageio-ffmpeg",
-  "ffmpeg-python",
 ]
 
 [tool.setuptools.packages.find]

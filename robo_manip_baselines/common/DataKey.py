@@ -190,6 +190,25 @@ class DataKey(object):
         return camera_name.lower() + "_depth_image"
 
     @classmethod
+    def get_camera_name(cls, key):
+        if cls.is_rgb_image_key(key):
+            return key[: -len("_rgb_image")]
+        elif cls.is_depth_image_key(key):
+            return key[: -len("_depth_image")]
+        else:
+            raise ValueError(f"[{cls.__name__}] Not rgb or depth key: {key}")
+
+    @classmethod
+    def is_rgb_image_key(cls, key):
+        """Check if the key is for RGB image."""
+        return key.endswith("_rgb_image")
+
+    @classmethod
+    def is_depth_image_key(cls, key):
+        """Check if the key is for depth image."""
+        return key.endswith("_depth_image")
+
+    @classmethod
     def get_plot_scale(cls, key, env):
         """Get scale to plot data."""
         if key in (
