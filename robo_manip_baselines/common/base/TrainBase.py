@@ -14,10 +14,10 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from .DataKey import DataKey
-from .DataUtils import get_skipped_data_seq
-from .MathUtils import set_random_seed
-from .MiscUtils import remove_prefix
+from ..data.DataKey import DataKey
+from ..utils.DataUtils import get_skipped_data_seq
+from ..utils.MathUtils import set_random_seed
+from ..utils.MiscUtils import remove_prefix
 
 
 class TrainBase(ABC):
@@ -145,6 +145,7 @@ class TrainBase(ABC):
             self.args.checkpoint_dir = os.path.normpath(
                 os.path.join(
                     os.path.dirname(__file__),
+                    "..",
                     "..",
                     "checkpoint",
                     self.policy_name,

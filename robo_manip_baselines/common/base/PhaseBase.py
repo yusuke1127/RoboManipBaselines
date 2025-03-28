@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from .DataKey import DataKey
+from ..data.DataKey import DataKey
 
 
 class PhaseBase(ABC):

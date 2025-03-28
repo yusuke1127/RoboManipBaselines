@@ -1,8 +1,12 @@
 import numpy as np
 import pinocchio as pin
 
-from .DataKey import DataKey
-from .MathUtils import get_pose_from_se3, get_se3_from_pose, get_se3_from_rel_pose
+from ..data.DataKey import DataKey
+from ..utils.MathUtils import (
+    get_pose_from_se3,
+    get_se3_from_pose,
+    get_se3_from_rel_pose,
+)
 
 
 class MotionManager(object):

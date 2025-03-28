@@ -1,6 +1,6 @@
 import h5py
 
-from .DataKey import DataKey
+from ..data.DataKey import DataKey
 from .DataManager import DataManager
 
 

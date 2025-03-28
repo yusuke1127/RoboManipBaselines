@@ -21,7 +21,8 @@ def camel_to_snake(name):
 
 def main():
     env_utils_spec = importlib.util.spec_from_file_location(
-        "EnvUtils", os.path.join(os.path.dirname(__file__), "..", "common/EnvUtils.py")
+        "EnvUtils",
+        os.path.join(os.path.dirname(__file__), "..", "common/utils/EnvUtils.py"),
     )
     env_utils_module = importlib.util.module_from_spec(env_utils_spec)
     env_utils_spec.loader.exec_module(env_utils_module)

@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from .MiscUtils import remove_suffix
+from ..utils.MiscUtils import remove_suffix
 
 
 class PhaseManager(object):

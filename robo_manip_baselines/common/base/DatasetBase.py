@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torchvision.transforms import v2
 
-from robo_manip_baselines.common import normalize_data
+from ..utils.DataUtils import normalize_data
 
 
 class DatasetBase(torch.utils.data.Dataset):

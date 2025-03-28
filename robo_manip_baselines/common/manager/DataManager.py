@@ -5,8 +5,12 @@ import numpy as np
 
 from robo_manip_baselines import __version__
 
-from .DataKey import DataKey
-from .MathUtils import get_rel_pose_from_se3, get_se3_from_pose, get_se3_from_rel_pose
+from ..data.DataKey import DataKey
+from ..utils.MathUtils import (
+    get_rel_pose_from_se3,
+    get_se3_from_pose,
+    get_se3_from_rel_pose,
+)
 
 
 class DataManager(object):
