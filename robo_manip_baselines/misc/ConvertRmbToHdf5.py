@@ -30,12 +30,12 @@ class ConvertRmbToHdf5:
         _, src_ext = os.path.splitext(self.src_dirname.rstrip("/"))
         if src_ext.lower() != ".rmb":
             raise ValueError(
-                f"Invalid source file extension '{src_ext}'. Expected '.rmb': {self.src_dirname}"
+                f"[{self.__class__.__name__}] Invalid source file extension '{src_ext}'. Expected '.rmb': {self.src_dirname}"
             )
         _, dst_ext = os.path.splitext(self.dst_filename)
         if dst_ext.lower() != ".hdf5":
             raise ValueError(
-                f"Invalid destination file extension '{dst_ext}'. Expected '.hdf5': {self.dst_filename}"
+                f"[{self.__class__.__name__}] Invalid destination file extension '{dst_ext}'. Expected '.hdf5': {self.dst_filename}"
             )
 
     def run(self):

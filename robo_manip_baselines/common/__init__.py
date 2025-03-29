@@ -4,6 +4,7 @@ from .base.TrainBase import TrainBase
 from .base.RolloutBase import RolloutBase
 
 from .data.DataKey import DataKey
+from .data.RmbData import RmbData
 
 from .manager.PhaseManager import PhaseManager
 from .manager.MotionManager import MotionManager
