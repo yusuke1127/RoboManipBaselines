@@ -142,6 +142,7 @@ class RmbData:
 
             for key in self.attrs.keys():
                 dst_h5file.attrs[key] = self.attrs[key]
+            dst_h5file.attrs["format"] = "RmbData-SingleHDF5"
 
         print(f"[{self.__class__.__name__}] Succeeded to dump a HDF5 file: {dst_path}")
 
@@ -172,6 +173,7 @@ class RmbData:
 
             for key in self.attrs.keys():
                 dst_h5file.attrs[key] = self.attrs[key]
+            dst_h5file.attrs["format"] = "RmbData"
 
         print(f"[{self.__class__.__name__}] Succeeded to dump RMB files: {dst_path}")
 

@@ -20,7 +20,7 @@ class DataManager:
         self.env = env
 
         self.meta_data = {
-            "format": "RoboManipBaselines-TeleopData-HDF5",
+            "format": "RmbData-SingleHDF5",
             "demo": demo_name,
             "version": __version__,
         }
