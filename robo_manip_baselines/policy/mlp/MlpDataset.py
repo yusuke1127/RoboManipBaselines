@@ -1,10 +1,10 @@
-import h5py
 import numpy as np
 import torch
 
 from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
+    RmbData,
     get_skipped_single_data,
 )
 
@@ -16,8 +16,8 @@ class MlpDataset(DatasetBase):
         skip = self.model_meta_info["data"]["skip"]
         self.accum_step_idxes = []
         for filename in self.filenames:
-            with h5py.File(filename, "r") as h5file:
-                episode_len = h5file[DataKey.TIME][::skip].shape[0]
+            with RmbData.from_file(filename) as rmb_data:
+                episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
                 if len(self.accum_step_idxes) == 0:
                     self.accum_step_idxes.append(episode_len)
                 else:
@@ -37,8 +37,8 @@ class MlpDataset(DatasetBase):
         if episode_idx > 0:
             step_idx_in_episode -= self.accum_step_idxes[episode_idx - 1]
 
-        with h5py.File(self.filenames[episode_idx], "r") as h5file:
-            episode_len = h5file[DataKey.TIME][::skip].shape[0]
+        with RmbData.from_file(self.filenames[episode_idx]) as rmb_data:
+            episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
             assert 0 <= step_idx_in_episode < episode_len
 
             # Load state
@@ -48,7 +48,7 @@ class MlpDataset(DatasetBase):
                 state = np.concatenate(
                     [
                         get_skipped_single_data(
-                            h5file[key], step_idx_in_episode * skip, key, skip
+                            rmb_data[key], step_idx_in_episode * skip, key, skip
                         )
                         for key in self.model_meta_info["state"]["keys"]
                     ]
@@ -58,7 +58,7 @@ class MlpDataset(DatasetBase):
             action = np.concatenate(
                 [
                     get_skipped_single_data(
-                        h5file[key], step_idx_in_episode * skip, key, skip
+                        rmb_data[key], step_idx_in_episode * skip, key, skip
                     )
                     for key in self.model_meta_info["action"]["keys"]
                 ]
@@ -67,7 +67,7 @@ class MlpDataset(DatasetBase):
             # Load images
             images = np.stack(
                 [
-                    h5file[DataKey.get_rgb_image_key(camera_name)][
+                    rmb_data[DataKey.get_rgb_image_key(camera_name)][
                         step_idx_in_episode * skip
                     ]
                     for camera_name in self.model_meta_info["image"]["camera_names"]

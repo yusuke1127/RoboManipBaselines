@@ -1,11 +1,11 @@
 import cv2
-import h5py
 import numpy as np
 import torch
 
 from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
+    RmbData,
     get_skipped_data_seq,
 )
 
@@ -24,8 +24,8 @@ class DiffusionPolicyDataset(DatasetBase):
         pad_after = self.model_meta_info["data"]["n_action_steps"] - 1
 
         for episode_idx, filename in enumerate(self.filenames):
-            with h5py.File(filename, "r") as h5file:
-                episode_len = h5file[DataKey.TIME][::skip].shape[0]
+            with RmbData.from_file(filename) as rmb_data:
+                episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
                 for start_time_idx in range(
                     -1 * pad_before, episode_len - (horizon - 1) + pad_after
                 ):
@@ -39,8 +39,8 @@ class DiffusionPolicyDataset(DatasetBase):
         horizon = self.model_meta_info["data"]["horizon"]
         episode_idx, start_time_idx = self.chunk_info_list[chunk_idx]
 
-        with h5py.File(self.filenames[episode_idx], "r") as h5file:
-            episode_len = h5file[DataKey.TIME][::skip].shape[0]
+        with RmbData.from_file(self.filenames[episode_idx]) as rmb_data:
+            episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
             time_idxes = np.clip(
                 np.arange(start_time_idx, start_time_idx + horizon), 0, episode_len - 1
             )
@@ -51,7 +51,7 @@ class DiffusionPolicyDataset(DatasetBase):
             else:
                 state = np.concatenate(
                     [
-                        get_skipped_data_seq(h5file[key][()], key, skip)[time_idxes]
+                        get_skipped_data_seq(rmb_data[key][()], key, skip)[time_idxes]
                         for key in self.model_meta_info["state"]["keys"]
                     ],
                     axis=1,
@@ -60,7 +60,7 @@ class DiffusionPolicyDataset(DatasetBase):
             # Load action
             action = np.concatenate(
                 [
-                    get_skipped_data_seq(h5file[key][()], key, skip)[time_idxes]
+                    get_skipped_data_seq(rmb_data[key][()], key, skip)[time_idxes]
                     for key in self.model_meta_info["action"]["keys"]
                 ],
                 axis=1,
@@ -69,7 +69,7 @@ class DiffusionPolicyDataset(DatasetBase):
             # Load images
             image_list = np.stack(
                 [
-                    h5file[DataKey.get_rgb_image_key(camera_name)][::skip][time_idxes]
+                    rmb_data[DataKey.get_rgb_image_key(camera_name)][::skip][time_idxes]
                     for camera_name in self.model_meta_info["image"]["camera_names"]
                 ],
                 axis=0,

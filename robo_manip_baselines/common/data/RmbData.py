@@ -120,6 +120,9 @@ class RmbData:
 
             return ret
 
+    def __contains__(self, key):
+        return key in self.keys()
+
     @property
     def attrs(self):
         return self.h5file.attrs

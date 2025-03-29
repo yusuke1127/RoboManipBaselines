@@ -1,4 +1,3 @@
-import h5py
 import numpy as np
 import torch
 from torchvision.transforms import v2
@@ -6,6 +5,7 @@ from torchvision.transforms import v2
 from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
+    RmbData,
     crop_and_resize,
     get_skipped_data_seq,
     normalize_data,
@@ -22,13 +22,13 @@ class SarnnDataset(DatasetBase):
         skip = self.model_meta_info["data"]["skip"]
         max_episode_len = self.model_meta_info["data"]["max_episode_len"]
 
-        with h5py.File(self.filenames[episode_idx], "r") as h5file:
-            episode_len = h5file[DataKey.TIME][::skip].shape[0]
+        with RmbData.from_file(self.filenames[episode_idx]) as rmb_data:
+            episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
 
             # Load state
             state = np.concatenate(
                 [
-                    get_skipped_data_seq(h5file[key][()], key, skip)
+                    get_skipped_data_seq(rmb_data[key][()], key, skip)
                     for key in self.model_meta_info["state"]["keys"]
                 ],
                 axis=1,
@@ -36,7 +36,7 @@ class SarnnDataset(DatasetBase):
 
             # Load images
             image_list = [
-                h5file[DataKey.get_rgb_image_key(camera_name)][::skip]
+                rmb_data[DataKey.get_rgb_image_key(camera_name)][::skip]
                 for camera_name in self.model_meta_info["image"]["camera_names"]
             ]
 

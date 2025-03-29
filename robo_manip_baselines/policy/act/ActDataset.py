@@ -1,10 +1,10 @@
-import h5py
 import numpy as np
 import torch
 
 from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
+    RmbData,
     get_skipped_data_seq,
     get_skipped_single_data,
 )
@@ -20,8 +20,8 @@ class ActDataset(DatasetBase):
         skip = self.model_meta_info["data"]["skip"]
         chunk_size = self.model_meta_info["data"]["chunk_size"]
 
-        with h5py.File(self.filenames[episode_idx], "r") as h5file:
-            episode_len = h5file[DataKey.TIME][::skip].shape[0]
+        with RmbData.from_file(self.filenames[episode_idx]) as rmb_data:
+            episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
             start_time_idx = np.random.choice(episode_len)
 
             # Load state
@@ -31,7 +31,7 @@ class ActDataset(DatasetBase):
                 state = np.concatenate(
                     [
                         get_skipped_single_data(
-                            h5file[key], start_time_idx * skip, key, skip
+                            rmb_data[key], start_time_idx * skip, key, skip
                         )
                         for key in self.model_meta_info["state"]["keys"]
                     ]
@@ -41,7 +41,7 @@ class ActDataset(DatasetBase):
             action = np.concatenate(
                 [
                     get_skipped_data_seq(
-                        h5file[key][start_time_idx * skip :],
+                        rmb_data[key][start_time_idx * skip :],
                         key,
                         skip,
                     )
@@ -53,7 +53,7 @@ class ActDataset(DatasetBase):
             # Load images
             images = np.stack(
                 [
-                    h5file[DataKey.get_rgb_image_key(camera_name)][
+                    rmb_data[DataKey.get_rgb_image_key(camera_name)][
                         start_time_idx * skip
                     ]
                     for camera_name in self.model_meta_info["image"]["camera_names"]

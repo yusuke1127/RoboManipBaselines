@@ -8,13 +8,13 @@ import random
 import sys
 from abc import ABC, abstractmethod
 
-import h5py
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from ..data.DataKey import DataKey
+from ..data.RmbData import RmbData
 from ..utils.DataUtils import get_skipped_data_seq
 from ..utils.MathUtils import set_random_seed
 from ..utils.MiscUtils import remove_prefix
@@ -186,7 +186,12 @@ class TrainBase(ABC):
 
     def setup_dataset(self):
         # Get file list
-        all_filenames = glob.glob(f"{self.args.dataset_dir}/**/*.hdf5", recursive=True)
+        all_filenames = [
+            f
+            for f in glob.glob(f"{self.args.dataset_dir}/**/*.*", recursive=True)
+            if f.endswith(".rmb")
+            or (f.endswith(".hdf5") and not f.endswith(".rmb.hdf5"))
+        ]
         random.shuffle(all_filenames)
         train_num = max(
             int(np.clip(self.args.train_ratio, 0.0, 1.0) * len(all_filenames)), 1
@@ -221,8 +226,8 @@ class TrainBase(ABC):
         depth_image_example = None
         episode_len_list = []
         for filename in all_filenames:
-            with h5py.File(filename, "r") as h5file:
-                episode_len = h5file[DataKey.TIME][:: self.args.skip].shape[0]
+            with RmbData.from_file(filename) as rmb_data:
+                episode_len = rmb_data[DataKey.TIME][:: self.args.skip].shape[0]
                 episode_len_list.append(episode_len)
 
                 # Load state
@@ -231,7 +236,7 @@ class TrainBase(ABC):
                 else:
                     state = np.concatenate(
                         [
-                            get_skipped_data_seq(h5file[key][()], key, self.args.skip)
+                            get_skipped_data_seq(rmb_data[key][()], key, self.args.skip)
                             for key in self.args.state_keys
                         ],
                         axis=1,
@@ -244,7 +249,7 @@ class TrainBase(ABC):
                 else:
                     action = np.concatenate(
                         [
-                            get_skipped_data_seq(h5file[key][()], key, self.args.skip)
+                            get_skipped_data_seq(rmb_data[key][()], key, self.args.skip)
                             for key in self.args.action_keys
                         ],
                         axis=1,
@@ -254,15 +259,17 @@ class TrainBase(ABC):
                 # Load image
                 if rgb_image_example is None:
                     rgb_image_example = {
-                        camera_name: h5file[DataKey.get_rgb_image_key(camera_name)][0]
+                        camera_name: rmb_data[DataKey.get_rgb_image_key(camera_name)][0]
                         for camera_name in self.args.camera_names
-                        if DataKey.get_rgb_image_key(camera_name) in h5file
+                        if DataKey.get_rgb_image_key(camera_name) in rmb_data
                     }
                 if depth_image_example is None:
                     depth_image_example = {
-                        camera_name: h5file[DataKey.get_depth_image_key(camera_name)][0]
+                        camera_name: rmb_data[DataKey.get_depth_image_key(camera_name)][
+                            0
+                        ]
                         for camera_name in self.args.camera_names
-                        if DataKey.get_depth_image_key(camera_name) in h5file
+                        if DataKey.get_depth_image_key(camera_name) in rmb_data
                     }
         all_state = np.concatenate(all_state, dtype=np.float64)
         all_action = np.concatenate(all_action, dtype=np.float64)
