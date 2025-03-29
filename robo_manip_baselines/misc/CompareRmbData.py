@@ -1,7 +1,8 @@
 import argparse
 
-import h5py
 import numpy as np
+
+from robo_manip_baselines.common import RmbData
 
 
 def parse_argument():
@@ -9,42 +10,42 @@ def parse_argument():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("filename1", type=str)
-    parser.add_argument("filename2", type=str)
+    parser.add_argument("path1", type=str, help="first path (*.hdf5 or *.rmb)")
+    parser.add_argument("path2", type=str, help="second path (*.hdf5 or *.rmb)")
 
     return parser.parse_args()
 
 
-class CompareHdf5:
-    def __init__(self, filename1, filename2):
-        self.filename1 = filename1
-        self.filename2 = filename2
+class CompareRmbData:
+    def __init__(self, path1, path2):
+        self.path1 = path1
+        self.path2 = path2
 
     def run(self):
         with (
-            h5py.File(self.filename1, "r") as h5file1,
-            h5py.File(self.filename2, "r") as h5file2,
+            RmbData.from_file(self.path1) as rmb_data1,
+            RmbData.from_file(self.path2) as rmb_data2,
         ):
             # Check data
-            keys1 = set(h5file1.keys())
-            keys2 = set(h5file2.keys())
+            keys1 = set(rmb_data1.keys())
+            keys2 = set(rmb_data2.keys())
 
             only_in_file1 = keys1 - keys2
             only_in_file2 = keys2 - keys1
 
             if only_in_file1:
                 print(
-                    f"[{self.__class__.__name__}] Keys only in {self.filename1}: {only_in_file1}"
+                    f"[{self.__class__.__name__}] Keys only in {self.path1}: {only_in_file1}"
                 )
             if only_in_file2:
                 print(
-                    f"[{self.__class__.__name__}] Keys only in {self.filename2}: {only_in_file2}"
+                    f"[{self.__class__.__name__}] Keys only in {self.path2}: {only_in_file2}"
                 )
 
             common_keys = sorted(keys1 & keys2)
             for key in common_keys:
-                data1 = h5file1[key]
-                data2 = h5file2[key]
+                data1 = rmb_data1[key]
+                data2 = rmb_data2[key]
 
                 if data1.shape != data2.shape:
                     print(
@@ -74,25 +75,25 @@ class CompareHdf5:
                     )
 
             # Check attrs
-            keys1 = set(h5file1.attrs.keys())
-            keys2 = set(h5file2.attrs.keys())
+            keys1 = set(rmb_data1.attrs.keys())
+            keys2 = set(rmb_data2.attrs.keys())
 
             only_in_file1 = keys1 - keys2
             only_in_file2 = keys2 - keys1
 
             if only_in_file1:
                 print(
-                    f"[{self.__class__.__name__}] Attributes only in {self.filename1}: {only_in_file1}"
+                    f"[{self.__class__.__name__}] Attributes only in {self.path1}: {only_in_file1}"
                 )
             if only_in_file2:
                 print(
-                    f"[{self.__class__.__name__}] Attributes only in {self.filename2}: {only_in_file2}"
+                    f"[{self.__class__.__name__}] Attributes only in {self.path2}: {only_in_file2}"
                 )
 
             common_keys = sorted(keys1 & keys2)
             for key in common_keys:
-                data1 = h5file1.attrs[key]
-                data2 = h5file2.attrs[key]
+                data1 = rmb_data1.attrs[key]
+                data2 = rmb_data2.attrs[key]
 
                 if type(data1) is not type(data2):
                     print(
@@ -100,7 +101,13 @@ class CompareHdf5:
                     )
                     continue
 
+                if isinstance(data1, str):
+                    if data1 != data2:
+                        print(
+                            f"[{self.__class__.__name__}] Attribute {key:25}: Data mismatch: {data1} vs {data2}"
+                        )
+
 
 if __name__ == "__main__":
-    conv = CompareHdf5(**vars(parse_argument()))
-    conv.run()
+    compare = CompareRmbData(**vars(parse_argument()))
+    compare.run()

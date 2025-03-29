@@ -1,4 +1,5 @@
 import os
+import shutil
 
 import h5py
 import numpy as np
@@ -123,8 +124,72 @@ class RmbData:
     def attrs(self):
         return self.h5file.attrs
 
-    def dump_hdf5(self):
-        pass  # TODO
+    def dump_to_hdf5(self, dst_path, force_overwrite=False):
+        _, dst_ext = os.path.splitext(dst_path)
+        if dst_ext.lower() != ".hdf5":
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid file extension '{dst_ext}'. Expected '.hdf5': {dst_path}"
+            )
 
-    def dump_rmb(self):
-        pass  # TODO
+        self._check_file_existence(dst_path, force_overwrite)
+
+        with h5py.File(dst_path, "w") as dst_h5file:
+            for key in self.keys():
+                if DataKey.is_rgb_image_key(key) or DataKey.is_depth_image_key(key):
+                    dst_h5file.create_dataset(key, data=self[key][()])
+                else:
+                    self.h5file.copy(key, dst_h5file)
+
+            for key in self.attrs.keys():
+                dst_h5file.attrs[key] = self.attrs[key]
+
+        print(f"[{self.__class__.__name__}] Succeeded to dump a HDF5 file: {dst_path}")
+
+    def dump_to_rmb(self, dst_path, force_overwrite=False):
+        _, dst_ext = os.path.splitext(dst_path.rstrip("/"))
+        if dst_ext.lower() != ".rmb":
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid file extension '{dst_ext}'. Expected '.rmb': {dst_path}"
+            )
+
+        self._check_file_existence(dst_path, force_overwrite)
+
+        os.makedirs(dst_path, exist_ok="True")
+
+        dst_hdf5_path = os.path.join(dst_path, "main.rmb.hdf5")
+        with h5py.File(dst_hdf5_path, "w") as dst_h5file:
+            for key in self.keys():
+                if DataKey.is_rgb_image_key(key):
+                    dst_video_path = os.path.join(dst_path, f"{key}.rmb.mp4")
+                    images = self[key][()]
+                    videoio.videosave(dst_video_path, images)
+                elif DataKey.is_depth_image_key(key):
+                    dst_video_path = os.path.join(dst_path, f"{key}.rmb.mp4")
+                    images = (1e3 * self[key][()]).astype(np.uint16)
+                    videoio.uint16save(dst_video_path, images)
+                else:
+                    self.h5file.copy(key, dst_h5file)
+
+            for key in self.attrs.keys():
+                dst_h5file.attrs[key] = self.attrs[key]
+
+        print(f"[{self.__class__.__name__}] Succeeded to dump RMB files: {dst_path}")
+
+    def _check_file_existence(self, path, force_overwrite):
+        if not os.path.exists(path):
+            return
+
+        if force_overwrite:
+            will_remove = True
+        else:
+            print(f"[{self.__class__.__name__}] A file already exists: {path}")
+            answer = input(
+                f"[{self.__class__.__name__}] Do you want to delete it? (y/n): "
+            )
+            will_remove = answer.strip().lower() == "y"
+
+        if will_remove:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
