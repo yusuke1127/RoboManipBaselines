@@ -28,7 +28,7 @@ class SarnnDataset(DatasetBase):
             # Load state
             state = np.concatenate(
                 [
-                    get_skipped_data_seq(rmb_data[key][()], key, skip)
+                    get_skipped_data_seq(rmb_data[key][:], key, skip)
                     for key in self.model_meta_info["state"]["keys"]
                 ],
                 axis=1,

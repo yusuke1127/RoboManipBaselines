@@ -127,7 +127,7 @@ class DataManager:
                     and new_key not in load_keys
                 ):
                     continue
-                self.all_data_seq[new_key] = h5file[orig_key][()]
+                self.all_data_seq[new_key] = h5file[orig_key][:]
             for key in h5file.attrs.keys():
                 self.meta_data[key] = h5file.attrs[key]
 

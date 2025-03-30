@@ -236,7 +236,7 @@ class TrainBase(ABC):
                 else:
                     state = np.concatenate(
                         [
-                            get_skipped_data_seq(rmb_data[key][()], key, self.args.skip)
+                            get_skipped_data_seq(rmb_data[key][:], key, self.args.skip)
                             for key in self.args.state_keys
                         ],
                         axis=1,
@@ -249,7 +249,7 @@ class TrainBase(ABC):
                 else:
                     action = np.concatenate(
                         [
-                            get_skipped_data_seq(rmb_data[key][()], key, self.args.skip)
+                            get_skipped_data_seq(rmb_data[key][:], key, self.args.skip)
                             for key in self.args.action_keys
                         ],
                         axis=1,

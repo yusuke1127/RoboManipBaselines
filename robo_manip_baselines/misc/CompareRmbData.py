@@ -64,11 +64,9 @@ class CompareRmbData:
                         continue
 
                 if np.issubdtype(data1.dtype, np.unsignedinteger):
-                    diff = np.abs(
-                        data1[...].astype(np.int64) - data2[...].astype(np.int64)
-                    )
+                    diff = np.abs(data1[:].astype(np.int64) - data2[:].astype(np.int64))
                 else:
-                    diff = np.abs(data1[...] - data2[...])
+                    diff = np.abs(data1[:] - data2[:])
                 if np.max(diff) > 0.0:
                     print(
                         f"[{self.__class__.__name__}] {key:25}: Mean err = {np.mean(diff):.5g}, Max err = {np.max(diff):.5g}"

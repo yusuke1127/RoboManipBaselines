@@ -4,6 +4,7 @@ import shutil
 import h5py
 import numpy as np
 import videoio
+from torchcodec.decoders import VideoDecoder
 
 from .DataKey import DataKey
 
@@ -13,18 +14,28 @@ class RmbData:
 
     class RmbVideo:
         def __len__(self):
-            return len(self[()])
-
-        @property
-        def shape(self):
-            return self[()].shape
+            decoder = VideoDecoder(self.path)
+            return decoder.metadata.num_frames
 
     class RmbRgbVideo(RmbVideo):
         def __init__(self, path):
             self.path = path
 
         def __getitem__(self, key):
-            return videoio.videoread(self.path)[key]
+            # torchcodec's VideoDecoder is slightly faster
+            # return videoio.videoread(self.path)[key]
+            decoder = VideoDecoder(self.path, dimension_order="NHWC")
+            return decoder[key].numpy()
+
+        @property
+        def shape(self):
+            decoder = VideoDecoder(self.path)
+            return (
+                decoder.metadata.num_frames,
+                decoder.metadata.height,
+                decoder.metadata.width,
+                3,
+            )
 
         @property
         def dtype(self):
@@ -36,6 +47,15 @@ class RmbData:
 
         def __getitem__(self, key):
             return (1e-3 * videoio.uint16read(self.path)[key]).astype(np.float32)
+
+        @property
+        def shape(self):
+            decoder = VideoDecoder(self.path)
+            return (
+                decoder.metadata.num_frames,
+                decoder.metadata.height,
+                decoder.metadata.width,
+            )
 
         @property
         def dtype(self):
@@ -139,7 +159,7 @@ class RmbData:
         with h5py.File(dst_path, "w") as dst_h5file:
             for key in self.keys():
                 if DataKey.is_rgb_image_key(key) or DataKey.is_depth_image_key(key):
-                    dst_h5file.create_dataset(key, data=self[key][()])
+                    dst_h5file.create_dataset(key, data=self[key][:])
                 else:
                     self.h5file.copy(key, dst_h5file)
 
@@ -165,11 +185,11 @@ class RmbData:
             for key in self.keys():
                 if DataKey.is_rgb_image_key(key):
                     dst_video_path = os.path.join(dst_path, f"{key}.rmb.mp4")
-                    images = self[key][()]
+                    images = self[key][:]
                     videoio.videosave(dst_video_path, images)
                 elif DataKey.is_depth_image_key(key):
                     dst_video_path = os.path.join(dst_path, f"{key}.rmb.mp4")
-                    images = (1e3 * self[key][()]).astype(np.uint16)
+                    images = (1e3 * self[key][:]).astype(np.uint16)
                     videoio.uint16save(dst_video_path, images)
                 else:
                     self.h5file.copy(key, dst_h5file)

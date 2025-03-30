@@ -51,7 +51,7 @@ class DiffusionPolicyDataset(DatasetBase):
             else:
                 state = np.concatenate(
                     [
-                        get_skipped_data_seq(rmb_data[key][()], key, skip)[time_idxes]
+                        get_skipped_data_seq(rmb_data[key][:], key, skip)[time_idxes]
                         for key in self.model_meta_info["state"]["keys"]
                     ],
                     axis=1,
@@ -60,7 +60,7 @@ class DiffusionPolicyDataset(DatasetBase):
             # Load action
             action = np.concatenate(
                 [
-                    get_skipped_data_seq(rmb_data[key][()], key, skip)[time_idxes]
+                    get_skipped_data_seq(rmb_data[key][:], key, skip)[time_idxes]
                     for key in self.model_meta_info["action"]["keys"]
                 ],
                 axis=1,

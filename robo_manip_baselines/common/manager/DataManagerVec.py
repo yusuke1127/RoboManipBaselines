@@ -65,7 +65,7 @@ class DataManagerVec(DataManager):
                     new_key = DataKey.replace_deprecated_key(
                         orig_key
                     )  # For backward compatibility
-                    all_data_seq[new_key] = h5file[orig_key][()]
+                    all_data_seq[new_key] = h5file[orig_key][:]
                 for orig_key in h5file.attrs.keys():
                     new_key = DataKey.replace_deprecated_key(
                         orig_key
