@@ -57,6 +57,12 @@ class TrainBase(ABC):
         )
 
         parser.add_argument(
+            "--enable_rmb_cache",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="whether to enable data caching in RmbData",
+        )
+        parser.add_argument(
             "--use_cached_dataset",
             action=argparse.BooleanOptionalAction,
             default=False,
@@ -193,6 +199,11 @@ class TrainBase(ABC):
         }
 
     def setup_dataset(self):
+        if self.args.enable_rmb_cache and self.args.use_cached_dataset:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Both 'enable_rmb_cache' and 'use_cached_dataset' options cannot be True at the same time."
+            )
+
         # Get file list
         all_filenames = [
             f
@@ -234,7 +245,7 @@ class TrainBase(ABC):
         depth_image_example = None
         episode_len_list = []
         for filename in all_filenames:
-            with RmbData.from_file(filename) as rmb_data:
+            with RmbData(filename) as rmb_data:
                 episode_len = rmb_data[DataKey.TIME][:: self.args.skip].shape[0]
                 episode_len_list.append(episode_len)
 
@@ -311,7 +322,9 @@ class TrainBase(ABC):
         )
 
     def make_dataloader(self, filenames, shuffle=True):
-        dataset = self.DatasetClass(filenames, self.model_meta_info)
+        dataset = self.DatasetClass(
+            filenames, self.model_meta_info, self.args.enable_rmb_cache
+        )
         if self.args.use_cached_dataset:
             dataset = CachedDataset(dataset)
 
