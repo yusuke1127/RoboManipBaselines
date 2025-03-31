@@ -65,12 +65,18 @@ class MlpDataset(DatasetBase):
             )
 
             # Load images
+            image_keys = [
+                DataKey.get_rgb_image_key(camera_name)
+                for camera_name in self.model_meta_info["image"]["camera_names"]
+            ]
             images = np.stack(
                 [
-                    rmb_data[DataKey.get_rgb_image_key(camera_name)][
-                        step_idx_in_episode * skip
-                    ]
-                    for camera_name in self.model_meta_info["image"]["camera_names"]
+                    # This allows for a common hash of cache
+                    rmb_data[key][::skip][step_idx_in_episode]
+                    if self.enable_rmb_cache
+                    # This allows for minimal loading when reading from HDF5
+                    else rmb_data[key][step_idx_in_episode * skip]
+                    for key in image_keys
                 ],
                 axis=0,
             )
