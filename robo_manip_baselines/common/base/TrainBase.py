@@ -13,6 +13,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+from ..data.CachedDataset import CachedDataset
 from ..data.DataKey import DataKey
 from ..data.RmbData import RmbData
 from ..utils.DataUtils import get_skipped_data_seq
@@ -53,6 +54,13 @@ class TrainBase(ABC):
             type=str,
             default=None,
             help="checkpoint directory",
+        )
+
+        parser.add_argument(
+            "--use_cached_dataset",
+            action=argparse.BooleanOptionalAction,
+            default=False,
+            help="whether to use CachedDataset. When enabling this, make sure that non-reproducible processes such as data augmentation are not performed on the original dataset.",
         )
 
         parser.add_argument(
@@ -304,6 +312,8 @@ class TrainBase(ABC):
 
     def make_dataloader(self, filenames, shuffle=True):
         dataset = self.DatasetClass(filenames, self.model_meta_info)
+        if self.args.use_cached_dataset:
+            dataset = CachedDataset(dataset)
 
         dataloader = DataLoader(
             dataset,
