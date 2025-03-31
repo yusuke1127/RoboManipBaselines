@@ -60,13 +60,13 @@ class TrainBase(ABC):
             "--enable_rmb_cache",
             action=argparse.BooleanOptionalAction,
             default=False,
-            help="whether to enable data caching in RmbData",
+            help="Whether to enable data caching in RmbData. This uses RAM heavily, so it should be disabled on computers with small RAM.",
         )
         parser.add_argument(
             "--use_cached_dataset",
             action=argparse.BooleanOptionalAction,
             default=False,
-            help="whether to use CachedDataset. When enabling this, make sure that non-reproducible processes such as data augmentation are not performed on the original dataset.",
+            help="Whether to use CachedDataset. When enabling this, make sure that non-reproducible processes such as data augmentation are not performed on the original dataset.",
         )
 
         parser.add_argument(
