@@ -101,6 +101,13 @@ class TrainBase(ABC):
         )
 
         parser.add_argument(
+            "--norm_type",
+            type=str,
+            default="gaussian",
+            choices=["gaussian", "limits"],
+            help="normalization type",
+        )
+        parser.add_argument(
             "--state_aug_std",
             type=float,
             default=0.0,
@@ -293,20 +300,8 @@ class TrainBase(ABC):
         all_state = np.concatenate(all_state, dtype=np.float64)
         all_action = np.concatenate(all_action, dtype=np.float64)
 
-        self.model_meta_info["state"].update(
-            {
-                "mean": all_state.mean(axis=0),
-                "std": np.clip(all_state.std(axis=0), 1e-3, 1e10),
-                "example": all_state[0],
-            }
-        )
-        self.model_meta_info["action"].update(
-            {
-                "mean": all_action.mean(axis=0),
-                "std": np.clip(all_action.std(axis=0), 1e-3, 1e10),
-                "example": all_action[0],
-            }
-        )
+        self.model_meta_info["state"].update(self.calc_stats_from_seq(all_state))
+        self.model_meta_info["action"].update(self.calc_stats_from_seq(all_action))
         self.model_meta_info["image"].update(
             {
                 "rgb_example": rgb_image_example,
@@ -320,6 +315,37 @@ class TrainBase(ABC):
                 "max_episode_len": np.max(episode_len_list),
             }
         )
+
+    def calc_stats_from_seq(self, data_seq):
+        data_min = data_seq.min(axis=0)
+        data_max = data_seq.max(axis=0)
+        data_range = np.clip(data_max - data_min, 1e-3, 1e10)
+        data_mean = data_seq.mean(axis=0)
+        data_std = np.clip(data_seq.std(axis=0), 1e-3, 1e10)
+
+        if self.args.norm_type == "gaussian":
+            norm_config = {"type": self.args.norm_type}
+        elif self.args.norm_type == "limits":
+            norm_config = {
+                "type": self.args.norm_type,
+                "out_min": -1.0,
+                "out_max": 1.0,
+            }
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid normalization type: {self.args.norm_type}"
+            )
+
+        data_stats = {
+            "norm_config": norm_config,
+            "min": data_min,
+            "max": data_max,
+            "range": data_range,
+            "mean": data_mean,
+            "std": data_std,
+            "example": data_seq[0],
+        }
+        return data_stats
 
     def make_dataloader(self, filenames, shuffle=True):
         dataset = self.DatasetClass(
@@ -355,7 +381,9 @@ class TrainBase(ABC):
             f"{image_transform.__class__.__name__}"
             for image_transform in self.train_dataloader.dataset.image_transforms.transforms
         ]
-        print(f"  - image transforms: {image_transform_str_list}")
+        print(
+            f"  - norm type: {self.args.norm_type}, image transforms: {image_transform_str_list}"
+        )
 
     @abstractmethod
     def setup_policy(self):
