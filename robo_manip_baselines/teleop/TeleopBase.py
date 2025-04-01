@@ -45,7 +45,8 @@ class StandbyTeleopPhase(PhaseBase):
         self.op.input_device.read()
 
     def check_transition(self):
-        return self.op.key == ord("n") and self.op.input_device.is_ready()
+        is_ready = self.op.input_device.is_ready()
+        return is_ready and self.op.key == ord("n")
 
 
 class SyncPhase(PhaseBase):
