@@ -9,6 +9,7 @@ import sys
 from abc import ABC, abstractmethod
 
 import numpy as np
+import psutil
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -435,6 +436,9 @@ class TrainBase(ABC):
             epoch_summary["GPU_usage [GB]"] = (
                 torch.cuda.max_memory_reserved() / 1024**3
             )  # [GB]
+            epoch_summary["RAM_usage [GB]"] = (
+                self.get_total_memory_usage() / 1024**3
+            )  # [GB]
             epoch_summary["best_epoch"] = self.best_ckpt_info["epoch"]
 
         for k in batch_result_list[0]:
@@ -471,6 +475,15 @@ class TrainBase(ABC):
         print(
             f"[{self.__class__.__name__}] Best val loss is {self.best_ckpt_info['loss']:.3f} at epoch {self.best_ckpt_info['epoch']}"
         )
+
+    def get_total_memory_usage(self):
+        process = psutil.Process()
+        mem_usage = process.memory_info().rss
+
+        for child_process in process.children(recursive=True):
+            mem_usage += child_process.memory_info().rss
+
+        return mem_usage
 
     def close(self):
         self.writer.close()
