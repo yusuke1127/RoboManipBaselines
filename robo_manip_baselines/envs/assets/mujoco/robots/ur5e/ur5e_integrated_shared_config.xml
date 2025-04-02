@@ -1,4 +1,4 @@
-<mujoco>
+<mujoco model="ur5e_integrated_shared_config">
   <default>
     <default class="ur5e">
       <material specular="0.5" shininess="0.25"/>
