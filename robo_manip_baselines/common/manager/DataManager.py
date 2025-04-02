@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 
 import h5py
@@ -103,22 +104,32 @@ class DataManager:
         os.makedirs(filename)
         hdf5_filename = os.path.join(filename, "main.rmb.hdf5")
         with h5py.File(hdf5_filename, "w") as h5file:
-            for key in all_data_seq.keys():
-                if isinstance(all_data_seq[key], list):
+            tasks = []
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                for key in all_data_seq.keys():
+                    if not isinstance(all_data_seq[key], list):
+                        raise ValueError(
+                            f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
+                        )
+
                     if DataKey.is_rgb_image_key(key):
                         video_filename = os.path.join(filename, f"{key}.rmb.mp4")
                         images = np.array(all_data_seq[key])
-                        videoio.videosave(video_filename, images)
+                        tasks.append(
+                            executor.submit(self.save_rgb_image, video_filename, images)
+                        )
                     elif DataKey.is_depth_image_key(key):
                         video_filename = os.path.join(filename, f"{key}.rmb.mp4")
                         images = (1e3 * np.array(all_data_seq[key])).astype(np.uint16)
-                        videoio.uint16save(video_filename, images)
+                        tasks.append(
+                            executor.submit(
+                                self.save_depth_image, video_filename, images
+                            )
+                        )
                     else:
                         h5file.create_dataset(key, data=np.array(all_data_seq[key]))
-                else:
-                    raise ValueError(
-                        f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
-                    )
+
+                concurrent.futures.wait(tasks)
 
             for key in meta_data.keys():
                 h5file.attrs[key] = meta_data[key]
@@ -128,16 +139,24 @@ class DataManager:
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with h5py.File(filename, "w") as h5file:
             for key in all_data_seq.keys():
-                if isinstance(all_data_seq[key], list):
-                    h5file.create_dataset(key, data=np.array(all_data_seq[key]))
-                else:
+                if not isinstance(all_data_seq[key], list):
                     raise ValueError(
                         f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
                     )
 
+                h5file.create_dataset(key, data=np.array(all_data_seq[key]))
+
             for key in meta_data.keys():
                 h5file.attrs[key] = meta_data[key]
             h5file.attrs["format"] = "RmbData-SingleHDF5"
+
+    @staticmethod
+    def save_rgb_image(video_filename, images):
+        videoio.videosave(video_filename, images)
+
+    @staticmethod
+    def save_depth_image(video_filename, images):
+        videoio.uint16save(video_filename, images)
 
     def load_data(self, filename, load_keys=None):
         """Load data."""
@@ -159,12 +178,13 @@ class DataManager:
         for key in all_data_seq.keys():
             if key == DataKey.TIME:
                 continue
-            elif isinstance(all_data_seq[key], list):
-                all_data_seq[key].reverse()
-            else:
+
+            if not isinstance(all_data_seq[key], list):
                 raise ValueError(
                     f"[{self.__class__.__name__}] Unsupported type of data sequence: {type(all_data_seq[key])}"
                 )
+
+            all_data_seq[key].reverse()
 
             if key in (
                 DataKey.MEASURED_JOINT_VEL,
