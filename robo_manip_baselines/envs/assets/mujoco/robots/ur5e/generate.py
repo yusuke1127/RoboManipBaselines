@@ -20,5 +20,5 @@ def generate(template_file, prefix_list):
 
 
 prefix_list = ["", "left/", "right/"]
-generate("ur5e_integrated_config.in.xml", prefix_list)
+generate("ur5e_integrated_specific_config.in.xml", prefix_list)
 generate("ur5e_integrated_body.in.xml", prefix_list)
