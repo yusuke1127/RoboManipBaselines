@@ -91,9 +91,7 @@ class GelloInputDevice(InputDeviceBase):
                 f"[{self.__class__.__name__}] Joint angles differ greatly.\n  joint_name, robot_joint, gello_joint (joint_status):"
             )
             for joint_idx, current_joint_pos0, new_joint_pos0 in zip(
-                np.arange(
-                    arm_joint_idxes.start, arm_joint_idxes.stop, arm_joint_idxes.step
-                ),
+                np.arange(len(current_joint_pos))[arm_joint_idxes],
                 current_joint_pos[arm_joint_idxes],
                 new_joint_pos[arm_joint_idxes],
             ):
