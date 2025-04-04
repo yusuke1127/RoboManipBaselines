@@ -31,6 +31,10 @@ class DatasetBase(torch.utils.data.Dataset):
         """
         image_transform_list = []
 
+        if self.model_meta_info["image"]["aug_erasing_scale"] > 0.0:
+            scale = self.model_meta_info["image"]["aug_erasing_scale"]
+            image_transform_list.append(v2.RandomErasing(p=0.5 * scale))
+
         if self.model_meta_info["image"]["aug_color_scale"] > 0.0:
             scale = self.model_meta_info["image"]["aug_color_scale"]
             image_transform_list.append(

@@ -58,13 +58,8 @@ class TrainSarnn(TrainBase):
 
         parser.set_defaults(state_aug_std=0.2)
         parser.set_defaults(image_aug_std=0.02)
+        parser.set_defaults(image_aug_erasing_scale=1.0)
         parser.set_defaults(image_aug_color_scale=1.0)
-        parser.add_argument(
-            "--image_aug_erasing_scale",
-            type=float,
-            default=1.0,
-            help="Scale of random erasing applied to the images",
-        )
 
         parser.set_defaults(skip=6)
 
@@ -115,9 +110,6 @@ class TrainSarnn(TrainBase):
     def setup_model_meta_info(self):
         super().setup_model_meta_info()
 
-        self.model_meta_info["image"]["aug_erasing_scale"] = (
-            self.args.image_aug_erasing_scale
-        )
         self.model_meta_info["data"]["image_crop_size_list"] = (
             self.args.image_crop_size_list
         )

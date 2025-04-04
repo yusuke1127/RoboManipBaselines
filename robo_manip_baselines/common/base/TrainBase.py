@@ -127,6 +127,12 @@ class TrainBase(ABC):
             help="Standard deviation of random noise added to images",
         )
         parser.add_argument(
+            "--image_aug_erasing_scale",
+            type=float,
+            default=0.0,
+            help="Scale of random erasing applied to the images",
+        )
+        parser.add_argument(
             "--image_aug_color_scale",
             type=float,
             default=0.0,
@@ -201,6 +207,7 @@ class TrainBase(ABC):
             "image": {
                 "camera_names": self.args.camera_names,
                 "aug_std": self.args.image_aug_std,
+                "aug_erasing_scale": self.args.image_aug_erasing_scale,
                 "aug_color_scale": self.args.image_aug_color_scale,
                 "aug_affine_scale": self.args.image_aug_affine_scale,
             },
@@ -379,7 +386,7 @@ class TrainBase(ABC):
         )
         print(
             f"  - aug std state: {self.model_meta_info['state']['aug_std']}, action: {self.model_meta_info['action']['aug_std']}, "
-            f"image: {self.model_meta_info['image']['aug_std']}, color: {self.model_meta_info['image']['aug_color_scale']}, affine: {self.model_meta_info['image']['aug_affine_scale']}"
+            f"image: {self.model_meta_info['image']['aug_std']}, erasing: {self.model_meta_info['image']['aug_erasing_scale']}, color: {self.model_meta_info['image']['aug_color_scale']}, affine: {self.model_meta_info['image']['aug_affine_scale']}"
         )
         image_transform_str_list = [
             f"{image_transform.__class__.__name__}"
