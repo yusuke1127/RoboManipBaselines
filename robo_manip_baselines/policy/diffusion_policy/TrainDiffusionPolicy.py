@@ -84,6 +84,15 @@ class TrainDiffusionPolicy(TrainBase):
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
+    def get_extra_norm_config(self):
+        if self.args.norm_type == "limits":
+            return {
+                "out_min": -1.0,
+                "out_max": 1.0,
+            }
+        else:
+            return super().get_extra_norm_config()
+
     def setup_policy(self):
         # Set policy args
         shape_meta = {

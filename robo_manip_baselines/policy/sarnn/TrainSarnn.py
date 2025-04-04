@@ -54,6 +54,8 @@ class TrainSarnn(TrainBase):
         parser.set_defaults(state_keys=[DataKey.COMMAND_JOINT_POS])
         parser.set_defaults(action_keys=[])
 
+        parser.set_defaults(norm_type="limits")
+
         parser.set_defaults(state_aug_std=0.2)
         parser.set_defaults(image_aug_std=0.02)
         parser.set_defaults(image_aug_color_scale=1.0)
