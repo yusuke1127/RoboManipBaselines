@@ -449,11 +449,11 @@ class TileRolloutVideos:
 
         self.input_file_name = input_file_name
 
+        self.task_period_list = self.update_task_period_list_ifneeded(task_period_list)
         if not self.quiet:
             print(
-                f"[{self.__class__.__name__}] task_period_list {' '.join(task_period_list)}"
+                f"[{self.__class__.__name__}] task_period_list {' '.join(self.task_period_list)}"
             )
-        self.task_period_list = self.update_task_period_list_ifneeded(task_period_list)
         assert len(task_period_list) >= 1, f"{len(task_period_list)=}"
         if len(self.task_success_list) >= 1:
             if len(self.task_success_list) != len(task_period_list):
