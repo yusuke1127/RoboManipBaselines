@@ -62,6 +62,7 @@ class VisualizeData:
         print(f"{cls_str} set skip parameter ...")
         self.skip = skip
 
+        # Use DataManager instead of RmbData because DataManager that puts all data in RAM is faster
         print(f"{cls_str} initialize data manager ...")
         self.data_manager = DataManager(env=None)
 
