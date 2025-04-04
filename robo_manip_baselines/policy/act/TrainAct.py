@@ -19,6 +19,8 @@ class TrainAct(TrainBase):
     def set_additional_args(self, parser):
         parser.set_defaults(enable_rmb_cache=True)
 
+        parser.set_defaults(image_aug_std=0.1)
+
         parser.set_defaults(batch_size=8)
         parser.set_defaults(num_epochs=1000)
         parser.set_defaults(lr=1e-5)
