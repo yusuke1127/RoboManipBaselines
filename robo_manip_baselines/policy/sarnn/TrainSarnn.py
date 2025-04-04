@@ -88,14 +88,14 @@ class TrainSarnn(TrainBase):
             type=int,
             nargs="+",
             default=[280, 280],
-            help="List of image crop size (width, height) before resize. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
+            help="List of image size (width, height) to be cropped before resize. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
         )
         parser.add_argument(
             "--image_size_list",
             type=int,
             nargs="+",
             default=[64, 64],
-            help="List of image size (width, height). Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
+            help="List of image size (width, height) to be resized after crop. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
         )
         parser.add_argument(
             "--num_attentions",
