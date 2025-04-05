@@ -23,7 +23,9 @@ class RolloutDiffusionPolicy(RolloutBase):
         print(
             f"  - horizon: {self.model_meta_info['data']['horizon']}, obs steps: {self.model_meta_info['data']['n_obs_steps']}, action steps: {self.model_meta_info['data']['n_action_steps']}"
         )
-        print(f"  - image size list: {self.model_meta_info['data']['image_size_list']}")
+        print(
+            f"  - image size: {self.model_meta_info['data']['image_size']}, image crop size: {self.model_meta_info['data']['image_crop_size']}"
+        )
 
         # Construct policy
         noise_scheduler = DDPMScheduler(
@@ -103,12 +105,10 @@ class RolloutDiffusionPolicy(RolloutBase):
     def get_images(self):
         # Get latest value
         images = []
-        for camera_name, image_size in zip(
-            self.camera_names, self.model_meta_info["data"]["image_size_list"]
-        ):
+        for camera_name in self.camera_names:
             image = self.info["rgb_images"][camera_name]
 
-            image = cv2.resize(image, image_size)
+            image = cv2.resize(image, self.model_meta_info["data"]["image_size"])
 
             image = np.moveaxis(image, -1, -3)
             image = torch.tensor(image, dtype=torch.uint8)
