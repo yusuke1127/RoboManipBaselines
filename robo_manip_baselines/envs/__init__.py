@@ -35,6 +35,12 @@ register(
     entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eToolboxEnv",
 )
 
+## UR5e-Dual
+register(
+    id="robo_manip_baselines/MujocoUR5eDualCabinetEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDualCabinetEnv",
+)
+
 ## Xarm7
 register(
     id="robo_manip_baselines/MujocoXarm7CableEnv-v0",

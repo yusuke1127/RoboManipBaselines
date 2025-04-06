@@ -56,12 +56,8 @@ class ArmManager(BodyManagerBase):
         self.reset(init=True)
 
     def reset(self, init=False):
-        self.arm_joint_pos = self.env.unwrapped.init_qpos[
-            self.body_config.arm_joint_idxes
-        ].copy()
-        self.gripper_joint_pos = self.env.unwrapped.init_qpos[
-            self.body_config.gripper_joint_idxes
-        ].copy()
+        self.arm_joint_pos = self.body_config.init_arm_joint_pos.copy()
+        self.gripper_joint_pos = self.body_config.init_gripper_joint_pos.copy()
 
         self.forward_kinematics()
 
@@ -230,9 +226,11 @@ class ArmConfig(BodyConfigBase):
     BodyManagerClass = ArmManager
 
     arm_urdf_path: str
-    arm_root_pose: np.ndarray
+    arm_root_pose: npt.NDArray[np.float64]
     ik_eef_joint_id: int
     arm_joint_idxes: npt.NDArray[np.int_]
     gripper_joint_idxes: npt.NDArray[np.int_]
     gripper_joint_idxes_in_gripper_joint_pos: npt.NDArray[np.int_]
     eef_idx: Optional[int]
+    init_arm_joint_pos: npt.NDArray[np.float64]
+    init_gripper_joint_pos: npt.NDArray[np.float64]

@@ -24,7 +24,7 @@ class MujocoUR5eCabinetEnv(MujocoUR5eEnvBase):
                     -0.2 * np.pi,
                     np.pi / 2,
                     np.pi / 2,
-                    0.0,
+                    *np.zeros(8),
                 ]
             ),
             **kwargs,

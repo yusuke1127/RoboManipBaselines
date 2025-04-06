@@ -24,7 +24,7 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
                     -0.75 * np.pi,
                     -0.5 * np.pi,
                     0.0,
-                    0.0,
+                    *np.zeros(8),
                 ]
             ),
             **kwargs,

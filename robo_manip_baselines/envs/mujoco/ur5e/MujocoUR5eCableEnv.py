@@ -24,7 +24,7 @@ class MujocoUR5eCableEnv(MujocoUR5eEnvBase):
                     -0.25 * np.pi,
                     np.pi / 2,
                     np.pi / 2,
-                    0.0,
+                    *np.zeros(8),
                 ]
             ),
             **kwargs,

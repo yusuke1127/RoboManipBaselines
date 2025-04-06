@@ -24,7 +24,7 @@ class MujocoUR5eToolboxEnv(MujocoUR5eEnvBase):
                     -0.45 * np.pi,
                     np.pi / 2,
                     np.pi,
-                    0.0,
+                    *np.zeros(8),
                 ]
             ),
             **kwargs,

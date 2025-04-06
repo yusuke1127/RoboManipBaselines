@@ -10,7 +10,7 @@ from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
 from ..MujocoEnvBase import MujocoEnvBase
 
 
-class MujocoUR5eEnvBase(MujocoEnvBase):
+class MujocoUR5eDualEnvBase(MujocoEnvBase):
     default_camera_config = {
         "azimuth": -135.0,
         "elevation": -45.0,
@@ -19,9 +19,9 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
     }
     observation_space = Dict(
         {
-            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64),
-            "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float64),
+            "wrench": Box(low=-np.inf, high=np.inf, shape=(12,), dtype=np.float64),
         }
     )
 
@@ -36,15 +36,28 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
                 arm_urdf_path=path.join(
                     path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
                 ),
-                arm_root_pose=self.get_body_pose("ur5e_root_frame"),
+                arm_root_pose=self.get_body_pose("left/ur5e_root_frame"),
                 ik_eef_joint_id=6,
-                arm_joint_idxes=np.arange(6),
+                arm_joint_idxes=np.arange(0, 6),
                 gripper_joint_idxes=np.array([6]),
                 gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
                 eef_idx=0,
                 init_arm_joint_pos=self.init_qpos[0:6],
                 init_gripper_joint_pos=np.zeros(1),
-            )
+            ),
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
+                ),
+                arm_root_pose=self.get_body_pose("right/ur5e_root_frame"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(7, 13),
+                gripper_joint_idxes=np.array([13]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([1]),
+                eef_idx=1,
+                init_arm_joint_pos=self.init_qpos[14:20],
+                init_gripper_joint_pos=np.zeros(1),
+            ),
         ]
 
     def setup_input_device(self, input_device_key, motion_manager):
@@ -60,15 +73,24 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
 
         return [
             InputDeviceClass(
-                motion_manager.body_manager_list[0],
+                motion_manager.body_manager_list[i],
                 **self.get_input_device_kwargs(input_device_name),
             )
+            for i in range(2)
         ]
 
     def get_input_device_kwargs(self, input_device_name):
         return {}
 
     def _get_obs(self):
+        left_obs = self._get_obs_single_arm("left")
+        right_obs = self._get_obs_single_arm("right")
+        return {
+            key: np.concatenate([left_obs[key], right_obs[key]])
+            for key in left_obs.keys()
+        }
+
+    def _get_obs_single_arm(self, left_right):
         arm_joint_name_list = [
             "shoulder_pan_joint",
             "shoulder_lift_joint",
@@ -85,21 +107,27 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
         ]
 
         arm_joint_pos = np.array(
-            [self.data.joint(joint_name).qpos[0] for joint_name in arm_joint_name_list]
+            [
+                self.data.joint(left_right + "/" + joint_name).qpos[0]
+                for joint_name in arm_joint_name_list
+            ]
         )
         arm_joint_vel = np.array(
-            [self.data.joint(joint_name).qvel[0] for joint_name in arm_joint_name_list]
+            [
+                self.data.joint(left_right + "/" + joint_name).qvel[0]
+                for joint_name in arm_joint_name_list
+            ]
         )
         gripper_qpos = np.array(
             [
-                self.data.joint(joint_name).qpos[0]
+                self.data.joint(left_right + "/" + joint_name).qpos[0]
                 for joint_name in gripper_joint_name_list
             ]
         )
         gripper_joint_pos = np.rad2deg(gripper_qpos.mean(keepdims=True)) / 45.0 * 255.0
         gripper_joint_vel = np.zeros(1)
-        force = self.data.sensor("force_sensor").data.flat.copy()
-        torque = self.data.sensor("torque_sensor").data.flat.copy()
+        force = self.data.sensor(left_right + "/" + "force_sensor").data.flat.copy()
+        torque = self.data.sensor(left_right + "/" + "torque_sensor").data.flat.copy()
 
         return {
             "joint_pos": np.concatenate(

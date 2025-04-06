@@ -7,6 +7,8 @@ from .ur5e.MujocoUR5eDoorEnv import MujocoUR5eDoorEnv
 from .ur5e.MujocoUR5eCabinetEnv import MujocoUR5eCabinetEnv
 from .ur5e.MujocoUR5eToolboxEnv import MujocoUR5eToolboxEnv
 
+from .ur5e_dual.MujocoUR5eDualCabinetEnv import MujocoUR5eDualCabinetEnv
+
 from .xarm7.MujocoXarm7CableEnv import MujocoXarm7CableEnv
 from .xarm7.MujocoXarm7RingEnv import MujocoXarm7RingEnv
 

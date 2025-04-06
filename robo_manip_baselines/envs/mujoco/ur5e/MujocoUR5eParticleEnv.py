@@ -17,7 +17,15 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
                 "../../assets/mujoco/envs/ur5e/env_ur5e_particle.xml",
             ),
             np.array(
-                [np.pi, -np.pi / 2, -0.75 * np.pi, -0.25 * np.pi, np.pi / 2, np.pi, 0.0]
+                [
+                    np.pi,
+                    -np.pi / 2,
+                    -0.75 * np.pi,
+                    -0.25 * np.pi,
+                    np.pi / 2,
+                    np.pi,
+                    *np.zeros(8),
+                ]
             ),
             **kwargs,
         )

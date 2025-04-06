@@ -1,5 +1,5 @@
 <mujoco model="ur5e_dual_cabinet">
-  <include file="./env_ur5e_common.xml"/>
+  <include file="../ur5e/env_ur5e_common.xml"/>
 
   <include file="../../robots/ur5e/ur5e_integrated_shared_config.xml"/>
   <include file="../../robots/ur5e/ur5e_integrated_specific_config_left.xml"/>

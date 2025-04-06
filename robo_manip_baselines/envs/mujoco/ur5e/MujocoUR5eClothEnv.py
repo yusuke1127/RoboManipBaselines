@@ -24,7 +24,7 @@ class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
                     -0.65 * np.pi,
                     -0.5 * np.pi,
                     0.0,
-                    0.0,
+                    *np.zeros(8),
                 ]
             ),
             **kwargs,
