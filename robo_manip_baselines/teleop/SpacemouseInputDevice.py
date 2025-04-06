@@ -7,13 +7,21 @@ from .InputDeviceBase import InputDeviceBase
 class SpacemouseInputDevice(InputDeviceBase):
     """Spacemouse for teleoperation input device."""
 
-    def __init__(self, arm_manager, pos_scale=1e-2, rpy_scale=5e-3, gripper_scale=5.0):
+    def __init__(
+        self,
+        arm_manager,
+        pos_scale=1e-2,
+        rpy_scale=5e-3,
+        gripper_scale=5.0,
+        device_kwargs={},
+    ):
         super().__init__()
 
         self.arm_manager = arm_manager
         self.pos_scale = pos_scale
         self.rpy_scale = rpy_scale
         self.gripper_scale = gripper_scale
+        self.device_kwargs = device_kwargs
 
     def connect(self):
         if self.connected:
@@ -23,17 +31,15 @@ class SpacemouseInputDevice(InputDeviceBase):
 
         import pyspacemouse
 
-        pyspacemouse.open()
+        self.spacemouse = pyspacemouse.open(**self.device_kwargs)
 
     def read(self):
         if not self.connected:
             raise RuntimeError(f"[{self.__class__.__name__}] Device is not connected.")
 
         # Empirically, you can call read repeatedly to get the latest device state
-        import pyspacemouse
-
         for i in range(10):
-            self.state = pyspacemouse.read()
+            self.state = self.spacemouse.read()
 
     def set_command_data(self):
         # Set arm command
