@@ -21,6 +21,7 @@ dependencies = [
   "psutil",
   "pyyaml",
   "tqdm",
+  "dataclasses",
   "numpy",
   "h5py",
   "scipy>=1.7.0",

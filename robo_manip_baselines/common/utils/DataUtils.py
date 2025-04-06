@@ -90,9 +90,17 @@ def get_skipped_data_seq(data_seq, key, skip):
     ):
 
         def sum_rel_pose(arr):
-            def add_rel_pose(rel_pose1, rel_pose2):
-                return get_rel_pose_from_se3(
-                    get_se3_from_rel_pose(rel_pose1) * get_se3_from_rel_pose(rel_pose2)
+            def add_rel_pose(rel_pose_arr1, rel_pose_arr2):
+                return np.concatenate(
+                    [
+                        get_rel_pose_from_se3(
+                            get_se3_from_rel_pose(rel_pose1)
+                            * get_se3_from_rel_pose(rel_pose2)
+                        )
+                        for rel_pose1, rel_pose2 in zip(
+                            rel_pose_arr1.reshape(-1, 6), rel_pose_arr2.reshape(-1, 6)
+                        )
+                    ]
                 )
 
             return reduce(add_rel_pose, arr)

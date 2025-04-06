@@ -36,16 +36,20 @@ class StandbyTeleopPhase(PhaseBase):
     def start(self):
         super().start()
 
-        self.op.input_device.connect()
+        for input_device in self.op.input_device_list:
+            input_device.connect()
         print(
             f"[{self.op.__class__.__name__}] Press the 'n' key to start teleoperation."
         )
 
     def post_update(self):
-        self.op.input_device.read()
+        for input_device in self.op.input_device_list:
+            input_device.read()
 
     def check_transition(self):
-        is_ready = self.op.input_device.is_ready()
+        is_ready = all(
+            input_device.is_ready() for input_device in self.op.input_device_list
+        )
         return is_ready and self.op.key == ord("n")
 
 
@@ -58,8 +62,9 @@ class SyncPhase(PhaseBase):
         )
 
     def pre_update(self):
-        self.op.input_device.read()
-        self.op.input_device.set_command_data()
+        for input_device in self.op.input_device_list:
+            input_device.read()
+            input_device.set_command_data()
 
     def check_transition(self):
         return self.op.key == ord("n")
@@ -75,8 +80,9 @@ class TeleopPhase(PhaseBase):
         )
 
     def pre_update(self):
-        self.op.input_device.read()
-        self.op.input_device.set_command_data()
+        for input_device in self.op.input_device_list:
+            input_device.read()
+            input_device.set_command_data()
 
     def post_update(self):
         self.op.teleop_time_idx += 1
@@ -204,7 +210,9 @@ class TeleopBase(ABC):
 
         # Setup input device
         if self.args.replay_log is None:
-            self.setup_input_device()
+            self.input_device_list = self.env.unwrapped.setup_input_device(
+                self.args.input_device, self.motion_manager
+            )
 
     def setup_args(self, parser=None, argv=None):
         if parser is None:
@@ -263,25 +271,6 @@ class TeleopBase(ABC):
 
     def get_pre_motion_phases(self):
         return []
-
-    def setup_input_device(self):
-        kwargs = self.get_input_device_kwargs()
-
-        if self.args.input_device == "spacemouse":
-            from .SpacemouseInputDevice import SpacemouseInputDevice
-
-            self.input_device = SpacemouseInputDevice(self.motion_manager, **kwargs)
-        elif self.args.input_device == "gello":
-            from .GelloInputDevice import GelloInputDevice
-
-            self.input_device = GelloInputDevice(self.motion_manager, **kwargs)
-        else:
-            raise ValueError(
-                f"[{self.__class__.__name__}] Invalid input device: {self.args.input_device}"
-            )
-
-    def get_input_device_kwargs(self):
-        return {}
 
     def run(self):
         self.reset_flag = True

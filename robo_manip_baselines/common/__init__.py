@@ -12,6 +12,10 @@ from .manager.MotionManager import MotionManager
 from .manager.DataManager import DataManager
 from .manager.DataManagerVec import DataManagerVec
 
+from .body.BodyManagerBase import BodyConfigBase, BodyManagerBase
+from .body.ArmManager import ArmConfig, ArmManager
+from .body.MobileOmniManager import MobileOmniConfig, MobileOmniManager
+
 from .utils.MathUtils import (
     set_random_seed,
     get_pose_from_rot_pos,

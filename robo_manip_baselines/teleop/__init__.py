@@ -1,4 +1,5 @@
 from .InputDeviceBase import InputDeviceBase
 from .SpacemouseInputDevice import SpacemouseInputDevice
+from .GelloInputDevice import GelloInputDevice
 from .TeleopBase import TeleopBase
 from .TeleopBaseVec import TeleopBaseVec

@@ -4,6 +4,9 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
+from robo_manip_baselines.common import ArmConfig
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+
 from ..MujocoEnvBase import MujocoEnvBase
 
 
@@ -23,17 +26,44 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
     )
 
     def setup_robot(self, init_qpos):
-        mujoco.mj_kinematics(self.model, self.data)
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
-        )
-        self.arm_root_pose = self.get_body_pose("ur5e_root_frame")
-        self.ik_eef_joint_id = 6
         self.init_qpos[: len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_joint_idxes = [6]
-        self.arm_joint_idxes = slice(0, 6)
+        mujoco.mj_kinematics(self.model, self.data)
+
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__), "../../assets/common/robots/ur5e/ur5e.urdf"
+                ),
+                arm_root_pose=self.get_body_pose("ur5e_root_frame"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(6),
+                gripper_joint_idxes=np.array([6]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+            )
+        ]
+
+    def setup_input_device(self, input_device_key, motion_manager):
+        input_device_name = input_device_key
+        if input_device_key == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_key == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_key}"
+            )
+
+        input_device = InputDeviceClass(
+            motion_manager.body_manager_list[0],
+            **self.get_input_device_kwargs(input_device_name),
+        )
+        return [input_device]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
 
     def _get_obs(self):
         arm_joint_name_list = [

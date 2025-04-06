@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
 
+import numpy as np
+
+from ..body.ArmManager import ArmManager
 from ..data.DataKey import DataKey
 
 
@@ -73,13 +76,31 @@ class GraspPhaseBase(PhaseBase, ABC):
         pass
 
     def set_target_close(self):
-        self.gripper_joint_pos = self.op.env.action_space.high[
-            self.op.env.unwrapped.gripper_joint_idxes
-        ]
-        self.duration = 0.5  # [s]
+        self.set_target_limit("high")
 
     def set_target_open(self):
-        self.gripper_joint_pos = self.op.env.action_space.low[
-            self.op.env.unwrapped.gripper_joint_idxes
-        ]
+        self.set_target_limit("low")
+
+    def set_target_limit(self, high_low):
+        if high_low == "high":
+            action_limit = self.op.env.action_space.high
+        elif high_low == "low":
+            action_limit = self.op.env.action_space.low
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid high_low label: {high_low}"
+            )
+
+        self.gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self.op.env)
+        )
+
+        for body_manager in self.op.motion_manager.body_manager_list:
+            if not isinstance(body_manager, ArmManager):
+                continue
+
+            self.gripper_joint_pos[
+                body_manager.body_config.gripper_joint_idxes_in_gripper_joint_pos
+            ] = action_limit[body_manager.body_config.gripper_joint_idxes]
+
         self.duration = 0.5  # [s]

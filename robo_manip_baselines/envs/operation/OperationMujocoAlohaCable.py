@@ -50,9 +50,3 @@ class OperationMujocoAlohaCable:
             ReachPhase2(self),
             GraspPhase(self),
         ]
-
-    def get_input_device_kwargs(self):
-        if self.args.input_device == "spacemouse":
-            return {"rpy_scale": 2e-2}
-        else:
-            return super().get_input_device_kwargs()

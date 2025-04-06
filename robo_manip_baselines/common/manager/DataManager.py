@@ -72,11 +72,18 @@ class DataManager:
                 return current_pos - prev_pos
         elif key in (DataKey.MEASURED_EEF_POSE_REL, DataKey.COMMAND_EEF_POSE_REL):
             if len(all_data_seq[abs_key]) < 2:
-                return np.zeros(6)
+                return np.zeros(6 * (len(all_data_seq[abs_key][0]) // 7))
             else:
-                current_se3 = get_se3_from_pose(all_data_seq[abs_key][-1])
-                prev_se3 = get_se3_from_pose(all_data_seq[abs_key][-2])
-                return get_rel_pose_from_se3(prev_se3.actInv(current_se3))
+                current_pose_list = all_data_seq[abs_key][-1].reshape(-1, 7)
+                prev_pose_list = all_data_seq[abs_key][-2].reshape(-1, 7)
+                rel_pose_list = []
+                for current_pose, prev_pose in zip(current_pose_list, prev_pose_list):
+                    current_se3 = get_se3_from_pose(current_pose)
+                    prev_se3 = get_se3_from_pose(prev_pose)
+                    rel_pose_list.append(
+                        get_rel_pose_from_se3(prev_se3.actInv(current_se3))
+                    )
+                return np.concatenate(rel_pose_list)
 
     def save_data(
         self, filename, all_data_seq=None, meta_data=None, increment_episode_idx=True
