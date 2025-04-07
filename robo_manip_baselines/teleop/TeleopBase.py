@@ -48,7 +48,7 @@ class StandbyTeleopPhase(PhaseBase):
 
     def check_transition(self):
         is_ready = all(
-            input_device.is_ready() for input_device in self.op.input_device_list
+            [input_device.is_ready() for input_device in self.op.input_device_list]
         )
         return is_ready and self.op.key == ord("n")
 
