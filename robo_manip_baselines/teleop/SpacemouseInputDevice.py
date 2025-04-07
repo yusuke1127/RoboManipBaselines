@@ -13,7 +13,7 @@ class SpacemouseInputDevice(InputDeviceBase):
         pos_scale=1e-2,
         rpy_scale=5e-3,
         gripper_scale=5.0,
-        device_kwargs={},
+        device_params={},
     ):
         super().__init__()
 
@@ -21,7 +21,7 @@ class SpacemouseInputDevice(InputDeviceBase):
         self.pos_scale = pos_scale
         self.rpy_scale = rpy_scale
         self.gripper_scale = gripper_scale
-        self.device_kwargs = device_kwargs
+        self.device_params = device_params
 
     def connect(self):
         if self.connected:
@@ -31,7 +31,7 @@ class SpacemouseInputDevice(InputDeviceBase):
 
         import pyspacemouse
 
-        self.spacemouse = pyspacemouse.open(**self.device_kwargs)
+        self.spacemouse = pyspacemouse.open(**self.device_params)
 
     def read(self):
         if not self.connected:
