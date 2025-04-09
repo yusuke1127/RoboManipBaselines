@@ -3,8 +3,6 @@
 
   <include file="../../robots/g1/g1_config.xml"/>
 
-  <!-- <include file="../../objects/g1/g1_table_config.xml"/> -->
-
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true" diffuse="0.5 0.5 0.5"/>
 
