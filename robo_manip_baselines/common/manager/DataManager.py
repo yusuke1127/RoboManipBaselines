@@ -165,7 +165,7 @@ class DataManager:
     def save_depth_image(video_filename, images):
         videoio.uint16save(video_filename, images)
 
-    def load_data(self, filename, load_keys=None):
+    def load_data(self, filename, load_keys=None, skip_image=False):
         """Load data."""
         self.all_data_seq = {}
         self.meta_data = {}
@@ -173,7 +173,12 @@ class DataManager:
             for key in rmb_data.keys():
                 if (load_keys is not None) and (key not in load_keys):
                     continue
-                self.all_data_seq[key] = rmb_data[key][:]
+                elif skip_image and (
+                    DataKey.is_rgb_image_key(key) or DataKey.is_depth_image_key(key)
+                ):
+                    continue
+                else:
+                    self.all_data_seq[key] = rmb_data[key][:]
             for key in rmb_data.attrs.keys():
                 self.meta_data[key] = rmb_data.attrs[key]
 

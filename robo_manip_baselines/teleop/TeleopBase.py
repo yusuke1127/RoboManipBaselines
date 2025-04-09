@@ -346,7 +346,7 @@ class TeleopBase(ABC):
                     self.data_manager.episode_idx % len(self.args.world_idx_list)
                 ]
         else:
-            self.data_manager.load_data(self.args.replay_log)
+            self.data_manager.load_data(self.args.replay_log, skip_image=True)
             print(
                 f"[{self.__class__.__name__}] Load teleoperation data: {self.args.replay_log}\n"
                 f"  - replay keys: {self.args.replay_keys}"
