@@ -1,5 +1,5 @@
 import dataclasses
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -186,15 +186,26 @@ class ArmManager(BodyManagerBase):
         return get_pose_from_se3(self.target_se3)
 
     def draw_markers(self):
+        if self.body_config.get_root_pose_func is None:
+            target_se3 = self.target_se3
+            current_se3 = self.current_se3
+        else:
+            root_pose_rel = (
+                self.body_config.get_root_pose_func(self.env.unwrapped)
+                * get_se3_from_pose(self.body_config.arm_root_pose).inverse()
+            )
+            target_se3 = root_pose_rel * self.target_se3
+            current_se3 = root_pose_rel * self.current_se3
+
         self.env.unwrapped.draw_box_marker(
-            pos=self.target_se3.translation,
-            mat=self.target_se3.rotation,
+            pos=target_se3.translation,
+            mat=target_se3.rotation,
             size=(0.02, 0.02, 0.03),
             rgba=(0, 1, 0, 0.5),
         )
         self.env.unwrapped.draw_box_marker(
-            pos=self.current_se3.translation,
-            mat=self.current_se3.rotation,
+            pos=current_se3.translation,
+            mat=current_se3.rotation,
             size=(0.02, 0.02, 0.03),
             rgba=(1, 0, 0, 0.5),
         )
@@ -242,13 +253,35 @@ class ArmConfig(BodyConfigBase):
 
     BodyManagerClass = ArmManager
 
+    # URDF file loaded for robot model in Pinocchio library
     arm_urdf_path: str
+
+    # Arm root pose
     arm_root_pose: Optional[npt.NDArray[np.float64]]
+
+    # Link ID of end-effector in robot model when solving IK by Pinocchio library
     ik_eef_joint_id: int
+
+    # Indices of arm joints at observed joint positions
     arm_joint_idxes: npt.NDArray[np.int_]
+
+    # Indices of gripper joints at observed joint positions
     gripper_joint_idxes: npt.NDArray[np.int_]
+
+    # Indicies of gripper joints (belonging to this body config) in a vector of gripper joint positions only
     gripper_joint_idxes_in_gripper_joint_pos: npt.NDArray[np.int_]
+
+    # Index of end-effector in observed end-effector poses
     eef_idx: Optional[int]
+
+    # Initial arm joint positions
     init_arm_joint_pos: npt.NDArray[np.float64]
+
+    # Initial gripper joint positions
     init_gripper_joint_pos: npt.NDArray[np.float64]
+
+    # [Optional] Joints to be excluded from the URDF model when building robot model for Pinocchio library
     exclude_joint_names: Optional[List[str]] = None
+
+    # [Optional] Function to get the current arm root pose (used only for drawing markers)
+    get_root_pose_func: Optional[Callable[..., Any]] = None
