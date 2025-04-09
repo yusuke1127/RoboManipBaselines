@@ -295,6 +295,8 @@ class VisualizeData:
 
             self.clear_axis(self.ax[0, 0])
             self.clear_axis(self.ax00_twin)
+            # TODO: It is assumed that the last joint has a different scale (e.g., gripper joint),
+            # but this is not necessarily the case.
             self.ax[0, 0].plot(
                 time_list,
                 np.array(self.data_list[DataKey.COMMAND_JOINT_POS])[:, :-1],
