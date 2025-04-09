@@ -74,13 +74,13 @@ class MujocoUR5eDualEnvBase(MujocoEnvBase):
 
         return [
             InputDeviceClass(
-                motion_manager.body_manager_list[device_idx],
+                body_manager,
                 **{
                     **default_kwargs.get(device_idx, {}),
                     **overwrite_kwargs.get(device_idx, {}),
                 },
             )
-            for device_idx in range(2)
+            for device_idx, body_manager in enumerate(motion_manager.body_manager_list)
         ]
 
     def get_input_device_kwargs(self, input_device_name):

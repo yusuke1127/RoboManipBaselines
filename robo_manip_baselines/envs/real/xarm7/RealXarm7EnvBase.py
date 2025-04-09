@@ -5,6 +5,9 @@ import numpy as np
 from gymnasium.spaces import Box, Dict
 from xarm.wrapper import XArmAPI
 
+from robo_manip_baselines.common import ArmConfig
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+
 from ..RealEnvBase import RealEnvBase
 
 
@@ -57,15 +60,24 @@ class RealXarm7EnvBase(RealEnvBase):
         super().__init__(**kwargs)
 
         # Setup robot
-        self.gripper_joint_idxes = [7]
-        self.arm_joint_idxes = slice(0, 7)
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../../assets/common/robots/xarm7/xarm7.urdf"
-        )
-        self.arm_root_pose = None
-        self.ik_eef_joint_id = 7
         self.init_qpos = init_qpos
         self.joint_vel_limit = np.deg2rad(180)  # [rad/s]
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__),
+                    "../../assets/common/robots/xarm7/xarm7.urdf",
+                ),
+                arm_root_pose=None,
+                ik_eef_joint_id=7,
+                arm_joint_idxes=np.arange(7),
+                gripper_joint_idxes=np.array([7]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+                init_arm_joint_pos=self.init_qpos[0:7],
+                init_gripper_joint_pos=np.zeros(1),
+            )
+        ]
 
         # Connect to xArm7
         print(f"[{self.__class__.__name__}] Start connecting the xArm7.")
@@ -99,6 +111,28 @@ class RealXarm7EnvBase(RealEnvBase):
 
     def close(self):
         self.xarm_api.disconnect()
+
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
+            )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                motion_manager.body_manager_list[0],
+                **{**default_kwargs, **overwrite_kwargs},
+            )
+        ]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
 
     def _reset_robot(self):
         print(

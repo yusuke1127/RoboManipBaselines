@@ -10,38 +10,34 @@ from robo_manip_baselines.common import (
 
 
 def get_target_se3(op, pos_z):
-    target_pos = op.env.unwrapped.get_body_pose("cable_end")[0:3]
-    target_pos[2] = pos_z
-    return pin.SE3(pin.rpy.rpyToMatrix(0.0, np.pi, np.pi), target_pos)
+    left_target_pose = get_pose_from_se3(
+        op.motion_manager.body_manager_list[0].current_se3
+    )
+
+    right_target_pos = op.env.unwrapped.get_body_pose("cable_end")[0:3]
+    right_target_pos[2] = pos_z
+    right_target_pose = get_pose_from_se3(
+        pin.SE3(pin.rpy.rpyToMatrix(0.0, np.pi, np.pi), right_target_pos)
+    )
+
+    return np.concatenate([left_target_pose, right_target_pose])
 
 
 class ReachPhase1(ReachPhaseBase):
     def set_target(self):
-        left_target_pose = get_pose_from_se3(
-            self.op.motion_manager.body_manager_list[0].current_se3
+        self.target_se3 = get_target_se3(
+            self.op,
+            pos_z=1.02,  # [m]
         )
-        right_target_pose = get_pose_from_se3(
-            get_target_se3(
-                self.op,
-                pos_z=1.02,  # [m]
-            )
-        )
-        self.target_se3 = np.concatenate([left_target_pose, right_target_pose])
         self.duration = 0.7  # [s]
 
 
 class ReachPhase2(ReachPhaseBase):
     def set_target(self):
-        left_target_pose = get_pose_from_se3(
-            self.op.motion_manager.body_manager_list[0].current_se3
+        self.target_se3 = get_target_se3(
+            self.op,
+            pos_z=0.99,  # [m]
         )
-        right_target_pose = get_pose_from_se3(
-            get_target_se3(
-                self.op,
-                pos_z=0.99,  # [m]
-            )
-        )
-        self.target_se3 = np.concatenate([left_target_pose, right_target_pose])
         self.duration = 0.3  # [s]
 
 

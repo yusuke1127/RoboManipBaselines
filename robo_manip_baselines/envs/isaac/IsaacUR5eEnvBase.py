@@ -10,6 +10,9 @@ from isaacgym import (
     gymutil,  # noqa: F401
 )
 
+from robo_manip_baselines.common import ArmConfig, DataKey
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+
 
 class IsaacUR5eEnvBase(gym.Env, ABC):
     metadata = {
@@ -30,14 +33,24 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
         # Setup Isaac Gym
         self.gripper_joint_idxes = [6]
         self.arm_joint_idxes = slice(0, 6)
-        self.setupSim(num_envs)
+        self.setup_sim(num_envs)
 
         # Setup robot
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
-        )
-        self.arm_root_pose = self.get_link_pose("ur5e", "base_link")
-        self.ik_eef_joint_id = 6
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
+                ),
+                arm_root_pose=self.get_link_pose("ur5e", "base_link"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(6),
+                gripper_joint_idxes=np.array([6]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+                init_arm_joint_pos=self.init_qpos[0:6],
+                init_gripper_joint_pos=np.zeros(1),
+            )
+        ]
 
         # Setup environment parameters
         self.skip_sim = 2
@@ -84,7 +97,7 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
         self.quit_flag = False
         self.pause_flag = False
 
-    def setupSim(self, num_envs):
+    def setup_sim(self, num_envs):
         # For visualization reasons, the last of the Isaac Gym parallel environments is considered representative
         self.rep_env_idx = num_envs - 1
 
@@ -335,6 +348,28 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
     def reset_task_specific_actors(self, env_idx):
         pass
 
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
+            )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                motion_manager.body_manager_list[0],
+                **{**default_kwargs, **overwrite_kwargs},
+            )
+        ]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
+
     def step(self, action):
         # Check key input
         if self.render_mode == "human":
@@ -470,6 +505,23 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
     def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
         return obs["joint_vel"]
+
+    def get_gripper_joint_pos_from_obs(self, obs):
+        """Get gripper joint position from observation."""
+        joint_pos = self.get_joint_pos_from_obs(obs)
+        gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self)
+        )
+
+        for body_config in self.body_config_list:
+            if not isinstance(body_config, ArmConfig):
+                continue
+
+            gripper_joint_pos[body_config.gripper_joint_idxes_in_gripper_joint_pos] = (
+                joint_pos[body_config.gripper_joint_idxes]
+            )
+
+        return gripper_joint_pos
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""

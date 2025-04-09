@@ -9,6 +9,8 @@ import gymnasium as gym
 import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
+from robo_manip_baselines.common import ArmConfig, DataKey
+
 
 class RealEnvBase(gym.Env, ABC):
     metadata = {
@@ -211,6 +213,23 @@ class RealEnvBase(gym.Env, ABC):
     def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
         return obs["joint_vel"]
+
+    def get_gripper_joint_pos_from_obs(self, obs):
+        """Get gripper joint position from observation."""
+        joint_pos = self.get_joint_pos_from_obs(obs)
+        gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self)
+        )
+
+        for body_config in self.body_config_list:
+            if not isinstance(body_config, ArmConfig):
+                continue
+
+            gripper_joint_pos[body_config.gripper_joint_idxes_in_gripper_joint_pos] = (
+                joint_pos[body_config.gripper_joint_idxes]
+            )
+
+        return gripper_joint_pos
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""

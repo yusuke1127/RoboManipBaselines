@@ -4,6 +4,9 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
+from robo_manip_baselines.common import ArmConfig
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+
 from ..MujocoEnvBase import MujocoEnvBase
 
 
@@ -16,49 +19,84 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
     }
     observation_space = Dict(
         {
-            "left/joint_pos": Box(
-                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-            ),
-            "left/joint_vel": Box(
-                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-            ),
-            "right/joint_pos": Box(
-                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-            ),
-            "right/joint_vel": Box(
-                low=-np.inf, high=np.inf, shape=(7,), dtype=np.float64
-            ),
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(14,), dtype=np.float64),
         }
     )
 
     def setup_robot(self, init_qpos):
-        mujoco.mj_kinematics(self.model, self.data)
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../../assets/common/robots/aloha/vx300s.urdf"
-        )
-        self.arm_root_pose = self.get_body_pose("left/base_link")
-        self.ik_eef_joint_id = 6
-        self.init_qpos[0 : len(init_qpos)] = init_qpos
-        self.init_qpos[len(init_qpos) : 2 * len(init_qpos)] = init_qpos
+        self.init_qpos[: len(init_qpos)] = init_qpos
         self.init_qvel[:] = 0.0
 
-        self.gripper_joint_idxes = [6]
-        self.arm_joint_idxes = slice(0, 6)
+        mujoco.mj_kinematics(self.model, self.data)
 
-    def step(self, action):
-        # Copy the same action to both arms
-        action = np.concatenate((action, action))
-        return super().step(action)
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__),
+                    "../../assets/common/robots/aloha/vx300s.urdf",
+                ),
+                arm_root_pose=self.get_body_pose("left/base_link"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(0, 6),
+                gripper_joint_idxes=np.array([6]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+                init_arm_joint_pos=self.init_qpos[0:6],
+                init_gripper_joint_pos=np.array([0.037]),
+            ),
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__),
+                    "../../assets/common/robots/aloha/vx300s.urdf",
+                ),
+                arm_root_pose=self.get_body_pose("right/base_link"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(7, 13),
+                gripper_joint_idxes=np.array([13]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([1]),
+                eef_idx=1,
+                init_arm_joint_pos=self.init_qpos[8:14],
+                init_gripper_joint_pos=np.array([0.037]),
+            ),
+        ]
+
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
+            )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                body_manager,
+                **{
+                    **default_kwargs.get(device_idx, {}),
+                    **overwrite_kwargs.get(device_idx, {}),
+                },
+            )
+            for device_idx, body_manager in enumerate(motion_manager.body_manager_list)
+        ]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
 
     def _get_obs(self):
-        obs = {
-            "left/joint_pos": np.zeros(7),
-            "left/joint_vel": np.zeros(7),
-            "right/joint_pos": np.zeros(7),
-            "right/joint_vel": np.zeros(7),
+        left_obs = self._get_obs_single_arm("left")
+        right_obs = self._get_obs_single_arm("right")
+        return {
+            key: np.concatenate([left_obs[key], right_obs[key]])
+            for key in left_obs.keys()
         }
 
-        single_arm_joint_name_list = [
+    def _get_obs_single_arm(self, left_right):
+        arm_joint_name_list = [
             "waist",
             "shoulder",
             "elbow",
@@ -66,38 +104,46 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
             "wrist_angle",
             "wrist_rotate",
         ]
-        single_gripper_joint_name_list = [
+        gripper_joint_name_list = [
             "left_finger",
             "right_finger",
         ]
 
-        for arm_idx, arm_name in enumerate(("left", "right")):
-            joint_pos_key = f"{arm_name}/joint_pos"
-            joint_vel_key = f"{arm_name}/joint_vel"
+        arm_joint_pos = np.array(
+            [
+                self.data.joint(left_right + "/" + joint_name).qpos[0]
+                for joint_name in arm_joint_name_list
+            ]
+        )
+        arm_joint_vel = np.array(
+            [
+                self.data.joint(left_right + "/" + joint_name).qvel[0]
+                for joint_name in arm_joint_name_list
+            ]
+        )
+        gripper_qpos = np.array(
+            [
+                self.data.joint(left_right + "/" + joint_name).qpos[0]
+                for joint_name in gripper_joint_name_list
+            ]
+        )
+        gripper_qvel = np.array(
+            [
+                self.data.joint(left_right + "/" + joint_name).qvel[0]
+                for joint_name in gripper_joint_name_list
+            ]
+        )
+        gripper_joint_pos = np.rad2deg(gripper_qpos.mean(keepdims=True))
+        gripper_joint_vel = np.rad2deg(gripper_qvel.mean(keepdims=True))
 
-            for joint_idx, joint_name in enumerate(single_arm_joint_name_list):
-                joint_name = f"{arm_name}/{joint_name}"
-                obs[joint_pos_key][joint_idx] = self.data.joint(joint_name).qpos[0]
-                obs[joint_vel_key][joint_idx] = self.data.joint(joint_name).qvel[0]
-
-            gripper_joint_qpos = []
-            gripper_joint_qvel = []
-            for joint_name in single_gripper_joint_name_list:
-                joint_name = f"{arm_name}/{joint_name}"
-                gripper_joint_qpos.append(self.data.joint(joint_name).qpos[0])
-                gripper_joint_qvel.append(self.data.joint(joint_name).qvel[0])
-            obs[joint_pos_key][-1] = np.array(gripper_joint_qpos).mean()
-            obs[joint_vel_key][-1] = np.array(gripper_joint_qvel).mean()
-
-        return obs
-
-    def get_joint_pos_from_obs(self, obs):
-        """Get joint position from observation."""
-        return obs["left/joint_pos"]
-
-    def get_joint_vel_from_obs(self, obs):
-        """Get joint velocity from observation."""
-        return obs["left/joint_vel"]
+        return {
+            "joint_pos": np.concatenate(
+                (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+            ),
+            "joint_vel": np.concatenate(
+                (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+            ),
+        }
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""

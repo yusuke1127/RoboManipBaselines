@@ -226,7 +226,7 @@ class ArmConfig(BodyConfigBase):
     BodyManagerClass = ArmManager
 
     arm_urdf_path: str
-    arm_root_pose: npt.NDArray[np.float64]
+    arm_root_pose: Optional[npt.NDArray[np.float64]]
     ik_eef_joint_id: int
     arm_joint_idxes: npt.NDArray[np.int_]
     gripper_joint_idxes: npt.NDArray[np.int_]
