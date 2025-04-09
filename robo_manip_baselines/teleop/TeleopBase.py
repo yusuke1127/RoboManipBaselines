@@ -230,6 +230,13 @@ class TeleopBase(ABC):
             "--demo_name", type=str, default=None, help="demonstration name"
         )
         parser.add_argument(
+            "--file_format",
+            type=str,
+            default="rmb",
+            choices=["rmb", "hdf5"],
+            help="file format to save ('rmb' or 'hdf5')",
+        )
+        parser.add_argument(
             "--input_device",
             type=str,
             default="spacemouse",
@@ -530,7 +537,7 @@ class TeleopBase(ABC):
                     "..",
                     "dataset",
                     f"{self.demo_name}_{self.datetime_now:%Y%m%d_%H%M%S}",
-                    f"{self.demo_name}_env{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}.rmb",
+                    f"{self.demo_name}_env{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}.{self.args.file_format}",
                 )
             )
         self.data_manager.save_data(filename)
