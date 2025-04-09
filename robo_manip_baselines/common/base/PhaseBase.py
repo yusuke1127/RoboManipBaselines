@@ -101,6 +101,6 @@ class GraspPhaseBase(PhaseBase, ABC):
 
             self.gripper_joint_pos[
                 body_manager.body_config.gripper_joint_idxes_in_gripper_joint_pos
-            ] = action_limit[body_manager.body_config.gripper_joint_idxes]
+            ] = action_limit[body_manager.body_config.gripper_joint_idxes_for_limit]
 
         self.duration = 0.5  # [s]

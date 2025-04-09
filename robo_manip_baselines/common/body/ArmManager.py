@@ -141,8 +141,8 @@ class ArmManager(BodyManagerBase):
     def set_command_gripper_joint_pos(self, gripper_joint_pos):
         self.gripper_joint_pos = np.clip(
             gripper_joint_pos,
-            self.env.action_space.low[self.body_config.gripper_joint_idxes],
-            self.env.action_space.high[self.body_config.gripper_joint_idxes],
+            self.env.action_space.low[self.body_config.gripper_joint_idxes_for_limit],
+            self.env.action_space.high[self.body_config.gripper_joint_idxes_for_limit],
         )
 
     def set_command_eef_pose(self, eef_pose):
@@ -280,8 +280,15 @@ class ArmConfig(BodyConfigBase):
     # Initial gripper joint positions
     init_gripper_joint_pos: npt.NDArray[np.float64]
 
+    # [Optional] Indices of gripper joints at joint positions limits (high/low)
+    gripper_joint_idxes_for_limit: Optional[npt.NDArray[np.int_]] = None
+
     # [Optional] Joints to be excluded from the URDF model when building robot model for Pinocchio library
     exclude_joint_names: Optional[List[str]] = None
 
     # [Optional] Function to get the current arm root pose (used only for drawing markers)
     get_root_pose_func: Optional[Callable[..., Any]] = None
+
+    def __post_init__(self):
+        if self.gripper_joint_idxes_for_limit is None:
+            self.gripper_joint_idxes_for_limit = self.gripper_joint_idxes

@@ -86,12 +86,14 @@ class GelloInputDevice(InputDeviceBase):
             raise RuntimeError(f"[{self.__class__.__name__}] Device is not connected.")
 
         arm_joint_idxes = self.arm_manager.body_config.arm_joint_idxes
-        gripper_joint_idxes = self.arm_manager.body_config.gripper_joint_idxes
+        gripper_joint_idxes_for_limit = (
+            self.arm_manager.body_config.gripper_joint_idxes_for_limit
+        )
         gripper_joint_pos_low = self.arm_manager.env.action_space.low[
-            gripper_joint_idxes
+            gripper_joint_idxes_for_limit
         ]
         gripper_joint_pos_high = self.arm_manager.env.action_space.high[
-            gripper_joint_idxes
+            gripper_joint_idxes_for_limit
         ]
 
         # Assume that the joint angles obtained from GELLO are in the order of arm joints followed by gripper joints
