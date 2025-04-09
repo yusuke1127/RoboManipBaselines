@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -46,6 +46,23 @@ class ArmManager(BodyManagerBase):
         super().__init__(env, body_config)
 
         self.pin_model = pin.buildModelFromUrdf(self.body_config.arm_urdf_path)
+
+        if self.body_config.exclude_joint_names is not None:
+            exclude_joint_ids = []
+            for exclude_joint_name in self.body_config.exclude_joint_names:
+                if self.pin_model.existJointName(exclude_joint_name):
+                    exclude_joint_ids.append(
+                        self.pin_model.getJointId(exclude_joint_name)
+                    )
+                else:
+                    print(
+                        "[{self.__class__.__name__}] Joint does not belong to the model: {exclude_joint_name}"
+                    )
+            fix_joint_pos = np.zeros(self.pin_model.nq)
+            self.pin_model = pin.buildReducedModel(
+                self.pin_model, exclude_joint_ids, fix_joint_pos
+            )
+
         if self.body_config.arm_root_pose is not None:
             arm_root_se3 = get_se3_from_pose(self.body_config.arm_root_pose)
             self.pin_model.jointPlacements[1] = arm_root_se3.act(
@@ -234,3 +251,4 @@ class ArmConfig(BodyConfigBase):
     eef_idx: Optional[int]
     init_arm_joint_pos: npt.NDArray[np.float64]
     init_gripper_joint_pos: npt.NDArray[np.float64]
+    exclude_joint_names: Optional[List[str]] = None
