@@ -13,3 +13,5 @@ from .xarm7.MujocoXarm7CableEnv import MujocoXarm7CableEnv
 from .xarm7.MujocoXarm7RingEnv import MujocoXarm7RingEnv
 
 from .aloha.MujocoAlohaCableEnv import MujocoAlohaCableEnv
+
+from .g1.MujocoG1BottlesEnv import MujocoG1BottlesEnv

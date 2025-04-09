@@ -58,6 +58,12 @@ register(
     entry_point="robo_manip_baselines.envs.mujoco:MujocoAlohaCableEnv",
 )
 
+## G1
+register(
+    id="robo_manip_baselines/MujocoG1BottlesEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoG1BottlesEnv",
+)
+
 # Isaac
 register(
     id="robo_manip_baselines/IsaacUR5eChainEnv-v0",
