@@ -73,6 +73,9 @@ class TeleopBaseVec(TeleopBase):
 
         self.print_statistics()
 
+        for input_device in self.input_device_list:
+            input_device.close()
+
         # self.env.close()
 
     def reset(self):

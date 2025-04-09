@@ -77,6 +77,10 @@ class GelloInputDevice(InputDeviceBase):
         )
         self.time_idx = 0
 
+    def close(self):
+        if self.connected:
+            self.agent.close()
+
     def read(self):
         if not self.connected:
             raise RuntimeError(f"[{self.__class__.__name__}] Device is not connected.")

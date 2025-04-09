@@ -12,6 +12,9 @@ class InputDeviceBase(ABC):
     def connect(self):
         pass
 
+    def close(self):
+        pass
+
     @abstractmethod
     def read(self):
         pass
