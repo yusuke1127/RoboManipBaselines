@@ -8,6 +8,7 @@ from abc import ABC
 import cv2
 import matplotlib.pylab as plt
 import numpy as np
+import yaml
 
 from robo_manip_baselines.common import (
     DataKey,
@@ -209,9 +210,14 @@ class TeleopBase(ABC):
             )
 
         # Setup input device
+        if self.args.input_device_config is None:
+            input_device_kwargs = {}
+        else:
+            with open(self.args.input_device_config, "r") as f:
+                input_device_kwargs = yaml.safe_load(f)
         if self.args.replay_log is None:
             self.input_device_list = self.env.unwrapped.setup_input_device(
-                self.args.input_device, self.motion_manager
+                self.args.input_device, self.motion_manager, input_device_kwargs
             )
 
     def setup_args(self, parser=None, argv=None):
@@ -229,6 +235,9 @@ class TeleopBase(ABC):
             default="spacemouse",
             choices=["spacemouse", "gello"],
             help="input device for teleoperation",
+        )
+        parser.add_argument(
+            "--input_device_config", type=str, help="configuration file of input device"
         )
         parser.add_argument(
             "--sync_before_record",

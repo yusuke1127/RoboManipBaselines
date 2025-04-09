@@ -60,42 +60,28 @@ class MujocoUR5eDualEnvBase(MujocoEnvBase):
             ),
         ]
 
-    def setup_input_device(self, input_device_key, motion_manager):
-        input_device_name = input_device_key
-        if input_device_key == "spacemouse":
-            return [
-                SpacemouseInputDevice(
-                    motion_manager.body_manager_list[0],
-                    device_params={
-                        "device": "SpaceMouse Wireless",
-                    },
-                    **self.get_input_device_kwargs(input_device_name),
-                ),
-                SpacemouseInputDevice(
-                    motion_manager.body_manager_list[1],
-                    device_params={
-                        "device": "3Dconnexion Universal Receiver",
-                    },
-                    **self.get_input_device_kwargs(input_device_name),
-                ),
-            ]
-        elif input_device_key == "gello":
-            return [
-                GelloInputDevice(
-                    motion_manager.body_manager_list[0],
-                    port="/dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FT9MIQNO-if00-port0",
-                    **self.get_input_device_kwargs(input_device_name),
-                ),
-                GelloInputDevice(
-                    motion_manager.body_manager_list[1],
-                    port="/dev/serial/by-id/usb-FTDI_USB__-__Serial_Converter_FT9MG5IM-if00-port0",
-                    **self.get_input_device_kwargs(input_device_name),
-                ),
-            ]
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
         else:
             raise ValueError(
-                f"[{self.__class__.__name__}] Invalid input device key: {input_device_key}"
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
             )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                motion_manager.body_manager_list[device_idx],
+                **{
+                    **default_kwargs.get(device_idx, {}),
+                    **overwrite_kwargs.get(device_idx, {}),
+                },
+            )
+            for device_idx in range(2)
+        ]
 
     def get_input_device_kwargs(self, input_device_name):
         return {}

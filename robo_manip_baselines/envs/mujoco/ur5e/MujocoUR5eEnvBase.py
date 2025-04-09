@@ -47,21 +47,22 @@ class MujocoUR5eEnvBase(MujocoEnvBase):
             )
         ]
 
-    def setup_input_device(self, input_device_key, motion_manager):
-        input_device_name = input_device_key
-        if input_device_key == "spacemouse":
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
             InputDeviceClass = SpacemouseInputDevice
-        elif input_device_key == "gello":
+        elif input_device_name == "gello":
             InputDeviceClass = GelloInputDevice
         else:
             raise ValueError(
-                f"[{self.__class__.__name__}] Invalid input device key: {input_device_key}"
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
             )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
 
         return [
             InputDeviceClass(
                 motion_manager.body_manager_list[0],
-                **self.get_input_device_kwargs(input_device_name),
+                **{**default_kwargs, **overwrite_kwargs},
             )
         ]
 
