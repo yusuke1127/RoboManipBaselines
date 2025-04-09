@@ -37,8 +37,8 @@ register(
 
 ## UR5e-Dual
 register(
-    id="robo_manip_baselines/MujocoUR5eDualCabinetEnv-v0",
-    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDualCabinetEnv",
+    id="robo_manip_baselines/MujocoUR5eDualCableEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDualCableEnv",
 )
 
 ## Xarm7
