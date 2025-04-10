@@ -29,10 +29,11 @@ Task to roll up the cloth.
 
 https://github.com/user-attachments/assets/4c78f4ff-8b77-4f2d-be7b-755a09227f5f
 
-#### MujocoUR5eInsert
-Task to insert a pin into a hole.
+### Dual UR5e
+#### MujocoUR5eDualCable
+Task to manipulate a cable with both grippers.
 
-https://github.com/user-attachments/assets/5ca1eafe-f818-4efb-a012-6db92990ad14
+https://github.com/user-attachments/assets/6cfbafe6-1072-419d-892f-d66b7da8709f
 
 ### xArm7
 #### MujocoXarm7Cable
@@ -50,6 +51,12 @@ https://github.com/user-attachments/assets/da83db94-7fcb-4690-9b73-41af0c1394a8
 Task to pass the cable between two poles.
 
 https://github.com/user-attachments/assets/3bbeeeb8-7034-428c-a17e-f3968a2890b9
+
+### Unitree G1
+#### MujocoG1Bottles
+Task to grasp and manipulate bottles.
+
+https://github.com/user-attachments/assets/67b18ba1-c35f-460e-b44e-0c39eaff8dc9
 
 ## Isaac environments
 ### UR5e
