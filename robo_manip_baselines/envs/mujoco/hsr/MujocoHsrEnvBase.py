@@ -43,7 +43,7 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
                 eef_idx=0,
                 init_arm_joint_pos=self.init_qpos[0:5],
-                init_gripper_joint_pos=np.zeros(1),
+                init_gripper_joint_pos=self.init_qpos[[5]],
             )
         ]
 

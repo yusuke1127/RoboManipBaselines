@@ -110,7 +110,11 @@
                             <body name="hand_l_distal_link">
                               <inertial pos="0.011116 0.005679 0.017532" mass="0.001" diaginertia="0 0 0" />
                               <!-- <joint name="hand_l_distal_joint" pos="0 0 0" axis="1 0 0" range="-1.24 0.798" actuatorfrcrange="-100 100" damping="0.0001" /> -->
-                              <geom type="mesh" mesh="l_distal" material="hsr_black" />
+                              <geom class="visual" type="mesh" mesh="l_distal" material="hsr_black" />
+                              <geom class="collision" type="box" size="0.02 0.01 0.0075" pos="0.017 0.005 0.03"
+                                    friction="0.7" solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" />
+                              <geom class="collision" type="box" size="0.02 0.01 0.0075" pos="0.017 0.005 0.015"
+                                    friction="0.6" solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" />
                               <body name="hand_l_finger_tip_frame" pos="0.01675 0.01865 0.04289" quat="0.707107 -0.707107 0 0">
                                 <inertial pos="0 0 0" mass="0.001" diaginertia="0.001 0.001 0.001" />
                               </body>
@@ -134,7 +138,11 @@
                             <body name="hand_r_distal_link">
                               <inertial pos="0.014256 -0.008321 0.015591" mass="0.001" diaginertia="0.001 0.001 0.001" />
                               <!-- <joint name="hand_r_distal_joint" pos="0 0 0" axis="-1 0 0" range="-1.24 0.798" actuatorfrcrange="-100 100" damping="0.0001" /> -->
-                              <geom type="mesh" mesh="r_distal" material="hsr_black" />
+                              <geom class="visual" type="mesh" mesh="r_distal" material="hsr_black" />
+                              <geom class="collision" type="box" size="0.02 0.01 0.0075" pos="0.017 -0.005 0.03"
+                                    friction="0.7" solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" />
+                              <geom class="collision" type="box" size="0.02 0.01 0.0075" pos="0.017 -0.005 0.015"
+                                    friction="0.6" solimp="0.95 0.99 0.001" solref="0.004 1" priority="1" />
                               <body name="hand_r_finger_tip_frame" pos="0.01675 -0.01865 0.04289" quat="0.707107 0.707107 0 0">
                                 <inertial pos="0 0 0" mass="0.001" diaginertia="0.001 0.001 0.001" />
                               </body>

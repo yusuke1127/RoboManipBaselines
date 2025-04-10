@@ -6,6 +6,12 @@
   <default>
     <default class="hsr">
       <position dampratio="1" inheritrange="1"/>
+      <default class="visual">
+        <geom contype="0" conaffinity="0"/>
+      </default>
+      <default class="collision">
+        <geom group="3"/>
+      </default>
     </default>
   </default>
 
@@ -38,7 +44,7 @@
     <position class="hsr" kp="10" name="arm_roll_joint" joint="arm_roll_joint"/>
     <position class="hsr" kp="100" name="wrist_flex_joint" joint="wrist_flex_joint"/>
     <position class="hsr" kp="10" name="wrist_roll_joint" joint="wrist_roll_joint"/>
-    <position class="hsr" kp="5" name="hand_motor_joint" joint="hand_motor_joint"/>
+    <position class="hsr" kp="10" name="hand_motor_joint" joint="hand_motor_joint"/>
   </actuator>
 
   <sensor>

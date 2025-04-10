@@ -16,7 +16,7 @@ class MujocoHsrTidyupEnv(MujocoHsrEnvBase):
                 path.dirname(__file__),
                 "../../assets/mujoco/envs/hsr/env_hsr_tidyup.xml",
             ),
-            np.array([0.0, -0.7, 0.0, -1.3, 0.0, 0.8]),
+            np.array([0.25, -2.0, 0.0, -1.0, 0.0, 0.8]),
             **kwargs,
         )
 
