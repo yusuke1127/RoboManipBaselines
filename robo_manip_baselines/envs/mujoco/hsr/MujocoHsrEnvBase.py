@@ -19,8 +19,8 @@ class MujocoHsrEnvBase(MujocoEnvBase):
     }
     observation_space = Dict(
         {
-            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float64),
-            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float64),
+            "joint_pos": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+            "joint_vel": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
             "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
         }
     )
@@ -65,11 +65,14 @@ class MujocoHsrEnvBase(MujocoEnvBase):
         ]
 
     def get_input_device_kwargs(self, input_device_name):
-        return {}
+        if input_device_name == "spacemouse":
+            return {"gripper_scale": 0.05}
+        else:
+            return super().get_input_device_kwargs(input_device_name)
 
     def _get_obs(self):
         arm_joint_name_list = [
-            "torso_lift_joint",
+            "arm_lift_joint",
             "arm_flex_joint",
             "arm_roll_joint",
             "wrist_flex_joint",

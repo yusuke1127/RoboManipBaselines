@@ -22,7 +22,8 @@
       </body>
       <body name="torso_lift_link" pos="0 0 0.752">
         <inertial pos="-0.051142 0.003454 -0.2905" quat="0.511154 0.00760492 -0.0140194 0.859341" mass="3.42078" diaginertia="0.105342 0.104252 0.0127461" />
-        <joint name="torso_lift_joint" pos="0 0 0" axis="0 0 1" type="slide" range="0 0.345" actuatorfrcrange="-300 300" damping="500" />
+        <!-- TODO: Disable torso_lift_joint because mimic joint is not supported in the pinocchio library. This will be resolved when you can install pinocchio version 3.5.0 with pip. -->
+        <!-- <joint name="torso_lift_joint" pos="0 0 0" axis="0 0 1" type="slide" range="0 0.345" actuatorfrcrange="-300 300" damping="500" /> -->
         <geom type="mesh" mesh="torso" material="hsr_black" pos="1e-3 0 0" />
         <body name="head_pan_link">
           <inertial pos="0.001724 -0.001969 -0.028886" quat="0.865343 0.459592 0.192259 -0.0547077" mass="0.571903" diaginertia="0.00102408 0.00077623 0.000589392" />

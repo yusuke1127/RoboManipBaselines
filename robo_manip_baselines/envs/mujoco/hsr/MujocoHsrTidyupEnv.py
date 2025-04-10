@@ -5,7 +5,7 @@ import numpy as np
 from .MujocoHsrEnvBase import MujocoHsrEnvBase
 
 
-class MujocoHsrCableEnv(MujocoHsrEnvBase):
+class MujocoHsrTidyupEnv(MujocoHsrEnvBase):
     def __init__(
         self,
         **kwargs,
