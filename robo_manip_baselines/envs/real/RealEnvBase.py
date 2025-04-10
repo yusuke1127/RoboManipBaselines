@@ -9,10 +9,10 @@ import gymnasium as gym
 import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
-from robo_manip_baselines.common import ArmConfig, DataKey
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
 
 
-class RealEnvBase(gym.Env, ABC):
+class RealEnvBase(EnvDataMixin, gym.Env, ABC):
     metadata = {
         "render_modes": [],
     }
@@ -94,10 +94,6 @@ class RealEnvBase(gym.Env, ABC):
         info = self._get_info()
 
         return observation, info
-
-    @property
-    def command_keys(self):
-        return [DataKey.COMMAND_JOINT_POS]
 
     def step(self, action):
         self._set_action(action, duration=self.dt, joint_vel_limit_scale=2.0, wait=True)

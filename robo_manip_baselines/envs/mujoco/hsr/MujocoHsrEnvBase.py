@@ -92,8 +92,28 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             return super().get_input_device_kwargs(input_device_name)
 
     @property
-    def command_keys(self):
+    def command_keys_for_step(self):
         return [DataKey.COMMAND_MOBILE_OMNI_VEL, DataKey.COMMAND_JOINT_POS]
+
+    @property
+    def measured_keys_to_save(self):
+        return [
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.MEASURED_JOINT_VEL,
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
+            DataKey.MEASURED_EEF_POSE,
+            DataKey.MEASURED_EEF_WRENCH,
+            DataKey.MEASURED_MOBILE_OMNI_VEL,
+        ]
+
+    @property
+    def command_keys_to_save(self):
+        return [
+            DataKey.COMMAND_JOINT_POS,
+            DataKey.COMMAND_GRIPPER_JOINT_POS,
+            DataKey.COMMAND_EEF_POSE,
+            DataKey.COMMAND_MOBILE_OMNI_VEL,
+        ]
 
     def step(self, action):
         action[0:3] = self.convert_mobile_vel_frame(action[0:3], world_to_local=False)
@@ -139,6 +159,10 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             "wrench": np.concatenate((force, torque), dtype=np.float64),
             "mobile_vel": mobile_vel.astype(np.float64),
         }
+
+    def get_mobile_vel_from_obs(self, obs):
+        """Get velocity of omni-directional mobile base from observation."""
+        return obs["mobile_vel"]
 
     def convert_mobile_vel_frame(self, vel_in, world_to_local):
         theta = self.data.joint(self.mobile_joint_name_list[-1]).qpos[0]

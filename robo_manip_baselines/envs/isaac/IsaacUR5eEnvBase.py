@@ -10,11 +10,11 @@ from isaacgym import (
     gymutil,  # noqa: F401
 )
 
-from robo_manip_baselines.common import ArmConfig, DataKey
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
 from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
 
 
-class IsaacUR5eEnvBase(gym.Env, ABC):
+class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
     metadata = {
         "render_modes": [
             "human",
@@ -369,10 +369,6 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
 
     def get_input_device_kwargs(self, input_device_name):
         return {}
-
-    @property
-    def command_keys(self):
-        return [DataKey.COMMAND_JOINT_POS]
 
     def step(self, action):
         # Check key input

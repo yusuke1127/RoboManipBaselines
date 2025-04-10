@@ -263,7 +263,7 @@ class RolloutBase(ABC):
             env_action = np.concatenate(
                 [
                     self.motion_manager.get_command_data(key)
-                    for key in self.env.unwrapped.command_keys
+                    for key in self.env.unwrapped.command_keys_for_step
                 ]
             )
             self.obs, _, _, _, self.info = self.env.step(env_action)
