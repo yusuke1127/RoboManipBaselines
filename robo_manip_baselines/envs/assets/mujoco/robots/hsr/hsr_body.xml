@@ -1,9 +1,9 @@
 <mujoco model="hsr_body">
   <body name="hsr_body">
     <body name="base_link">
-      <joint name="joint_x" type="slide" axis="1 0 0"/>
-      <joint name="joint_y" type="slide" axis="0 1 0"/>
-      <joint name="joint_theta" axis="0 0 1"/>
+      <joint name="mobile_x_joint" type="slide" axis="1 0 0"/>
+      <joint name="mobile_y_joint" type="slide" axis="0 1 0"/>
+      <joint name="mobile_theta_joint" axis="0 0 1"/>
       <inertial pos="-0.025978 -0.005498 0.17633" quat="0.995796 0.0411155 -0.0685908 0.0446655" mass="50" diaginertia="0.378627 0.344913 0.145159" />
       <geom type="mesh" mesh="base" material="hsr_white" />
       <body name="base_range_sensor_link" pos="0.1675 0 0.1844">
