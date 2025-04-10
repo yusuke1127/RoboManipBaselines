@@ -4,7 +4,12 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
-from robo_manip_baselines.common import ArmConfig, MobileOmniConfig, get_se3_from_pose
+from robo_manip_baselines.common import (
+    ArmConfig,
+    DataKey,
+    MobileOmniConfig,
+    get_se3_from_pose,
+)
 from robo_manip_baselines.teleop import (
     SpacemouseInputDevice,
     SpacemouseMobileInputDevice,
@@ -96,6 +101,10 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             return {0: {"gripper_scale": 0.05}, 1: {}}
         else:
             return super().get_input_device_kwargs(input_device_name)
+
+    @property
+    def command_keys(self):
+        return [DataKey.COMMAND_MOBILE_OMNI_VEL, DataKey.COMMAND_JOINT_POS]
 
     def _get_obs(self):
         arm_joint_name_list = [

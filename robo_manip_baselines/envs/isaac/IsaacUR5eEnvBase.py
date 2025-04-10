@@ -370,6 +370,10 @@ class IsaacUR5eEnvBase(gym.Env, ABC):
     def get_input_device_kwargs(self, input_device_name):
         return {}
 
+    @property
+    def command_keys(self):
+        return [DataKey.COMMAND_JOINT_POS]
+
     def step(self, action):
         # Check key input
         if self.render_mode == "human":

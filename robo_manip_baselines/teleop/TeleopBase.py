@@ -303,7 +303,12 @@ class TeleopBase(ABC):
             self.phase_manager.pre_update()
             self.motion_manager.draw_markers()
 
-            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            action = np.concatenate(
+                [
+                    self.motion_manager.get_command_data(key)
+                    for key in self.env.unwrapped.command_keys
+                ]
+            )
 
             if self.phase_manager.is_phase("TeleopPhase"):
                 self.record_data()
