@@ -260,7 +260,12 @@ class RolloutBase(ABC):
         while True:
             self.phase_manager.pre_update()
 
-            env_action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            env_action = np.concatenate(
+                [
+                    self.motion_manager.get_command_data(key)
+                    for key in self.env.unwrapped.command_keys
+                ]
+            )
             self.obs, _, _, _, self.info = self.env.step(env_action)
 
             self.phase_manager.post_update()

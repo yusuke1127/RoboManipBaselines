@@ -69,6 +69,10 @@ class MujocoEnvBase(MujocoEnv, ABC):
 
         self._first_render = True
 
+    @property
+    def command_keys(self):
+        return [DataKey.COMMAND_JOINT_POS]
+
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
 

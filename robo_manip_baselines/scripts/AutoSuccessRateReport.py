@@ -26,10 +26,13 @@ class AutoSuccessRateReport:
 
     @classmethod
     def adjust_dataset_url(cls, dataset_url):
+        # Remove '\&'
+        for _ in range(len(dataset_url)):
+            if r"\&" not in dataset_url:
+                break
 
-        # escape '&'
-        if "&" in dataset_url and "\\&" not in dataset_url:
-            dataset_url = dataset_url.replace("&", "\\&")
+            # With subprocess.Popen(shell=False), use '&' without escape.
+            dataset_url = dataset_url.replace(r"\&", r"&")
 
         # dl=0 → dl=1
         if dataset_url.endswith("dl=0"):
@@ -38,11 +41,11 @@ class AutoSuccessRateReport:
 
         assert dataset_url.endswith(
             "dl=1"
-        ), f"[{cls.__name__}]Error: The URL '{dataset_url}' does not end with 'dl=1'."
+        ), f"[{cls.__name__}] Error: The URL '{dataset_url}' does not end with 'dl=1'."
         return dataset_url
 
     @classmethod
-    def run_command(cls, command, cwd=None):
+    def exec_command(cls, command, cwd=None):
         print(f"[{cls.__name__}] Executing command: {command}", flush=True)
         with subprocess.Popen(
             command,
@@ -62,10 +65,10 @@ class AutoSuccessRateReport:
 
     def start(self):
         # git clone
-        self.run_command(
+        self.exec_command(
             ["git", "clone", "--recursive", self.GIT_CLONE_URL, self.repository_tmp_dir]
         )
-        self.run_command(
+        self.exec_command(
             ["git", "switch", "-c", self.commit_id],
             cwd=self.repository_tmp_dir,
         )
@@ -78,14 +81,14 @@ class AutoSuccessRateReport:
         #     but this should be checked and terminated if not installed.
 
         # install common
-        self.run_command(
+        self.exec_command(
             [self.venv_python, "-m", "pip", "install", "-e", "."],
             cwd=self.repository_tmp_dir,
         )
 
         # install each policy
         if self.policy in self.THIRD_PARTY_PATHS:
-            self.run_command(
+            self.exec_command(
                 [
                     self.venv_python,
                     "-m",
@@ -96,7 +99,7 @@ class AutoSuccessRateReport:
                 ],
                 cwd=self.repository_tmp_dir,
             )
-            self.run_command(
+            self.exec_command(
                 [self.venv_python, "-m", "pip", "install", "-e", "."],
                 cwd=os.path.join(
                     self.repository_tmp_dir,
@@ -106,49 +109,23 @@ class AutoSuccessRateReport:
             )
 
         # download dataset
-        wget_zip_path = os.path.join(self.dataset_temp_dir, "dataset.zip")
-        self.run_command(["wget", "-O", wget_zip_path, self.dataset_url])
-        self.run_command(
+        zip_filename = "dataset.zip"
+        self.exec_command(
+            [
+                "wget",
+                "-O",
+                os.path.join(self.dataset_temp_dir, zip_filename),
+                self.dataset_url,
+            ]
+        )
+        self.exec_command(
             [
                 "unzip",
                 "-d",
-                os.path.join(self.dataset_temp_dir, "dataset/"),
-                wget_zip_path,
-            ]
-        )
-
-        # train
-        self.run_command(
-            [
-                self.venv_python,
-                os.path.join(self.repository_tmp_dir, "bin/Train.py"),
-                self.policy,
-                self.env,
-                "--dataset_dir",
-                os.path.join(self.dataset_temp_dir, "dataset/<dataset_name>"),
-                "--checkpoint_dir",
-                os.path.join(
-                    self.repository_tmp_dir, "checkpoint_dir/", self.policy, self.env
-                ),
-            ]
-        )
-
-        # rollout
-        self.run_command(
-            [
-                self.venv_python,
-                os.path.join(self.repository_tmp_dir, "bin/Rollout.py"),
-                self.policy,
-                self.env,
-                "--checkpoint_dir",
-                os.path.join(
-                    self.repository_tmp_dir,
-                    "checkpoint_dir/",
-                    self.policy,
-                    self.env,
-                    "policy_last.ckpt",
-                ),
-            ]
+                "dataset/",
+                zip_filename,
+            ],
+            cwd=self.dataset_temp_dir,
         )
 
 

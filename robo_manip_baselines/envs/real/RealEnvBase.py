@@ -95,6 +95,10 @@ class RealEnvBase(gym.Env, ABC):
 
         return observation, info
 
+    @property
+    def command_keys(self):
+        return [DataKey.COMMAND_JOINT_POS]
+
     def step(self, action):
         self._set_action(action, duration=self.dt, joint_vel_limit_scale=2.0, wait=True)
 

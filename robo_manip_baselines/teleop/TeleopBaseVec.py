@@ -2,6 +2,7 @@ import os
 import time
 
 import cv2
+import numpy as np
 
 from robo_manip_baselines.common import DataKey, DataManagerVec
 
@@ -34,7 +35,12 @@ class TeleopBaseVec(TeleopBase):
             self.phase_manager.pre_update()
             self.motion_manager.draw_markers()
 
-            action = self.motion_manager.get_command_data(DataKey.COMMAND_JOINT_POS)
+            action = np.concatenate(
+                [
+                    self.motion_manager.get_command_data(key)
+                    for key in self.env.unwrapped.command_keys
+                ]
+            )
             self.action_list = self.env.unwrapped.get_fluctuated_action_list(
                 action, update_fluctuation=self.phase_manager.is_phase("TeleopPhase")
             )

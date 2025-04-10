@@ -93,6 +93,7 @@ class MotionManager:
             DataKey.COMMAND_JOINT_POS,
             DataKey.COMMAND_GRIPPER_JOINT_POS,
             DataKey.COMMAND_EEF_POSE,
+            DataKey.COMMAND_MOBILE_OMNI_VEL,
         ]
         if key not in supported_data_keys:
             raise ValueError(
@@ -121,6 +122,8 @@ class MotionManager:
                     7 * body_manager.body_config.eef_idx : 7
                     * (body_manager.body_config.eef_idx + 1)
                 ] = single_command
+            else:
+                command[:] = single_command
 
         return command
 

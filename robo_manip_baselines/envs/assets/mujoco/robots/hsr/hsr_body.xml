@@ -1,6 +1,9 @@
 <mujoco model="hsr_body">
   <body name="hsr_body">
     <body name="base_link">
+      <joint name="mobile_x_joint" type="slide" axis="1 0 0"/>
+      <joint name="mobile_y_joint" type="slide" axis="0 1 0"/>
+      <joint name="mobile_theta_joint" axis="0 0 1"/>
       <inertial pos="-0.025978 -0.005498 0.17633" quat="0.995796 0.0411155 -0.0685908 0.0446655" mass="50" diaginertia="0.378627 0.344913 0.145159" />
       <geom type="mesh" mesh="base" material="hsr_white" />
       <body name="base_range_sensor_link" pos="0.1675 0 0.1844">
@@ -47,7 +50,6 @@
               </body>
             </body>
             <body name="head_center_camera_frame" pos="0.0195 0 0.061" quat="0.5 -0.5 0.5 -0.5">
-              <camera name="head" fovy="62" pos="0 0 0" euler="2.35619 0 0"/>
               <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
               <body name="head_center_camera_gazebo_frame" quat="0.5 0.5 -0.5 0.5">
                 <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
@@ -56,6 +58,7 @@
             <body name="head_rgbd_sensor_link" pos="-0.079796 0.022 0.215172" quat="0.5 -0.5 0.5 -0.5">
               <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
               <geom type="mesh" mesh="xtion" material="hsr_black" />
+              <camera name="head" fovy="62" pos="0 0 0.08" euler="2.35619 0 0"/>
               <body name="head_rgbd_sensor_gazebo_frame" quat="0.5 0.5 -0.5 0.5">
                 <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
               </body>
@@ -151,6 +154,7 @@
                         </body>
                       </body>
                       <body name="hand_camera_frame" pos="0.039 0 -0.0045">
+                        <camera name="hand" fovy="62" pos="0 0 0" euler="0 3.1415 1.57"/>
                         <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
                         <body name="hand_camera_gazebo_frame" quat="0.5 0.5 -0.5 0.5">
                           <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />

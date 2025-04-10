@@ -4,8 +4,16 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
-from robo_manip_baselines.common import ArmConfig
-from robo_manip_baselines.teleop import SpacemouseInputDevice
+from robo_manip_baselines.common import (
+    ArmConfig,
+    DataKey,
+    MobileOmniConfig,
+    get_se3_from_pose,
+)
+from robo_manip_baselines.teleop import (
+    SpacemouseInputDevice,
+    SpacemouseMobileInputDevice,
+)
 
 from ..MujocoEnvBase import MujocoEnvBase
 
@@ -22,6 +30,7 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             "joint_pos": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
             "joint_vel": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
             "wrench": Box(low=-np.inf, high=np.inf, shape=(6,), dtype=np.float64),
+            "mobile_vel": Box(low=-np.inf, high=np.inf, shape=(3,), dtype=np.float64),
         }
     )
 
@@ -42,33 +51,54 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 gripper_joint_idxes=np.array([5]),
                 gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
                 eef_idx=0,
-                init_arm_joint_pos=self.init_qpos[0:5],
-                init_gripper_joint_pos=self.init_qpos[[5]],
-            )
+                init_arm_joint_pos=self.init_qpos[3:8],
+                init_gripper_joint_pos=self.init_qpos[[8]],
+                get_root_pose_func=lambda env: get_se3_from_pose(
+                    env.get_body_pose("base_link")
+                ),
+            ),
+            MobileOmniConfig(),
+        ]
+
+        self.mobile_joint_name_list = [
+            "mobile_x_joint",
+            "mobile_y_joint",
+            "mobile_theta_joint",
         ]
 
     def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
         if input_device_name == "spacemouse":
-            InputDeviceClass = SpacemouseInputDevice
+            return [
+                SpacemouseInputDevice(
+                    motion_manager.body_manager_list[0],
+                    **{**default_kwargs.get(0, {}), **overwrite_kwargs.get(0, {})},
+                ),
+                SpacemouseMobileInputDevice(
+                    motion_manager.body_manager_list[1],
+                    **{**default_kwargs.get(1, {}), **overwrite_kwargs.get(1, {})},
+                ),
+            ]
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
             )
 
-        default_kwargs = self.get_input_device_kwargs(input_device_name)
-
-        return [
-            InputDeviceClass(
-                motion_manager.body_manager_list[0],
-                **{**default_kwargs, **overwrite_kwargs},
-            )
-        ]
-
     def get_input_device_kwargs(self, input_device_name):
         if input_device_name == "spacemouse":
-            return {"gripper_scale": 0.05}
+            return {0: {"gripper_scale": 0.05}, 1: {}}
         else:
             return super().get_input_device_kwargs(input_device_name)
+
+    @property
+    def command_keys(self):
+        return [DataKey.COMMAND_MOBILE_OMNI_VEL, DataKey.COMMAND_JOINT_POS]
+
+    def step(self, action):
+        action[0:3] = self.convert_mobile_vel_frame(action[0:3], world_to_local=False)
+
+        return super().step(action)
 
     def _get_obs(self):
         arm_joint_name_list = [
@@ -91,6 +121,14 @@ class MujocoHsrEnvBase(MujocoEnvBase):
         force = self.data.sensor("force_sensor").data.flat.copy()
         torque = self.data.sensor("torque_sensor").data.flat.copy()
 
+        mobile_vel = np.array(
+            [
+                self.data.joint(joint_name).qvel[0]
+                for joint_name in self.mobile_joint_name_list
+            ]
+        )
+        mobile_vel = self.convert_mobile_vel_frame(mobile_vel, world_to_local=True)
+
         return {
             "joint_pos": np.concatenate(
                 (arm_joint_pos, gripper_joint_pos), dtype=np.float64
@@ -99,4 +137,19 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 (arm_joint_vel, gripper_joint_vel), dtype=np.float64
             ),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
+            "mobile_vel": mobile_vel.astype(np.float64),
         }
+
+    def convert_mobile_vel_frame(self, vel_in, world_to_local):
+        theta = self.data.joint(self.mobile_joint_name_list[-1]).qpos[0]
+        if not world_to_local:
+            theta *= -1
+
+        rot_mat = np.array(
+            [[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]]
+        )
+
+        vel_in_xy = vel_in[0:2]
+        vel_out_xy = rot_mat @ vel_in_xy
+
+        return np.concatenate([vel_out_xy, vel_in[[2]]])
