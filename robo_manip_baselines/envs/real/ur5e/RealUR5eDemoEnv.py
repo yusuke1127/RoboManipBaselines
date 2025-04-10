@@ -6,14 +6,10 @@ from .RealUR5eEnvBase import RealUR5eEnvBase
 class RealUR5eDemoEnv(RealUR5eEnvBase):
     def __init__(
         self,
-        robot_ip,
-        camera_ids,
         **kwargs,
     ):
         RealUR5eEnvBase.__init__(
             self,
-            robot_ip,
-            camera_ids,
             init_qpos=np.array(
                 [
                     1.18000162,

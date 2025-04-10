@@ -1,11 +1,14 @@
-from os import path
 import time
+from os import path
+
 import numpy as np
 from gymnasium.spaces import Box, Dict
+from xarm.wrapper import XArmAPI
+
+from robo_manip_baselines.common import ArmConfig
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
 
 from ..RealEnvBase import RealEnvBase
-
-from xarm.wrapper import XArmAPI
 
 
 class RealXarm7EnvBase(RealEnvBase):
@@ -50,25 +53,34 @@ class RealXarm7EnvBase(RealEnvBase):
         self,
         robot_ip,
         camera_ids,
+        gelsight_ids,
         init_qpos,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         # Setup robot
-        self.gripper_action_idx = 7
-        self.arm_action_idxes = slice(0, 7)
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../../assets/common/robots/xarm7/xarm7.urdf"
-        )
-        self.arm_root_pose = None
-        self.ik_eef_joint_id = 7
-        self.ik_arm_joint_ids = slice(0, 7)
         self.init_qpos = init_qpos
-        self.qvel_limit = np.deg2rad(180)  # [rad/s]
+        self.joint_vel_limit = np.deg2rad(180)  # [rad/s]
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__),
+                    "../../assets/common/robots/xarm7/xarm7.urdf",
+                ),
+                arm_root_pose=None,
+                ik_eef_joint_id=7,
+                arm_joint_idxes=np.arange(7),
+                gripper_joint_idxes=np.array([7]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+                init_arm_joint_pos=self.init_qpos[0:7],
+                init_gripper_joint_pos=np.zeros(1),
+            )
+        ]
 
         # Connect to xArm7
-        print("[RealXarm7EnvBase] Start connecting the xArm7.")
+        print(f"[{self.__class__.__name__}] Start connecting the xArm7.")
         self.robot_ip = robot_ip
         self.xarm_api = XArmAPI(self.robot_ip)
         self.xarm_api.connect()
@@ -87,62 +99,84 @@ class RealXarm7EnvBase(RealEnvBase):
         time.sleep(0.2)
         xarm_code, joint_states = self.xarm_api.get_joint_states(is_radian=True)
         if xarm_code != 0:
-            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
-        self.arm_qpos_actual = joint_states[0]
-        print("[RealXarm7EnvBase] Finish connecting the xArm7.")
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Invalid xArm API code: {xarm_code}"
+            )
+        self.arm_joint_pos_actual = joint_states[0]
+        print(f"[{self.__class__.__name__}] Finish connecting the xArm7.")
 
         # Connect to RealSense
         self.setup_realsense(camera_ids)
+        self.setup_gelsight(gelsight_ids)
 
     def close(self):
         self.xarm_api.disconnect()
 
-    def _reset_robot(self):
-        print("[RealXarm7EnvBase] Start moving the robot to the reset position.")
-        self._set_action(self.init_qpos, duration=None, qvel_limit_scale=0.1, wait=True)
-        print("[RealXarm7EnvBase] Finish moving the robot to the reset position.")
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
+            )
 
-    def _set_action(self, action, duration=None, qvel_limit_scale=0.5, wait=False):
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                motion_manager.body_manager_list[0],
+                **{**default_kwargs, **overwrite_kwargs},
+            )
+        ]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
+
+    def _reset_robot(self):
+        print(
+            f"[{self.__class__.__name__}] Start moving the robot to the reset position."
+        )
+        self._set_action(
+            self.init_qpos, duration=None, joint_vel_limit_scale=0.1, wait=True
+        )
+        print(
+            f"[{self.__class__.__name__}] Finish moving the robot to the reset position."
+        )
+
+    def _set_action(self, action, duration=None, joint_vel_limit_scale=0.5, wait=False):
         start_time = time.time()
 
-        # Overwrite duration or qpos for safety
-        arm_qpos_command = action[self.arm_action_idxes]
-        scaled_qvel_limit = np.clip(qvel_limit_scale, 0.01, 10.0) * self.qvel_limit
-        if duration is None:
-            duration_min, duration_max = 0.1, 10.0  # [s]
-            duration = np.clip(
-                np.max(
-                    np.abs(arm_qpos_command - self.arm_qpos_actual) / scaled_qvel_limit
-                ),
-                duration_min,
-                duration_max,
-            )
-        else:
-            arm_qpos_command_overwritten = self.arm_qpos_actual + np.clip(
-                arm_qpos_command - self.arm_qpos_actual,
-                -1 * scaled_qvel_limit * duration,
-                scaled_qvel_limit * duration,
-            )
-            # if np.linalg.norm(arm_qpos_command_overwritten - arm_qpos_command) > 1e-10:
-            #     print("[RealXarm7EnvBase] Overwrite joint command for safety.")
-            arm_qpos_command = arm_qpos_command_overwritten
+        # Overwrite duration or joint_pos for safety
+        action, duration = self.overwrite_command_for_safety(
+            action, duration, joint_vel_limit_scale
+        )
 
         # Send command to xArm7
+        arm_joint_pos_command = action[self.arm_joint_idxes]
+        scaled_joint_vel_limit = (
+            np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
+        )
         xarm_code = self.xarm_api.set_servo_angle(
-            angle=arm_qpos_command,
-            speed=scaled_qvel_limit,
+            angle=arm_joint_pos_command,
+            speed=scaled_joint_vel_limit,
             mvtime=duration,
             is_radian=True,
             wait=False,
         )
         if xarm_code != 0:
-            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Invalid xArm API code: {xarm_code}"
+            )
 
         # Send command to xArm gripper
-        gripper_pos = action[self.gripper_action_idx]
+        gripper_pos = action[self.gripper_joint_idxes][0]
         xarm_code = self.xarm_api.set_gripper_position(gripper_pos, wait=False)
         if xarm_code != 0:
-            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Invalid xArm API code: {xarm_code}"
+            )
 
         # Wait
         elapsed_duration = time.time() - start_time
@@ -153,17 +187,21 @@ class RealXarm7EnvBase(RealEnvBase):
         # Get state from xArm7
         xarm_code, joint_states = self.xarm_api.get_joint_states(is_radian=True)
         if xarm_code != 0:
-            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
-        arm_qpos = joint_states[0]
-        arm_qvel = joint_states[1]
-        self.arm_qpos_actual = arm_qpos.copy()
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Invalid xArm API code: {xarm_code}"
+            )
+        arm_joint_pos = joint_states[0]
+        arm_joint_vel = joint_states[1]
+        self.arm_joint_pos_actual = arm_joint_pos.copy()
 
         # Get state from Robotiq gripper
         xarm_code, gripper_pos = self.xarm_api.get_gripper_position()
         if xarm_code != 0:
-            raise RuntimeError(f"[RealXarm7EnvBase] Invalid xArm API code: {xarm_code}")
-        gripper_pos = np.array([gripper_pos], dtype=np.float64)
-        gripper_vel = np.zeros(1)
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Invalid xArm API code: {xarm_code}"
+            )
+        gripper_joint_pos = np.array([gripper_pos], dtype=np.float64)
+        gripper_joint_vel = np.zeros(1)
 
         # Get wrench from force sensor
         wrench = np.array(self.xarm_api.get_ft_sensor_data()[1], dtype=np.float64)
@@ -171,7 +209,11 @@ class RealXarm7EnvBase(RealEnvBase):
         torque = wrench[3:6]
 
         return {
-            "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-            "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+            "joint_pos": np.concatenate(
+                (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+            ),
+            "joint_vel": np.concatenate(
+                (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+            ),
             "wrench": np.concatenate((force, torque), dtype=np.float64),
         }

@@ -1,6 +1,6 @@
 [submodule "third_party/eipl"]
 	path = third_party/eipl
-	url = https://github.com/mmurooka/eipl
+	url = https://github.com/mmurooka/eipl.git
         ignore = untracked
 [submodule "third_party/act"]
 	path = third_party/act
@@ -8,11 +8,7 @@
         ignore = untracked
 [submodule "third_party/diffusion_policy"]
 	path = third_party/diffusion_policy
-	url = https://github.com/real-stanford/diffusion_policy.git
-        ignore = untracked
-[submodule "third_party/r3m"]
-	path = third_party/r3m
-	url = https://github.com/facebookresearch/r3m.git
+	url = https://github.com/mmurooka/diffusion_policy.git
         ignore = untracked
 [submodule "third_party/roboagent"]
 	path = third_party/roboagent
@@ -20,5 +16,5 @@
         ignore = untracked
 [submodule "third_party/gello_software"]
 	path = third_party/gello_software
-	url = https://github.com/wuphilipp/gello_software.git
+	url = https://github.com/mmurooka/gello_software.git
 	ignore = untracked

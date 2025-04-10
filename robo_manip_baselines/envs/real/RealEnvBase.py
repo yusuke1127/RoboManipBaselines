@@ -1,13 +1,18 @@
-from abc import ABCMeta, abstractmethod
+import concurrent.futures
+import os
+import re
 import time
-import numpy as np
+from abc import ABC, abstractmethod
 
+import cv2
 import gymnasium as gym
-
+import numpy as np
 from gello.cameras.realsense_camera import RealSenseCamera, get_device_ids
 
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
 
-class RealEnvBase(gym.Env, metaclass=ABCMeta):
+
+class RealEnvBase(EnvDataMixin, gym.Env, ABC):
     metadata = {
         "render_modes": [],
     }
@@ -19,20 +24,15 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         # Setup environment parameters
         self.init_time = time.time()
         self.dt = 0.02  # [s]
-        if kwargs.get("scale_dt") is not None:
-            self.dt *= kwargs["scale_dt"]
+        self.world_random_scale = None
 
     def setup_realsense(self, camera_ids):
         self.cameras = {}
         detected_camera_ids = get_device_ids()
         for camera_name, camera_id in camera_ids.items():
-            if camera_id is None:
-                self.cameras[camera_name] = None
-                continue
-
             if camera_id not in detected_camera_ids:
-                raise ValueError(
-                    f"Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Specified camera (name: {camera_name}, ID: {camera_id}) not detected. Detected camera IDs: {detected_camera_ids}"
                 )
 
             camera = RealSenseCamera(device_id=camera_id, flip=False)
@@ -52,6 +52,37 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
             self.cameras[camera_name] = camera
 
+    def setup_gelsight(self, tactile_ids):
+        self.tactiles = {}
+
+        if tactile_ids is None:
+            return
+
+        for tactile_name, tactile_id in tactile_ids.items():
+            for device_name in os.listdir("/sys/class/video4linux"):
+                real_device_name = os.path.realpath(
+                    "/sys/class/video4linux/" + device_name + "/name"
+                )
+                with (
+                    open(real_device_name, "rt") as device_name_file
+                ):  # "rt": read-text mode ("t" is default, so "r" alone is the same)
+                    detected_tactile_id = device_name_file.read().rstrip()
+                if tactile_id in detected_tactile_id:
+                    tactile_num = int(re.search("\d+$", device_name).group(0))
+                    print(
+                        f"[{self.__class__.__name__}] Found GelSight sensor. ID: {detected_tactile_id}, device: {device_name}, num: {tactile_num}"
+                    )
+
+                    tactile = cv2.VideoCapture(tactile_num)
+                    if tactile is None or not tactile.isOpened():
+                        print(
+                            f"[{self.__class__.__name__}] Unable to open video source of GelSight sensor."
+                        )
+                        continue
+
+                    self.tactiles[tactile_name] = tactile
+                    break
+
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
 
@@ -65,7 +96,7 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
         return observation, info
 
     def step(self, action):
-        self._set_action(action, duration=self.dt, qvel_limit_scale=2.0, wait=True)
+        self._set_action(action, duration=self.dt, joint_vel_limit_scale=2.0, wait=True)
 
         observation = self._get_obs()
         reward = 0.0
@@ -86,6 +117,47 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def _set_action(self):
         pass
 
+    def overwrite_command_for_safety(self, action, duration, joint_vel_limit_scale):
+        arm_joint_pos_command = action[self.arm_joint_idxes]
+        scaled_joint_vel_limit = (
+            np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
+        )
+
+        if duration is None:
+            duration_min, duration_max = 0.1, 10.0  # [s]
+            duration = np.clip(
+                np.max(
+                    np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+                    / scaled_joint_vel_limit
+                ),
+                duration_min,
+                duration_max,
+            )
+        else:
+            arm_joint_pos_error_max = np.max(
+                np.abs(arm_joint_pos_command - self.arm_joint_pos_actual)
+            )
+            arm_joint_pos_error_thre = np.deg2rad(90)
+            duration_thre = 0.1  # [s]
+            if (
+                arm_joint_pos_error_max > arm_joint_pos_error_thre
+                and duration < duration_thre
+            ):
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Large joint movements are commanded in short duration ({duration} s).\n  command: {arm_joint_pos_command}\n  actual: {self.arm_joint_pos_actual}"
+                )
+
+            arm_joint_pos_command_overwritten = self.arm_joint_pos_actual + np.clip(
+                arm_joint_pos_command - self.arm_joint_pos_actual,
+                -1 * scaled_joint_vel_limit * duration,
+                scaled_joint_vel_limit * duration,
+            )
+            # if np.linalg.norm(arm_joint_pos_command_overwritten - arm_joint_pos_command) > 1e-10:
+            #     print(f"[{self.__class__.__name__}] Overwrite joint command for safety.")
+            action[self.arm_joint_idxes] = arm_joint_pos_command_overwritten
+
+        return action, duration
+
     @abstractmethod
     def _get_obs(self):
         pass
@@ -93,41 +165,71 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
     def _get_info(self):
         info = {}
 
-        if len(self.camera_names) == 0:
+        if len(self.camera_names) + len(self.tactile_names) == 0:
             return info
 
-        # Get camera images
+        # Get images
         info["rgb_images"] = {}
         info["depth_images"] = {}
-        for camera_name, camera in self.cameras.items():
-            if camera is None:
-                info["rgb_images"][camera_name] = np.zeros(
-                    (480, 640, 3), dtype=np.uint8
-                )
-                info["depth_images"][camera_name] = np.zeros(
-                    (480, 640), dtype=np.float32
-                )
-                continue
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = {}
 
-            rgb_image, depth_image = camera.read((640, 480))
-            info["rgb_images"][camera_name] = rgb_image
-            info["depth_images"][camera_name] = 1e-3 * depth_image[:, :, 0]  # [m]
+            for camera_name, camera in self.cameras.items():
+                futures[executor.submit(self.get_camera_image, camera_name, camera)] = (
+                    camera_name
+                )
+
+            for tactile_name, tactile in self.tactiles.items():
+                futures[
+                    executor.submit(self.get_tactile_image, tactile_name, tactile)
+                ] = tactile_name
+
+            for future in concurrent.futures.as_completed(futures):
+                name, rgb_image, depth_image = future.result()
+                info["rgb_images"][name] = rgb_image
+                info["depth_images"][name] = depth_image
 
         return info
 
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
-        """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
-        else:
-            return obs["joint_pos"]
+    def get_camera_image(self, camera_name, camera):
+        rgb_image, depth_image = camera.read((640, 480))
+        depth_image = (1e-3 * depth_image[:, :, 0]).astype(np.float32)  # [m]
+        return camera_name, rgb_image, depth_image
 
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+    def get_tactile_image(self, tactile_name, tactile):
+        ret, rgb_image = tactile.read()
+        if not ret:
+            raise RuntimeError(
+                f"[{self.__class__.__name__}] Failed to read tactile image."
+            )
+        image_size = (640, 480)
+        rgb_image = cv2.resize(rgb_image, image_size)
+        return tactile_name, rgb_image, None
+
+    def get_joint_pos_from_obs(self, obs):
+        """Get joint position from observation."""
+        return obs["joint_pos"]
+
+    def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
-        else:
-            return obs["joint_vel"]
+        return obs["joint_vel"]
+
+    def get_gripper_joint_pos_from_obs(self, obs):
+        """Get gripper joint position from observation."""
+        joint_pos = self.get_joint_pos_from_obs(obs)
+        gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self)
+        )
+
+        for body_config in self.body_config_list:
+            if not isinstance(body_config, ArmConfig):
+                continue
+
+            gripper_joint_pos[body_config.gripper_joint_idxes_in_gripper_joint_pos] = (
+                joint_pos[body_config.gripper_joint_idxes]
+            )
+
+        return gripper_joint_pos
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
@@ -139,19 +241,23 @@ class RealEnvBase(gym.Env, metaclass=ABCMeta):
 
     @property
     def camera_names(self):
-        """Camera names being measured."""
-        return self.cameras.keys()
+        """Get camera names."""
+        return list(self.cameras.keys())
+
+    @property
+    def tactile_names(self):
+        """Get tactile sensor names."""
+        return list(self.tactiles.keys())
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        camera = self.cameras[camera_name]
-        if camera is None:
-            return 45.0  # dummy
-        return camera.depth_fovy
+        return self.cameras[camera_name].depth_fovy
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         """Modify simulation world depending on world index."""
-        raise NotImplementedError("[RealEnvBase] modify_world is not implemented.")
+        raise NotImplementedError(
+            f"[{self.__class__.__name__}] modify_world is not implemented."
+        )
 
     def draw_box_marker(self, pos, mat, size, rgba):
         """Draw box marker."""

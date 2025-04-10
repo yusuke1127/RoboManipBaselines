@@ -22,6 +22,24 @@ register(
     id="robo_manip_baselines/MujocoUR5eInsertEnv-v0",
     entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eInsertEnv",
 )
+register(
+    id="robo_manip_baselines/MujocoUR5eDoorEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDoorEnv",
+)
+register(
+    id="robo_manip_baselines/MujocoUR5eCabinetEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eCabinetEnv",
+)
+register(
+    id="robo_manip_baselines/MujocoUR5eToolboxEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eToolboxEnv",
+)
+
+## UR5e-Dual
+register(
+    id="robo_manip_baselines/MujocoUR5eDualCableEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDualCableEnv",
+)
 
 ## Xarm7
 register(
@@ -38,6 +56,18 @@ register(
 register(
     id="robo_manip_baselines/MujocoAlohaCableEnv-v0",
     entry_point="robo_manip_baselines.envs.mujoco:MujocoAlohaCableEnv",
+)
+
+## HSR
+register(
+    id="robo_manip_baselines/MujocoHsrTidyupEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoHsrTidyupEnv",
+)
+
+## G1
+register(
+    id="robo_manip_baselines/MujocoG1BottlesEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoG1BottlesEnv",
 )
 
 # Isaac

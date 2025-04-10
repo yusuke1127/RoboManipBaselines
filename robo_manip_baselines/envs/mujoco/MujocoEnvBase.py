@@ -1,12 +1,14 @@
-from abc import ABCMeta, abstractmethod
-import numpy as np
-import mujoco
+from abc import ABC, abstractmethod
 
+import mujoco
+import numpy as np
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
 
-class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
+
+class MujocoEnvBase(EnvDataMixin, MujocoEnv, ABC):
     sim_timestep = 0.004
     frame_skip = 8
     metadata = {
@@ -37,6 +39,8 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
         self.mujoco_renderer.width = None
         self.mujoco_renderer.height = None
 
+        self.world_random_scale = None
+
         self.setup_robot(init_qpos)
         self.setup_camera()
 
@@ -56,7 +60,8 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
             camera["viewer"] = OffScreenViewer(
                 self.model, self.data, width=640, height=480
             )
-            self.cameras[camera_name] = camera
+            # Because "/" are not allowed in HDF5 keys, replace "/" with "_" in dictionary keys
+            self.cameras[camera_name.replace("/", "_")] = camera
 
         # This is required to automatically switch context to free camera in render()
         # https://github.com/Farama-Foundation/Gymnasium/blob/81b87efb9f011e975f3b646bab6b7871c522e15e/gymnasium/envs/mujoco/mujoco_rendering.py#L695-L697
@@ -93,12 +98,12 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
 
         info["rgb_images"] = {}
         info["depth_images"] = {}
-        for camera in self.cameras.values():
+        for camera_name, camera in self.cameras.items():
             camera["viewer"].make_context_current()
             rgb_image = camera["viewer"].render(
                 render_mode="rgb_array", camera_id=camera["id"]
             )
-            info["rgb_images"][camera["name"]] = rgb_image
+            info["rgb_images"][camera_name] = rgb_image
             depth_image = camera["viewer"].render(
                 render_mode="depth_array", camera_id=camera["id"]
             )
@@ -107,7 +112,7 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
             near = self.model.vis.map.znear * extent
             far = self.model.vis.map.zfar * extent
             depth_image = near / (1 - depth_image * (1 - near / far))
-            info["depth_images"][camera["name"]] = depth_image
+            info["depth_images"][camera_name] = depth_image
 
         return info
 
@@ -123,19 +128,30 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
             camera["viewer"].close()
         MujocoEnv.close(self)
 
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_pos_from_obs(self, obs):
         """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
-        else:
-            return obs["joint_pos"]
+        return obs["joint_pos"]
 
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
-        else:
-            return obs["joint_vel"]
+        return obs["joint_vel"]
+
+    def get_gripper_joint_pos_from_obs(self, obs):
+        """Get gripper joint position from observation."""
+        joint_pos = self.get_joint_pos_from_obs(obs)
+        gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self)
+        )
+
+        for body_config in self.body_config_list:
+            if not isinstance(body_config, ArmConfig):
+                continue
+
+            gripper_joint_pos[body_config.gripper_joint_idxes_in_gripper_joint_pos] = (
+                joint_pos[body_config.gripper_joint_idxes]
+            )
+
+        return gripper_joint_pos
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
@@ -159,12 +175,17 @@ class MujocoEnvBase(MujocoEnv, metaclass=ABCMeta):
 
     @property
     def camera_names(self):
-        """Camera names being measured."""
-        return self.cameras.keys()
+        """Get camera names."""
+        return list(self.cameras.keys())
+
+    @property
+    def tactile_names(self):
+        """Get tactile sensor names."""
+        return []
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
-        return self.model.cam(camera_name).fovy[0]
+        return self.model.cam(self.cameras[camera_name]["name"]).fovy[0]
 
     @abstractmethod
     def modify_world(self, world_idx=None, cumulative_idx=None):

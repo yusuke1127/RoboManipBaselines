@@ -1,4 +1,5 @@
 from os import path
+
 import numpy as np
 
 from .MujocoAlohaEnvBase import MujocoAlohaEnvBase
@@ -15,7 +16,7 @@ class MujocoAlohaCableEnv(MujocoAlohaEnvBase):
                 path.dirname(__file__),
                 "../../assets/mujoco/envs/aloha/env_aloha_cable.xml",
             ),
-            np.array([0.0, -0.96, 1.16, 0.0, -0.3, 0.0, 0.0084, 0.0084]),
+            np.array([0.0, -0.96, 1.16, 0.0, -0.3, 0.0, 0.037, 0.037] * 2),
             **kwargs,
         )
 
@@ -30,6 +31,12 @@ class MujocoAlohaCableEnv(MujocoAlohaEnvBase):
                 [0.075, 0.0, 0.0],
             ]
         )  # [m]
+
+    def get_input_device_kwargs(self, input_device_name):
+        if input_device_name == "spacemouse":
+            return {"rpy_scale": 2e-2}
+        else:
+            return super().get_input_device_kwargs(input_device_name)
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:

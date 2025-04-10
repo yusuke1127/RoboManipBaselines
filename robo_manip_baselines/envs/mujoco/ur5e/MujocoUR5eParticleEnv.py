@@ -1,4 +1,5 @@
 from os import path
+
 import numpy as np
 
 from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
@@ -16,7 +17,15 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
                 "../../assets/mujoco/envs/ur5e/env_ur5e_particle.xml",
             ),
             np.array(
-                [np.pi, -np.pi / 2, -0.75 * np.pi, -0.25 * np.pi, np.pi / 2, np.pi, 0.0]
+                [
+                    np.pi,
+                    -np.pi / 2,
+                    -0.75 * np.pi,
+                    -0.25 * np.pi,
+                    np.pi / 2,
+                    np.pi,
+                    *np.zeros(8),
+                ]
             ),
             **kwargs,
         )
@@ -33,6 +42,12 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
                 [0.0, 0.20, 0.0],
             ]
         )  # [m]
+
+    def get_input_device_kwargs(self, input_device_name):
+        if input_device_name == "spacemouse":
+            return {"rpy_scale": 1e-2}
+        else:
+            return super().get_input_device_kwargs(input_device_name)
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:

@@ -1,16 +1,20 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from os import path
-import numpy as np
-
-from isaacgym import gymapi  # noqa: F401
-from isaacgym import gymutil  # noqa: F401
-from isaacgym import gymtorch  # noqa: F401
 
 import gymnasium as gym
+import numpy as np
 from gymnasium.spaces import Box, Dict
+from isaacgym import (
+    gymapi,  # noqa: F401
+    gymtorch,  # noqa: F401
+    gymutil,  # noqa: F401
+)
+
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
+from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
 
 
-class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
+class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
     metadata = {
         "render_modes": [
             "human",
@@ -27,21 +31,31 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.render_mode = kwargs.get("render_mode")
 
         # Setup Isaac Gym
-        self.gripper_action_idx = 6
-        self.arm_action_idxes = slice(0, 6)
-        self.setupSim(num_envs)
+        self.gripper_joint_idxes = [6]
+        self.arm_joint_idxes = slice(0, 6)
+        self.setup_sim(num_envs)
 
         # Setup robot
-        self.arm_urdf_path = path.join(
-            path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
-        )
-        self.arm_root_pose = self.get_link_pose("ur5e", "base_link")
-        self.ik_eef_joint_id = 6
-        self.ik_arm_joint_ids = slice(0, 6)
+        self.body_config_list = [
+            ArmConfig(
+                arm_urdf_path=path.join(
+                    path.dirname(__file__), "../assets/common/robots/ur5e/ur5e.urdf"
+                ),
+                arm_root_pose=self.get_link_pose("ur5e", "base_link"),
+                ik_eef_joint_id=6,
+                arm_joint_idxes=np.arange(6),
+                gripper_joint_idxes=np.array([6]),
+                gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
+                eef_idx=0,
+                init_arm_joint_pos=self.init_qpos[0:6],
+                init_gripper_joint_pos=np.zeros(1),
+            )
+        ]
 
         # Setup environment parameters
         self.skip_sim = 2
         self.dt = self.skip_sim * self.gym.get_sim_params(self.sim).dt
+        self.world_random_scale = None
 
         robot_dof_props = self.gym.get_actor_dof_properties(
             self.env_list[self.rep_env_idx], self.robot_handle_list[self.rep_env_idx]
@@ -83,7 +97,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         self.quit_flag = False
         self.pause_flag = False
 
-    def setupSim(self, num_envs):
+    def setup_sim(self, num_envs):
         # For visualization reasons, the last of the Isaac Gym parallel environments is considered representative
         self.rep_env_idx = num_envs - 1
 
@@ -231,8 +245,8 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
                 self.init_robot_dof_state = np.zeros(
                     robot_num_dofs, gymapi.DofState.dtype
                 )
-                self.init_robot_dof_state["pos"] = self.get_robot_dof_pos_from_qpos(
-                    self.init_qpos
+                self.init_robot_dof_state["pos"] = (
+                    self.get_robot_dof_pos_from_joint_pos(self.init_qpos)
                 )
             self.gym.set_actor_dof_states(
                 env, robot_handle, self.init_robot_dof_state, gymapi.STATE_ALL
@@ -334,6 +348,28 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
     def reset_task_specific_actors(self, env_idx):
         pass
 
+    def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        if input_device_name == "spacemouse":
+            InputDeviceClass = SpacemouseInputDevice
+        elif input_device_name == "gello":
+            InputDeviceClass = GelloInputDevice
+        else:
+            raise ValueError(
+                f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
+            )
+
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
+        return [
+            InputDeviceClass(
+                motion_manager.body_manager_list[0],
+                **{**default_kwargs, **overwrite_kwargs},
+            )
+        ]
+
+    def get_input_device_kwargs(self, input_device_name):
+        return {}
+
     def step(self, action):
         # Check key input
         if self.render_mode == "human":
@@ -352,9 +388,9 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         ):
             if self.action_list is None:
                 if env_idx == 0:
-                    robot_dof_pos = self.get_robot_dof_pos_from_qpos(action)
+                    robot_dof_pos = self.get_robot_dof_pos_from_joint_pos(action)
             else:
-                robot_dof_pos = self.get_robot_dof_pos_from_qpos(
+                robot_dof_pos = self.get_robot_dof_pos_from_joint_pos(
                     self.action_list[env_idx]
                 )
             self.gym.set_actor_dof_position_targets(env, robot_handle, robot_dof_pos)
@@ -398,19 +434,23 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
                 env, robot_handle, gymapi.STATE_ALL
             )
 
-            arm_qpos = robot_dof_state["pos"][0:6]
-            arm_qvel = robot_dof_state["vel"][0:6]
-            gripper_pos = self.get_gripper_pos_from_gripper_dof_pos(
+            arm_joint_pos = robot_dof_state["pos"][0:6]
+            arm_joint_vel = robot_dof_state["vel"][0:6]
+            gripper_joint_pos = self.get_gripper_joint_pos_from_dof_pos(
                 robot_dof_state["pos"][6:12]
             )
-            gripper_vel = np.zeros(1)
+            gripper_joint_vel = np.zeros(1)
             wrench = force_sensor.get_forces()
             force = np.array([wrench.force.x, wrench.force.y, wrench.force.z])
             torque = np.array([wrench.torque.x, wrench.torque.y, wrench.torque.z])
 
             obs = {
-                "joint_pos": np.concatenate((arm_qpos, gripper_pos), dtype=np.float64),
-                "joint_vel": np.concatenate((arm_qvel, gripper_vel), dtype=np.float64),
+                "joint_pos": np.concatenate(
+                    (arm_joint_pos, gripper_joint_pos), dtype=np.float64
+                ),
+                "joint_vel": np.concatenate(
+                    (arm_joint_vel, gripper_joint_vel), dtype=np.float64
+                ),
                 "wrench": np.concatenate((force, torque), dtype=np.float64),
             }
             obs_list.append(obs)
@@ -434,6 +474,7 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
                 depth_image = -1 * self.gym.get_camera_image(
                     self.sim, env, camera_handle, gymapi.IMAGE_DEPTH
                 )
+                depth_image[np.isinf(depth_image)] = 0.0
                 info["rgb_images"][camera_name] = rgb_image
                 info["depth_images"][camera_name] = depth_image
             info_list.append(info)
@@ -457,19 +498,30 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         """Get the number of the Isaac Gym parallel environments."""
         return len(self.env_list)
 
-    def get_joint_pos_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_pos_from_obs(self, obs):
         """Get joint position from observation."""
-        if exclude_gripper:
-            return obs["joint_pos"][self.arm_action_idxes]
-        else:
-            return obs["joint_pos"]
+        return obs["joint_pos"]
 
-    def get_joint_vel_from_obs(self, obs, exclude_gripper=False):
+    def get_joint_vel_from_obs(self, obs):
         """Get joint velocity from observation."""
-        if exclude_gripper:
-            return obs["joint_vel"][self.arm_action_idxes]
-        else:
-            return obs["joint_vel"]
+        return obs["joint_vel"]
+
+    def get_gripper_joint_pos_from_obs(self, obs):
+        """Get gripper joint position from observation."""
+        joint_pos = self.get_joint_pos_from_obs(obs)
+        gripper_joint_pos = np.zeros(
+            DataKey.get_dim(DataKey.COMMAND_GRIPPER_JOINT_POS, self)
+        )
+
+        for body_config in self.body_config_list:
+            if not isinstance(body_config, ArmConfig):
+                continue
+
+            gripper_joint_pos[body_config.gripper_joint_idxes_in_gripper_joint_pos] = (
+                joint_pos[body_config.gripper_joint_idxes]
+            )
+
+        return gripper_joint_pos
 
     def get_eef_wrench_from_obs(self, obs):
         """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
@@ -506,8 +558,13 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
 
     @property
     def camera_names(self):
-        """Camera names being measured."""
-        return self.camera_handles_list[self.rep_env_idx].keys()
+        """Get camera names."""
+        return list(self.camera_handles_list[self.rep_env_idx].keys())
+
+    @property
+    def tactile_names(self):
+        """Get tactile sensor names."""
+        return []
 
     def get_camera_fovy(self, camera_name):
         """Get vertical field-of-view of the camera."""
@@ -531,23 +588,23 @@ class IsaacUR5eEnvBase(gym.Env, metaclass=ABCMeta):
         # TODO: Implement a method
         pass
 
-    def get_robot_dof_pos_from_qpos(self, qpos):
+    def get_robot_dof_pos_from_joint_pos(self, robot_joint_pos):
         robot_num_dofs = self.gym.get_asset_dof_count(self.robot_asset)
         robot_dof_pos = np.zeros(robot_num_dofs, dtype=np.float32)
-        robot_dof_pos[0:6] = qpos[self.arm_action_idxes]
-        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_gripper_pos(
-            qpos[self.gripper_action_idx]
+        robot_dof_pos[0:6] = robot_joint_pos[self.arm_joint_idxes]
+        robot_dof_pos[6:12] = self.get_gripper_dof_pos_from_joint_pos(
+            robot_joint_pos[self.gripper_joint_idxes]
         )
         return robot_dof_pos
 
-    def get_gripper_dof_pos_from_gripper_pos(self, gripper_pos):
+    def get_gripper_dof_pos_from_joint_pos(self, gripper_joint_pos):
         return (
-            gripper_pos
+            gripper_joint_pos[0]
             * self.gripper_command_scale
             * self.gripper_mimic_multiplier_list
         )
 
-    def get_gripper_pos_from_gripper_dof_pos(self, gripper_dof_pos):
+    def get_gripper_joint_pos_from_dof_pos(self, gripper_dof_pos):
         return (
             gripper_dof_pos
             / (self.gripper_command_scale * self.gripper_mimic_multiplier_list)

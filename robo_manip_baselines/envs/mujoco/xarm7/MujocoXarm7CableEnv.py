@@ -1,4 +1,5 @@
 from os import path
+
 import numpy as np
 
 from .MujocoXarm7EnvBase import MujocoXarm7EnvBase
@@ -15,7 +16,7 @@ class MujocoXarm7CableEnv(MujocoXarm7EnvBase):
                 path.dirname(__file__),
                 "../../assets/mujoco/envs/xarm7/env_xarm7_cable.xml",
             ),
-            np.array([0.0, 0.0, 0.0, 0.8, 0.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            np.array([0.0, 0.0, 0.0, 0.8, 0.0, 0.8, 0.0, *[0.0] * 6]),
             **kwargs,
         )
 
