@@ -4,8 +4,11 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
-from robo_manip_baselines.common import ArmConfig, MobileOmniConfig
-from robo_manip_baselines.teleop import SpacemouseInputDevice
+from robo_manip_baselines.common import ArmConfig, MobileOmniConfig, get_se3_from_pose
+from robo_manip_baselines.teleop import (
+    SpacemouseInputDevice,
+    SpacemouseMobileInputDevice,
+)
 
 from ..MujocoEnvBase import MujocoEnvBase
 
@@ -56,6 +59,9 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 eef_idx=0,
                 init_arm_joint_pos=self.init_qpos[3:8],
                 init_gripper_joint_pos=self.init_qpos[[8]],
+                get_root_pose_func=lambda env: get_se3_from_pose(
+                    env.get_body_pose("base_link")
+                ),
             ),
             MobileOmniConfig(),
         ]
@@ -67,35 +73,29 @@ class MujocoHsrEnvBase(MujocoEnvBase):
         ]
 
     def setup_input_device(self, input_device_name, motion_manager, overwrite_kwargs):
+        default_kwargs = self.get_input_device_kwargs(input_device_name)
+
         if input_device_name == "spacemouse":
-            InputDeviceClass = SpacemouseInputDevice
+            return [
+                SpacemouseInputDevice(
+                    motion_manager.body_manager_list[0],
+                    **{**default_kwargs.get(0, {}), **overwrite_kwargs.get(0, {})},
+                ),
+                SpacemouseMobileInputDevice(
+                    motion_manager.body_manager_list[1],
+                    **{**default_kwargs.get(1, {}), **overwrite_kwargs.get(1, {})},
+                ),
+            ]
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
             )
 
-        default_kwargs = self.get_input_device_kwargs(input_device_name)
-
-        return [
-            InputDeviceClass(
-                motion_manager.body_manager_list[0],
-                **{**default_kwargs, **overwrite_kwargs},
-            )
-        ]
-
     def get_input_device_kwargs(self, input_device_name):
         if input_device_name == "spacemouse":
-            return {"gripper_scale": 0.05}
+            return {0: {"gripper_scale": 0.05}, 1: {}}
         else:
             return super().get_input_device_kwargs(input_device_name)
-
-    def step(self, action_sub):
-        action_all = np.zeros(self.model.nu)
-
-        # action_all[:3] = [0.3, 0, 0.5]
-        action_all[3:] = action_sub
-
-        return super().step(action_all)
 
     def _get_obs(self):
         arm_joint_name_list = [
