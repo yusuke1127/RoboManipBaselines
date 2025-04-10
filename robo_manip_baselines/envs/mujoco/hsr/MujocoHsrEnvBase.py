@@ -18,17 +18,6 @@ from robo_manip_baselines.teleop import (
 from ..MujocoEnvBase import MujocoEnvBase
 
 
-def convert_vel_from_world_to_local(world_vel, theta):
-    rot_mat = np.array(
-        [[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]]
-    )
-
-    world_vel_xy = world_vel[0:2]
-    local_vel_xy = rot_mat @ world_vel_xy
-
-    return np.concatenate([local_vel_xy, world_vel[[2]]])
-
-
 class MujocoHsrEnvBase(MujocoEnvBase):
     default_camera_config = {
         "azimuth": -135.0,
@@ -106,6 +95,11 @@ class MujocoHsrEnvBase(MujocoEnvBase):
     def command_keys(self):
         return [DataKey.COMMAND_MOBILE_OMNI_VEL, DataKey.COMMAND_JOINT_POS]
 
+    def step(self, action):
+        action[0:3] = self.convert_mobile_vel_frame(action[0:3], world_to_local=False)
+
+        return super().step(action)
+
     def _get_obs(self):
         arm_joint_name_list = [
             "arm_lift_joint",
@@ -133,8 +127,7 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 for joint_name in self.mobile_joint_name_list
             ]
         )
-        theta = self.data.joint(self.mobile_joint_name_list[-1]).qpos[0]
-        mobile_vel = convert_vel_from_world_to_local(mobile_vel, theta)
+        mobile_vel = self.convert_mobile_vel_frame(mobile_vel, world_to_local=True)
 
         return {
             "joint_pos": np.concatenate(
@@ -146,3 +139,17 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             "wrench": np.concatenate((force, torque), dtype=np.float64),
             "mobile_vel": mobile_vel.astype(np.float64),
         }
+
+    def convert_mobile_vel_frame(self, vel_in, world_to_local):
+        theta = self.data.joint(self.mobile_joint_name_list[-1]).qpos[0]
+        if not world_to_local:
+            theta *= -1
+
+        rot_mat = np.array(
+            [[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]]
+        )
+
+        vel_in_xy = vel_in[0:2]
+        vel_out_xy = rot_mat @ vel_in_xy
+
+        return np.concatenate([vel_out_xy, vel_in[[2]]])

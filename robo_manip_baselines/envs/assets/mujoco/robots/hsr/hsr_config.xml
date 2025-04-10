@@ -39,9 +39,9 @@
   </asset>
 
   <actuator>
-    <velocity name="mobile_x_joint" joint="mobile_x_joint" ctrlrange="-1 1" kv="100"/>
-    <velocity name="mobile_y_joint" joint="mobile_y_joint" ctrlrange="-1 1" kv="100"/>
-    <velocity name="mobile_theta_joint" joint="mobile_theta_joint" ctrlrange="-1 1" kv="100"/>
+    <velocity name="mobile_x_joint" joint="mobile_x_joint" ctrlrange="-1 1" kv="1000"/>
+    <velocity name="mobile_y_joint" joint="mobile_y_joint" ctrlrange="-1 1" kv="1000"/>
+    <velocity name="mobile_theta_joint" joint="mobile_theta_joint" ctrlrange="-1 1" kv="1000"/>
     <position class="hsr" kp="2000" name="arm_lift_joint" joint="arm_lift_joint"/>
     <position class="hsr" kp="100" name="arm_flex_joint" joint="arm_flex_joint"/>
     <position class="hsr" kp="10" name="arm_roll_joint" joint="arm_roll_joint"/>
