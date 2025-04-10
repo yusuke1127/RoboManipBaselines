@@ -42,8 +42,8 @@ class MujocoHsrEnvBase(MujocoEnvBase):
                 gripper_joint_idxes=np.array([5]),
                 gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
                 eef_idx=0,
-                init_arm_joint_pos=self.init_qpos[0:5],
-                init_gripper_joint_pos=self.init_qpos[[5]],
+                init_arm_joint_pos=self.init_qpos[3:8],
+                init_gripper_joint_pos=self.init_qpos[[8]],
             )
         ]
 
@@ -69,6 +69,13 @@ class MujocoHsrEnvBase(MujocoEnvBase):
             return {"gripper_scale": 0.05}
         else:
             return super().get_input_device_kwargs(input_device_name)
+
+    def step(self, action_sub):
+        action_all = np.zeros(self.model.nu)
+
+        action_all[3:] = action_sub
+
+        return super().step(action_all)
 
     def _get_obs(self):
         arm_joint_name_list = [
