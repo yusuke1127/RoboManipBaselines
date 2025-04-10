@@ -46,6 +46,7 @@
               </body>
             </body>
             <body name="head_center_camera_frame" pos="0.0195 0 0.061" quat="0.5 -0.5 0.5 -0.5">
+              <camera name="head" fovy="62" pos="0 0 0" euler="2.35619 0 0"/>
               <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
               <body name="head_center_camera_gazebo_frame" quat="0.5 0.5 -0.5 0.5">
                 <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
@@ -83,6 +84,8 @@
                 <body name="wrist_ft_sensor_frame" pos="0 0 0.0735" quat="0 1 0 0">
                   <inertial pos="0 0 0" mass="0.01" diaginertia="0.001 0.001 0.001" />
                   <!-- <joint name="wrist_ft_sensor_frame_joint" pos="0 0 0" axis="1 0 0" actuatorfrcrange="-100 100" /> -->
+                  <site name="force_sensor" pos="0 0 0"
+                        type="box" size="0.005 0.005 0.01" rgba="0.6 0.1 0.1 1" group="2"/>
                   <body name="wrist_roll_link" pos="0 0 0.0735" quat="0 -1 0 0">
                     <inertial pos="-0.001416 -0.001547 0.081689" quat="0.988073 0.0424396 -0.0351605 -0.143785" mass="0.761692" diaginertia="0.000811657 0.000766039 0.000449422" />
                     <geom type="mesh" mesh="wrist_roll" material="hsr_white" />

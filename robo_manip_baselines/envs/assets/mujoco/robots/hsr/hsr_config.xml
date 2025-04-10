@@ -41,6 +41,11 @@
     <position class="hsr" kp="10" name="hand_motor_joint" joint="hand_motor_joint"/>
   </actuator>
 
+  <sensor>
+    <force name="force_sensor" site="force_sensor"/>
+    <torque name="torque_sensor" site="force_sensor"/>
+  </sensor>
+
   <equality>
     <joint joint1="torso_lift_joint" joint2="arm_lift_joint"
            polycoef="0.0 0.5 0 0 0" solimp="0.95 0.99 0.001" solref="0.005 1"/>

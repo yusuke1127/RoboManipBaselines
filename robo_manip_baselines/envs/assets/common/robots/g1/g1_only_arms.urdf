@@ -1,4 +1,4 @@
-<robot name="g1_29dof_rev_1_0">
+<robot name="g1_only_arms">
   <link name="pelvis">
     <inertial>
       <origin xyz="0 0 -0.07605" rpy="0 0 0"/>
