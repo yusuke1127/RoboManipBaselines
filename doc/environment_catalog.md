@@ -54,19 +54,20 @@ https://github.com/user-attachments/assets/3bbeeeb8-7034-428c-a17e-f3968a2890b9
 ## Isaac environments
 ### UR5e
 #### IsaacUR5eChain
-Task to pick a chain and hang it on a hook
+Task to pick a chain and hang it on a hook.
 
 https://github.com/user-attachments/assets/803759a5-be70-4530-b9ba-b5d381b1bb7a
 
-#### IsaacUR5eCabinet
-Task to open the top lid of the box
+#### IsaacUR5eCabinetVec
+Task to open the top lid of the box.  
+The parallel simulation feature of Isaac Gym allows multiple robots to be controlled in parallel while adding random noise.
 
-https://github.com/user-attachments/assets/b5f0cdc3-f9f6-4b4d-9d03-089b84d44f34
+https://github.com/user-attachments/assets/4f171bd3-7572-41a4-9e81-9df5dfec575a
 
 ## Real-world environments
 ### UR5e
 #### RealUR5eDemo
-Various manipulation tasks with UR5e in the real world
+Various manipulation tasks with UR5e in the real world.
 
 https://github.com/user-attachments/assets/1b894ea0-6b5a-4bf8-abaa-8cd3ec2c4f85
 
