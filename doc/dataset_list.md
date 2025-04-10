@@ -1,5 +1,7 @@
 # Dataset list
 
+See [here](./rmb-data-format.md) for the format of the dataset file.
+
 ## Demonstrations in MuJoCo environments
 | Dataset | Environment | Operation method | # Demo | Date | Link |
 | --- | --- | --- | --- | --- | --- |
@@ -12,6 +14,3 @@
 | Dataset | Environment | Operation method | # Demo | Date | Link |
 | --- | --- | --- | --- | --- | --- |
 | **TeleopRealUR5eDemo_Dataset30** | [RealUR5eDemo](./environment_catalog.md#RealUR5eDemo) | 3D mouse | 30 |  | *Coming soon* |
-
-## Dataset format
-*Coming soon*
