@@ -255,6 +255,8 @@ class RolloutBase(ABC):
         self.quit_flag = False
         self.inference_duration_list = []
 
+        self.motion_manager.reset()
+
         self.obs, self.info = self.env.reset(seed=self.args.seed)
 
         while True:
