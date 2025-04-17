@@ -29,10 +29,11 @@ Task to roll up the cloth.
 
 https://github.com/user-attachments/assets/4c78f4ff-8b77-4f2d-be7b-755a09227f5f
 
-#### MujocoUR5eInsert
-Task to insert a pin into a hole.
+### Dual UR5e
+#### MujocoUR5eDualCable
+Task to manipulate a cable with two grippers.
 
-https://github.com/user-attachments/assets/5ca1eafe-f818-4efb-a012-6db92990ad14
+https://github.com/user-attachments/assets/6cfbafe6-1072-419d-892f-d66b7da8709f
 
 ### xArm7
 #### MujocoXarm7Cable
@@ -47,26 +48,39 @@ https://github.com/user-attachments/assets/da83db94-7fcb-4690-9b73-41af0c1394a8
 
 ### ALOHA
 #### MujocoAlohaCable
-Task to pass the cable between two poles.
+Task to manipulate a cable with two grippers.
 
-https://github.com/user-attachments/assets/3bbeeeb8-7034-428c-a17e-f3968a2890b9
+https://github.com/user-attachments/assets/dfa154ab-4ca6-42bf-82aa-d45f189dbcc2
+
+### HSR
+#### MujocoHsrTidyup
+Task to tidy up objects on the floor.
+
+https://github.com/user-attachments/assets/f3bece16-f8f6-4777-a120-dc25d91dcb4c
+
+### Unitree G1
+#### MujocoG1Bottles
+Task to grasp and manipulate bottles.
+
+https://github.com/user-attachments/assets/67b18ba1-c35f-460e-b44e-0c39eaff8dc9
 
 ## Isaac environments
 ### UR5e
 #### IsaacUR5eChain
-Task to pick a chain and hang it on a hook
+Task to pick a chain and hang it on a hook.
 
 https://github.com/user-attachments/assets/803759a5-be70-4530-b9ba-b5d381b1bb7a
 
-#### IsaacUR5eCabinet
-Task to open the top lid of the box
+#### IsaacUR5eCabinetVec
+Task to open the top lid of the box.  
+The parallel simulation feature of Isaac Gym allows multiple robots to be controlled in parallel while adding random noise.
 
-https://github.com/user-attachments/assets/b5f0cdc3-f9f6-4b4d-9d03-089b84d44f34
+https://github.com/user-attachments/assets/4f171bd3-7572-41a4-9e81-9df5dfec575a
 
 ## Real-world environments
 ### UR5e
 #### RealUR5eDemo
-Various manipulation tasks with UR5e in the real world
+Various manipulation tasks with UR5e in the real world.
 
 https://github.com/user-attachments/assets/1b894ea0-6b5a-4bf8-abaa-8cd3ec2c4f85
 

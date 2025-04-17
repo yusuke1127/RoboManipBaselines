@@ -154,9 +154,9 @@ class VisualizeData:
         self.ax[0, 0].set_xlim(*time_range)
         self.ax[0, 1].set_title("joint vel", fontsize=12)
         self.ax[0, 1].set_xlim(*time_range)
-        self.ax[0, 2].set_title("eef wrench", fontsize=12)
+        self.ax[0, 2].set_title("eef pose", fontsize=12)
         self.ax[0, 2].set_xlim(*time_range)
-        self.ax[0, 3].set_title("eef pose", fontsize=12)
+        self.ax[0, 3].set_title("eef wrench", fontsize=12)
         self.ax[0, 3].set_xlim(*time_range)
         for ax_idx, sensor_name in enumerate(self.sensor_names, start=1):
             self.ax[ax_idx, 0].set_title(f"{sensor_name} rgb", fontsize=12)
@@ -176,18 +176,22 @@ class VisualizeData:
         joint_vel = self.data_manager.get_data_seq(DataKey.MEASURED_JOINT_VEL)
         self.ax[0, 1].set_ylim(joint_vel.min(), joint_vel.max())
 
-        eef_wrench = self.data_manager.get_data_seq(DataKey.MEASURED_EEF_WRENCH)
-        self.ax[0, 2].set_ylim(eef_wrench.min(), eef_wrench.max())
-
         eef_pose = np.concatenate(
             [
                 self.data_manager.get_data_seq(DataKey.MEASURED_EEF_POSE),
                 self.data_manager.get_data_seq(DataKey.COMMAND_EEF_POSE),
             ]
         )
-        self.ax[0, 3].set_ylim(eef_pose[:, 0:3].min(), eef_pose[:, 0:3].max())
-        self.ax03_twin = self.ax[0, 3].twinx()
-        self.ax03_twin.set_ylim(-1.0, 1.0)
+        self.ax[0, 2].set_ylim(eef_pose[:, 0:3].min(), eef_pose[:, 0:3].max())
+        self.ax02_twin = self.ax[0, 2].twinx()
+        self.ax02_twin.set_ylim(-1.0, 1.0)
+
+        if DataKey.MEASURED_EEF_WRENCH in self.data_manager.all_data_seq.keys():
+            eef_wrench = self.data_manager.get_data_seq(DataKey.MEASURED_EEF_WRENCH)
+            self.ax[0, 3].set_ylim(eef_wrench.min(), eef_wrench.max())
+        else:
+            if self.ax[0, 3] in self.fig.axes:
+                self.ax[0, 3].remove()
 
     def plot_lists_initialization(self):
         key_list = [
@@ -195,9 +199,9 @@ class VisualizeData:
             DataKey.COMMAND_JOINT_POS,
             DataKey.MEASURED_JOINT_POS,
             DataKey.MEASURED_JOINT_VEL,
-            DataKey.MEASURED_EEF_WRENCH,
             DataKey.COMMAND_EEF_POSE,
             DataKey.MEASURED_EEF_POSE,
+            DataKey.MEASURED_EEF_WRENCH,
         ]
         self.data_list = {key: [] for key in key_list}
         self.scatter_list = [None] * len(self.sensor_names)
@@ -287,6 +291,9 @@ class VisualizeData:
                 break
 
             for key in self.data_list.keys():
+                if key not in self.data_manager.all_data_seq.keys():
+                    continue
+
                 self.data_list[key].append(
                     self.data_manager.get_single_data(key, time_idx)
                 )
@@ -324,32 +331,33 @@ class VisualizeData:
             )
 
             self.clear_axis(self.ax[0, 2])
+            self.clear_axis(self.ax02_twin)
             self.ax[0, 2].plot(
-                time_list, np.array(self.data_list[DataKey.MEASURED_EEF_WRENCH])
-            )
-
-            self.clear_axis(self.ax[0, 3])
-            self.clear_axis(self.ax03_twin)
-            self.ax[0, 3].plot(
                 time_list,
                 np.array(self.data_list[DataKey.COMMAND_EEF_POSE])[:, :3],
                 linestyle="--",
                 linewidth=3,
             )
-            self.ax[0, 3].set_prop_cycle(None)
-            self.ax[0, 3].plot(
+            self.ax[0, 2].set_prop_cycle(None)
+            self.ax[0, 2].plot(
                 time_list, np.array(self.data_list[DataKey.MEASURED_EEF_POSE])[:, :3]
             )
-            self.ax03_twin.plot(
+            self.ax02_twin.plot(
                 time_list,
                 np.array(self.data_list[DataKey.COMMAND_EEF_POSE])[:, 3:],
                 linestyle="--",
                 linewidth=3,
             )
-            self.ax03_twin.set_prop_cycle(None)
-            self.ax03_twin.plot(
+            self.ax02_twin.set_prop_cycle(None)
+            self.ax02_twin.plot(
                 time_list, np.array(self.data_list[DataKey.MEASURED_EEF_POSE])[:, 3:]
             )
+
+            if DataKey.MEASURED_EEF_WRENCH in self.data_manager.all_data_seq.keys():
+                self.clear_axis(self.ax[0, 3])
+                self.ax[0, 3].plot(
+                    time_list, np.array(self.data_list[DataKey.MEASURED_EEF_WRENCH])
+                )
 
             for sensor_idx, sensor_name in enumerate(self.sensor_names):
                 ax_idx = sensor_idx + 1

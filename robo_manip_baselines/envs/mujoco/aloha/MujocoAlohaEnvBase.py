@@ -4,7 +4,7 @@ import mujoco
 import numpy as np
 from gymnasium.spaces import Box, Dict
 
-from robo_manip_baselines.common import ArmConfig
+from robo_manip_baselines.common import ArmConfig, DataKey
 from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
 
 from ..MujocoEnvBase import MujocoEnvBase
@@ -87,6 +87,15 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
     def get_input_device_kwargs(self, input_device_name):
         return {}
 
+    @property
+    def measured_keys_to_save(self):
+        return [
+            DataKey.MEASURED_JOINT_POS,
+            DataKey.MEASURED_JOINT_VEL,
+            DataKey.MEASURED_GRIPPER_JOINT_POS,
+            DataKey.MEASURED_EEF_POSE,
+        ]
+
     def _get_obs(self):
         left_obs = self._get_obs_single_arm("left")
         right_obs = self._get_obs_single_arm("right")
@@ -144,7 +153,3 @@ class MujocoAlohaEnvBase(MujocoEnvBase):
                 (arm_joint_vel, gripper_joint_vel), dtype=np.float64
             ),
         }
-
-    def get_eef_wrench_from_obs(self, obs):
-        """Get end-effector wrench (fx, fy, fz, nx, ny, nz) from observation."""
-        return np.zeros(6)

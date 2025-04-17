@@ -270,7 +270,7 @@ class TeleopBase(ABC):
             "--replay_keys",
             nargs="+",
             choices=DataKey.COMMAND_DATA_KEYS,
-            default=[DataKey.COMMAND_JOINT_POS],
+            default=None,
             help="Command data keys when replaying log motion",
         )
 
@@ -306,7 +306,7 @@ class TeleopBase(ABC):
             action = np.concatenate(
                 [
                     self.motion_manager.get_command_data(key)
-                    for key in self.env.unwrapped.command_keys
+                    for key in self.env.unwrapped.command_keys_for_step
                 ]
             )
 
@@ -358,6 +358,8 @@ class TeleopBase(ABC):
                     self.data_manager.episode_idx % len(self.args.world_idx_list)
                 ]
         else:
+            if self.args.replay_keys is None:
+                self.args.replay_keys = self.env.unwrapped.command_keys_for_step
             self.data_manager.load_data(self.args.replay_log, skip_image=True)
             print(
                 f"[{self.__class__.__name__}] Load teleoperation data: {self.args.replay_log}\n"
@@ -391,23 +393,13 @@ class TeleopBase(ABC):
         )
 
         # Add measured data
-        for key in (
-            DataKey.MEASURED_JOINT_POS,
-            DataKey.MEASURED_JOINT_VEL,
-            DataKey.MEASURED_GRIPPER_JOINT_POS,
-            DataKey.MEASURED_EEF_POSE,
-            DataKey.MEASURED_EEF_WRENCH,
-        ):
+        for key in self.env.unwrapped.measured_keys_to_save:
             self.data_manager.append_single_data(
                 key, self.motion_manager.get_measured_data(key, self.obs)
             )
 
         # Add command data
-        for key in (
-            DataKey.COMMAND_JOINT_POS,
-            DataKey.COMMAND_GRIPPER_JOINT_POS,
-            DataKey.COMMAND_EEF_POSE,
-        ):
+        for key in self.env.unwrapped.command_keys_to_save:
             self.data_manager.append_single_data(
                 key, self.motion_manager.get_command_data(key)
             )

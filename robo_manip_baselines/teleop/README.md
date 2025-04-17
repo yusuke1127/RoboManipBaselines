@@ -2,7 +2,7 @@
 
 A full list of teleoperation environments can be found in [the environment catalog](../../doc/environment_catalog.md).
 
-## Record teleoperation data
+## Record demonstration data by teleoperation
 You need [SpaceMouse Wireless](https://3dconnexion.com/us/product/spacemouse-wireless) for teleoperation.
 Connect SpaceMouse to your PC before launching the script.
 
@@ -13,6 +13,16 @@ $ cd robo_manip_baselines
 $ python ./bin/Teleop.py MujocoUR5eCable
 ```
 https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
+
+If you want to use [GELLO](https://wuphilipp.github.io/gello_site) as a teleoperation input device instead of SpaceMouse:
+```console
+$ python ./bin/Teleop.py MujocoUR5eCable --input_device gello
+```
+
+If you want to save the data in [RmbData-SingleHDF5 (`.hdf5`) format instead of RmbData-Compact (`.rmb`)](../../doc/rmb-data-format.md):
+```console
+$ python ./bin/Teleop.py MujocoUR5eCable --file_format hdf5
+```
 
 If you want to collect data only in a simulation environment with limited world indices (for example, only 0 and 5), add the following option:
 ```console

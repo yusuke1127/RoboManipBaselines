@@ -1,10 +1,31 @@
 # Misc
 
+## Data utilities
+The file format pointed to by `<rmb_file>` can be either RmbData-Compact (`.rmb`) or RmbData-SingleHDF5 (`.hdf5`).
+
 ### Visualize demonstration data
+Visualize the demonstration data by plotting it.
+
 ```console
-$ python ./VisualizeData.py <hdf5_file>
+$ python ./VisualizeData.py <rmb_file>
 ```
 
+### Convert demonstration data
+Convert RMB format file between RmbData-Compact (`.rmb`) and RmbData-SingleHDF5 (`.hdf5`). The format is automatically determined from the file extension.
+
+```console
+$ python ./ConvertRmbData.py <rmb_file_in> <rmb_file_out>
+```
+
+### Compare demonstration data
+Compare the contents of the two RMB format files to see if they match.
+Note that when converting images to mp4 files, lossy compression is applied to color images and quantization is applied to depth images, so RmbData-Compact contains some errors.
+
+```console
+$ python ./CompareRmbData.py <rmb_file1> <rmb_file2>
+```
+
+## Video utilities
 ### Tile rollout videos
 The input is a video consisting of a sequence of multiple rollouts, and the output is a tiled video of each rollout.
 ```console
