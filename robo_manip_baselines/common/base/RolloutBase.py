@@ -1,4 +1,5 @@
 import argparse
+import math
 import os
 import pickle
 import sys
@@ -76,7 +77,7 @@ class EndRolloutPhase(PhaseBase):
         print(f"[{self.op.__class__.__name__}] Press the 'n' key to exit.")
 
     def post_update(self):
-        if self.op.key == ord("n"):
+        if self.op.key == ord("n") or (not math.isinf(self.op.args.duration)):
             self.op.quit_flag = True
 
 
