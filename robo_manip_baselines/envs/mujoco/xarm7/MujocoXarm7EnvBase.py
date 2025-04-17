@@ -5,7 +5,11 @@ import numpy as np
 from gymnasium.spaces import Box, Dict
 
 from robo_manip_baselines.common import ArmConfig
-from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice, KeyboardInputDevice
+from robo_manip_baselines.teleop import (
+    GelloInputDevice,
+    KeyboardInputDevice,
+    SpacemouseInputDevice,
+)
 
 from ..MujocoEnvBase import MujocoEnvBase
 

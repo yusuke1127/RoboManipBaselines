@@ -6,7 +6,11 @@ from gymnasium.spaces import Box, Dict
 from xarm.wrapper import XArmAPI
 
 from robo_manip_baselines.common import ArmConfig
-from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice,KeyboardInputDevice
+from robo_manip_baselines.teleop import (
+    GelloInputDevice,
+    KeyboardInputDevice,
+    SpacemouseInputDevice,
+)
 
 from ..RealEnvBase import RealEnvBase
 
