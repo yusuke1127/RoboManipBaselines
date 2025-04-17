@@ -10,10 +10,9 @@ Provides easy-to-use **baselines** for policy training, evaluation, and deployme
 [![CI-pre-commit](https://github.com/isri-aist/RoboManipBaselines/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/isri-aist/RoboManipBaselines/actions/workflows/pre-commit.yml)
 [![LICENSE](https://img.shields.io/github/license/isri-aist/RoboManipBaselines)](https://github.com/isri-aist/RoboManipBaselines/blob/master/LICENSE)
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/c37c9956-2d50-488d-83ae-9c11c3900992" width="45%" />
-  <img src="https://github.com/user-attachments/assets/ba4a772f-0de5-47da-a4ec-bdcbf13d7d58" width="45%" />
-</p>
+https://github.com/user-attachments/assets/c37c9956-2d50-488d-83ae-9c11c3900992
+
+https://github.com/user-attachments/assets/ba4a772f-0de5-47da-a4ec-bdcbf13d7d58
 
 ---
 
@@ -105,10 +104,5 @@ If you use RoboManipBaselines in your work, please cite us:
   month = dec,
 }
 ```
-
-## ⭐️ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=isri-aist/RoboManipBaselines&type=Timeline)](https://star-history.com/#Ashutosh00710/github-readme-activity-graph&Timeline)
-
 
 ---
