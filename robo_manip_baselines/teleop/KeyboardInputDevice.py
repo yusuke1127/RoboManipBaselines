@@ -13,8 +13,8 @@ class KeyboardInputDevice(InputDeviceBase):
         self,
         arm_manager,
         pos_scale=1e-2,
-        rpy_scale=5e-3,
-        gripper_scale=5.0,
+        rpy_scale=5e-2,
+        gripper_scale=50.0,
     ):
         super().__init__()
 
@@ -41,8 +41,8 @@ class KeyboardInputDevice(InputDeviceBase):
             'o': False,  
             
             # gripper control keys
-            'z': False,  # open gripper
-            'x': False,  # close gripper
+            'z': False,  # close gripper
+            'x': False,  # open gripper
         }
         
         self.listener = None
@@ -116,11 +116,10 @@ class KeyboardInputDevice(InputDeviceBase):
         delta_rpy = np.zeros(3)
         
         # Roll
-        if self.key_states['u']:
-            delta_rpy[0] += self.rpy_scale
-        if self.key_states['o']:
+        if self.key_states['j']:
             delta_rpy[0] -= self.rpy_scale
-            
+        if self.key_states['l']:
+            delta_rpy[0] += self.rpy_scale
         # Pitch
         if self.key_states['i']:
             delta_rpy[1] += self.rpy_scale
@@ -128,10 +127,10 @@ class KeyboardInputDevice(InputDeviceBase):
             delta_rpy[1] -= self.rpy_scale
             
         # Yaw
-        if self.key_states['j']:
-            delta_rpy[2] += self.rpy_scale
-        if self.key_states['l']:
-            delta_rpy[2] -= self.rpy_scale
+        if self.key_states['u']:
+            delta_rpy[2] -= self.rpy_scale*2.0
+        if self.key_states['o']:
+            delta_rpy[2] += self.rpy_scale*2.0            
 
         
         target_se3 = self.arm_manager.target_se3.copy()
