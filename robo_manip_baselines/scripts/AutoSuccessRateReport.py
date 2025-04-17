@@ -1,7 +1,9 @@
 import argparse
+import glob
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import venv
 
@@ -15,11 +17,14 @@ class AutoSuccessRateReport:
         "DiffusionPolicy": ["diffusion_policy"],
     }
 
-    def __init__(self, policy, env, commit_id, dataset_url):
+    def __init__(self, policy, env, commit_id, dataset_url, rollout_duration=30.0):
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
         self.dataset_url = self.adjust_dataset_url(dataset_url)
+
+        self.rollout_duration = rollout_duration
+
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
         self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
         self.dataset_temp_dir = tempfile.mkdtemp()
@@ -66,11 +71,16 @@ class AutoSuccessRateReport:
     def start(self):
         # git clone
         self.exec_command(
-            ["git", "clone", "--recursive", self.GIT_CLONE_URL, self.repository_tmp_dir]
+            [
+                "git",
+                "clone",
+                "--recursive",
+                self.GIT_CLONE_URL,
+                self.repository_tmp_dir,
+            ],
         )
         self.exec_command(
-            ["git", "switch", "-c", self.commit_id],
-            cwd=self.repository_tmp_dir,
+            ["git", "switch", "-c", self.commit_id], cwd=self.repository_tmp_dir
         )
 
         # venv creation
@@ -116,16 +126,75 @@ class AutoSuccessRateReport:
                 "-O",
                 os.path.join(self.dataset_temp_dir, zip_filename),
                 self.dataset_url,
-            ]
+            ],
         )
+        try:
+            self.exec_command(
+                [
+                    "unzip",
+                    "-d",
+                    "dataset/",
+                    zip_filename,
+                ],
+                cwd=self.dataset_temp_dir,
+            )
+        except subprocess.CalledProcessError as e:
+            e_stderr = e.stderr
+            if e_stderr:
+                e_stderr = e_stderr.strip()
+            sys.stderr.write(
+                f"[self.__class__.__name__] Warning: Command failed with return code {e.returncode}. {e_stderr}\n"
+            )
+        rmb_items_count = len(
+            glob.glob(os.path.join(self.dataset_temp_dir, "dataset", "*.rmb"))
+        )
+        print(
+            f"[self.__class__.__name__] {rmb_items_count} rmb items have been unzipped."
+        )
+
+        # train
         self.exec_command(
             [
-                "unzip",
-                "-d",
-                "dataset/",
-                zip_filename,
+                self.venv_python,
+                os.path.join(
+                    self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"
+                ),
+                self.policy,
+                "--dataset_dir",
+                os.path.join(
+                    self.dataset_temp_dir,
+                    "dataset/",
+                ),
+                "--checkpoint_dir",
+                os.path.join(
+                    self.repository_tmp_dir,
+                    "robo_manip_baselines/checkpoint_dir/",
+                    self.policy,
+                    self.env,
+                ),
             ],
-            cwd=self.dataset_temp_dir,
+        )
+
+        # rollout
+        self.exec_command(
+            [
+                self.venv_python,
+                os.path.join(
+                    self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
+                ),
+                self.policy,
+                self.env,
+                "--checkpoint",
+                os.path.join(
+                    self.repository_tmp_dir,
+                    "robo_manip_baselines/checkpoint_dir/",
+                    self.policy,
+                    self.env,
+                    "policy_last.ckpt",
+                ),
+                "--duration",
+                self.rollout_duration,
+            ]
         )
 
 
@@ -158,18 +227,18 @@ def parse_argument():
         help="environment",
     )
     parser.add_argument("-c", "--commit_id", type=str, required=True)
-    parser.add_argument(
-        "-d",
-        "--dataset_url",
-        type=str,
-        required=True,
-    )
+    parser.add_argument("-d", "--dataset_url", type=str, required=True)
+    parser.add_argument("--rollout_duration", type=float, required=False)
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_argument()
     success_report = AutoSuccessRateReport(
-        args.policy, args.env, args.commit_id, args.dataset_url
+        args.policy,
+        args.env,
+        args.commit_id,
+        args.dataset_url,
+        args.rollout_duration,
     )
     success_report.start()
