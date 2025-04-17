@@ -60,7 +60,9 @@ class RolloutPhase(PhaseBase):
         self.op.rollout_time_idx += 1
 
     def check_transition(self):
-        if self.op.key == ord("n"):
+        if self.op.key == ord("n") or (
+            self.get_elapsed_duration() > self.op.args.duration
+        ):
             self.op.print_statistics()
             return True
         else:
@@ -152,6 +154,12 @@ class RolloutBase(ABC):
             action="store_true",
             help="whether to wait a key input before starting motion",
         )
+        parser.add_argument(
+            "--duration",
+            type=float,
+            default=None,
+            help="threshold for transitioning to the next phase in RolloutPhase",
+        )
 
         if argv is None:
             argv = sys.argv
@@ -159,6 +167,9 @@ class RolloutBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
+
+        if not self.args.duration:
+            self.args.duration = float("inf")
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
