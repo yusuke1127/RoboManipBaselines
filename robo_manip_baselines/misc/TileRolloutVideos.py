@@ -72,45 +72,54 @@ class TaskEventHandler:
         self.satur_thresh = satur_thresh
         self.quiet = quiet
 
-    def start_env(self, i_frame_curr, region_satur_mean):
-        self.state = self.Stat.STARTED
-
-        seconds_curr = i_frame_curr / self.frame_rate
-        time_str = seconds_to_time_str(seconds_curr)
-        env_str = f"env={self.env_idx:<2}"
+    def write_message(
+        self,
+        time_str,
+        region_satur_mean,
+        func_name=None,
+        env_str=None,
+        state_name="",
+    ):
+        if env_str is None:
+            env_str = f"env={self.env_idx:<2}"
         tqdm.write(
-            "\t".join(
+            f"[{self.__class__.__name__}] "
+            + "\t".join(
                 [
-                    "",
                     f"{region_satur_mean=:>7.3f}",
                     f"{self.satur_thresh=:>7.3f}",
                     time_str,
-                    self.start_env.__name__,
+                    (
+                        func_name
+                        if func_name is not None
+                        else " " * len(self.start_env.__name__)
+                    ),
                     env_str,
+                    state_name,
                 ]
             )
+        )
+
+    def start_env(self, i_frame_curr, region_satur_mean):
+        self.state = self.Stat.STARTED
+        time_str = seconds_to_time_str(i_frame_curr / self.frame_rate)
+        self.write_message(
+            time_str, region_satur_mean, func_name=self.start_env.__name__
         )
         self.task_period_list.append(f"{time_str}-")
 
     def stop_env(self, i_frame_curr, region_satur_mean):
         self.state = self.Stat.STOPPED
-
-        seconds_curr = i_frame_curr / self.frame_rate
-        time_str = seconds_to_time_str(seconds_curr)
-        env_str = f"env={self.env_idx:<2}"
-        tqdm.write(
-            "\t".join(
-                [
-                    "",
-                    f"{region_satur_mean=:>7.3f}",
-                    f"{self.satur_thresh=:>7.3f}",
-                    time_str,
-                    self.stop_env.__name__,
-                    env_str,
-                ]
-            )
+        seconds_stop = i_frame_curr / self.frame_rate
+        time_str_stop = seconds_to_time_str(seconds_stop)
+        time_str_start = self.task_period_list[-1].rstrip("-")
+        seconds_start = time_str_to_seconds(time_str_start)
+        if seconds_stop < seconds_start:
+            time_str_stop = time_str_start
+        self.write_message(
+            time_str_stop, region_satur_mean, func_name=self.stop_env.__name__
         )
-        self.task_period_list[-1] += time_str
+        self.task_period_list[-1] += time_str_stop
         self.env_idx += 1
 
     def initial_stop(self):
@@ -120,25 +129,16 @@ class TaskEventHandler:
         if (not self.quiet) and (
             i_frame_curr % (self.frame_rate * self.PRINT_INTERVAL_VIDEO_SEC) == 0
         ):
-            seconds_curr = i_frame_curr / self.frame_rate
-            time_str = seconds_to_time_str(seconds_curr)
-            env_str = (
-                f"env={self.env_idx:<2}"
-                if self.state == self.Stat.STARTED
-                else " " * len("env= 0")
-            )
-            tqdm.write(
-                "\t".join(
-                    [
-                        "",
-                        f"{region_satur_mean=:>7.3f}",
-                        f"{self.satur_thresh=:>7.3f}",
-                        time_str,
-                        " " * len(self.start_env.__name__),
-                        env_str,
-                        f"{self.state.name}",
-                    ]
-                )
+            time_str = seconds_to_time_str(i_frame_curr / self.frame_rate)
+            self.write_message(
+                time_str,
+                region_satur_mean,
+                env_str=(
+                    f"env={self.env_idx:<2}"
+                    if self.state == self.Stat.STARTED
+                    else " " * len("env= 0")
+                ),
+                state_name=self.state.name,
             )
         if self.state == self.Stat.STARTED:
             if not is_satur_screen:
@@ -149,7 +149,9 @@ class TaskEventHandler:
         elif self.state == self.Stat.STOPPED:
             if is_satur_screen:
                 self.start_env(
-                    i_frame_curr + self.shift_seconds * self.frame_rate,
+                    i_frame_curr
+                    + self.shift_seconds  # Skip brief frames: video begins shift_seconds sec post window
+                    * self.frame_rate,
                     region_satur_mean,
                 )
         elif self.state == self.Stat.INITIAL:

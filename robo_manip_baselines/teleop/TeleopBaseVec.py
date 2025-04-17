@@ -38,7 +38,7 @@ class TeleopBaseVec(TeleopBase):
             action = np.concatenate(
                 [
                     self.motion_manager.get_command_data(key)
-                    for key in self.env.unwrapped.command_keys
+                    for key in self.env.unwrapped.command_keys_for_step
                 ]
             )
             self.action_list = self.env.unwrapped.get_fluctuated_action_list(
@@ -116,13 +116,7 @@ class TeleopBaseVec(TeleopBase):
         )
 
         # Add measured data
-        for key in (
-            DataKey.MEASURED_JOINT_POS,
-            DataKey.MEASURED_JOINT_VEL,
-            DataKey.MEASURED_GRIPPER_JOINT_POS,
-            DataKey.MEASURED_EEF_POSE,
-            DataKey.MEASURED_EEF_WRENCH,
-        ):
+        for key in self.env.unwrapped.measured_keys_to_save:
             self.data_manager.append_single_data(
                 key,
                 [
@@ -132,12 +126,8 @@ class TeleopBaseVec(TeleopBase):
             )
 
         # Add command data
-        for key in (
-            DataKey.COMMAND_JOINT_POS,
-            DataKey.COMMAND_GRIPPER_JOINT_POS,
-            # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
-            DataKey.COMMAND_EEF_POSE,
-        ):
+        # TODO: COMMAND_EEF_POSE does not reflect the effect of action fluctuation
+        for key in self.env.unwrapped.command_keys_to_save:
             self.data_manager.append_single_data(
                 key,
                 [

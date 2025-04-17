@@ -5,10 +5,10 @@ import numpy as np
 from gymnasium.envs.mujoco import MujocoEnv
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 
-from robo_manip_baselines.common import ArmConfig, DataKey
+from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
 
 
-class MujocoEnvBase(MujocoEnv, ABC):
+class MujocoEnvBase(EnvDataMixin, MujocoEnv, ABC):
     sim_timestep = 0.004
     frame_skip = 8
     metadata = {
@@ -68,10 +68,6 @@ class MujocoEnvBase(MujocoEnv, ABC):
         self.mujoco_renderer._viewers["dummy"] = None
 
         self._first_render = True
-
-    @property
-    def command_keys(self):
-        return [DataKey.COMMAND_JOINT_POS]
 
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
