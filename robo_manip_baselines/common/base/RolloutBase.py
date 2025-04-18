@@ -42,6 +42,7 @@ class RolloutPhase(PhaseBase):
         super().start()
 
         self.op.rollout_time_idx = 0
+        self._terminated_time = None
         print(
             f"[{self.op.__class__.__name__}] Start policy rollout. Press the 'n' key to finish policy rollout."
         )
@@ -61,8 +62,16 @@ class RolloutPhase(PhaseBase):
         self.op.rollout_time_idx += 1
 
     def check_transition(self):
-        if self.op.key == ord("n") or (
-            self.get_elapsed_duration() > self.op.args.duration
+        elapsed_duration = self.get_elapsed_duration()
+        if self.op.terminated and self._terminated_time is None:
+            self._terminated_time = elapsed_duration
+        if (
+            self.op.key == ord("n")
+            or (elapsed_duration > self.op.args.duration)
+            or (
+                (self._terminated_time is not None)
+                and (elapsed_duration >= self._terminated_time + 5.0)
+            )
         ):
             self.op.print_statistics()
             return True
@@ -280,7 +289,7 @@ class RolloutBase(ABC):
                     for key in self.env.unwrapped.command_keys_for_step
                 ]
             )
-            self.obs, _, _, _, self.info = self.env.step(env_action)
+            self.obs, _, self.terminated, _, self.info = self.env.step(env_action)
 
             self.phase_manager.post_update()
 
