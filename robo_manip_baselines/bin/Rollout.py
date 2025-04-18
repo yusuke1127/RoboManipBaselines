@@ -30,6 +30,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This is a meta argument parser for the rollout switching between different policies and environments. The actual arguments are handled by another internal argument parser.",
+        fromfile_prefix_chars="@",
         add_help=False,
     )
     parser.add_argument(

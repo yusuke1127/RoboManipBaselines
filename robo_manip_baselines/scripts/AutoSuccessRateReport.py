@@ -17,12 +17,23 @@ class AutoSuccessRateReport:
         "DiffusionPolicy": ["diffusion_policy"],
     }
 
-    def __init__(self, policy, env, commit_id, dataset_url, rollout_duration=30.0):
+    def __init__(
+        self,
+        policy,
+        env,
+        commit_id,
+        dataset_url,
+        args_file_train=None,
+        args_file_rollout=None,
+        rollout_duration=30.0,
+    ):
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
         self.dataset_url = self.adjust_dataset_url(dataset_url)
 
+        self.args_file_train = args_file_train
+        self.args_file_rollout = args_file_rollout
         self.rollout_duration = rollout_duration
 
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
@@ -68,8 +79,7 @@ class AutoSuccessRateReport:
             if return_code != 0:
                 raise subprocess.CalledProcessError(return_code, command)
 
-    def start(self):
-        # git clone
+    def git_clone(self):
         self.exec_command(
             [
                 "git",
@@ -83,20 +93,13 @@ class AutoSuccessRateReport:
             ["git", "switch", "-c", self.commit_id], cwd=self.repository_tmp_dir
         )
 
-        # venv creation
-        venv.create(os.path.join(self.venv_python, "../../../venv/"), with_pip=True)
-
-        # TODO:
-        #     apt install is assumed to have already been finished,
-        #     but this should be checked and terminated if not installed.
-
-        # install common
+    def install_common(self):
         self.exec_command(
             [self.venv_python, "-m", "pip", "install", "-e", "."],
             cwd=self.repository_tmp_dir,
         )
 
-        # install each policy
+    def install_each_policy(self):
         if self.policy in self.THIRD_PARTY_PATHS:
             self.exec_command(
                 [
@@ -118,7 +121,7 @@ class AutoSuccessRateReport:
                 ),
             )
 
-        # download dataset
+    def download_dataset(self):
         zip_filename = "dataset.zip"
         self.exec_command(
             [
@@ -143,7 +146,8 @@ class AutoSuccessRateReport:
             if e_stderr:
                 e_stderr = e_stderr.strip()
             sys.stderr.write(
-                f"[self.__class__.__name__] Warning: Command failed with return code {e.returncode}. {e_stderr}\n"
+                f"[self.__class__.__name__] Warning: Command failed with return code "
+                f"{e.returncode}. {e_stderr}\n"
             )
         rmb_items_count = len(
             glob.glob(os.path.join(self.dataset_temp_dir, "dataset", "*.rmb"))
@@ -152,50 +156,65 @@ class AutoSuccessRateReport:
             f"[self.__class__.__name__] {rmb_items_count} rmb items have been unzipped."
         )
 
-        # train
-        self.exec_command(
-            [
-                self.venv_python,
-                os.path.join(
-                    self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"
-                ),
-                self.policy,
-                "--dataset_dir",
-                os.path.join(
-                    self.dataset_temp_dir,
-                    "dataset/",
-                ),
-                "--checkpoint_dir",
-                os.path.join(
-                    self.repository_tmp_dir,
-                    "robo_manip_baselines/checkpoint_dir/",
-                    self.policy,
-                    self.env,
-                ),
-            ],
-        )
-
-        # rollout
-        self.exec_command(
-            [
-                self.venv_python,
-                os.path.join(
-                    self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
-                ),
+    def train(self):
+        command = [
+            self.venv_python,
+            os.path.join(self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"),
+            self.policy,
+            "--dataset_dir",
+            os.path.join(
+                self.dataset_temp_dir,
+                "dataset/",
+            ),
+            "--checkpoint_dir",
+            os.path.join(
+                self.repository_tmp_dir,
+                "robo_manip_baselines/checkpoint_dir/",
                 self.policy,
                 self.env,
-                "--checkpoint",
-                os.path.join(
-                    self.repository_tmp_dir,
-                    "robo_manip_baselines/checkpoint_dir/",
-                    self.policy,
-                    self.env,
-                    "policy_last.ckpt",
-                ),
-                "--duration",
-                self.rollout_duration,
-            ]
-        )
+            ),
+        ]
+        if self.args_file_train:
+            command.append("@" + self.args_file_train)
+        self.exec_command(command)
+
+    def rollout(self):
+        command = [
+            self.venv_python,
+            os.path.join(
+                self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
+            ),
+            self.policy,
+            self.env,
+            "--checkpoint",
+            os.path.join(
+                self.repository_tmp_dir,
+                "robo_manip_baselines/checkpoint_dir/",
+                self.policy,
+                self.env,
+                "policy_last.ckpt",
+            ),
+            "--duration",
+            self.rollout_duration,
+        ]
+        if self.args_file_rollout:
+            command.append("@" + self.args_file_rollout)
+        self.exec_command(command)
+
+    def start(self):
+        self.git_clone()
+        venv.create(os.path.join(self.venv_python, "../../../venv/"), with_pip=True)
+
+        # TODO:
+        #     apt install is assumed to have already been finished,
+        #     but this should be checked and terminated if not installed.
+
+        self.install_common()
+        self.install_each_policy()
+
+        self.download_dataset()
+        self.train()
+        self.rollout()
 
 
 def camel_to_snake(name):
@@ -228,6 +247,8 @@ def parse_argument():
     )
     parser.add_argument("-c", "--commit_id", type=str, required=True)
     parser.add_argument("-d", "--dataset_url", type=str, required=True)
+    parser.add_argument("--args_file_train", type=str, required=False)
+    parser.add_argument("--args_file_rollout", type=str, required=False)
     parser.add_argument("--rollout_duration", type=float, required=False)
     return parser.parse_args()
 
@@ -239,6 +260,8 @@ if __name__ == "__main__":
         args.env,
         args.commit_id,
         args.dataset_url,
+        args.args_file_train,
+        args.args_file_rollout,
         args.rollout_duration,
     )
     success_report.start()
