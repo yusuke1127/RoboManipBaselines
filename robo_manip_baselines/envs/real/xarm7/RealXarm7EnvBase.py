@@ -154,7 +154,7 @@ class RealXarm7EnvBase(RealEnvBase):
         )
 
         # Send command to xArm7
-        arm_joint_pos_command = action[self.arm_joint_idxes]
+        arm_joint_pos_command = action[self.body_config_list[0].arm_joint_idxes]
         scaled_joint_vel_limit = (
             np.clip(joint_vel_limit_scale, 0.01, 10.0) * self.joint_vel_limit
         )
@@ -171,7 +171,7 @@ class RealXarm7EnvBase(RealEnvBase):
             )
 
         # Send command to xArm gripper
-        gripper_pos = action[self.gripper_joint_idxes][0]
+        gripper_pos = action[self.body_config_list[0].gripper_joint_idxes][0]
         xarm_code = self.xarm_api.set_gripper_position(gripper_pos, wait=False)
         if xarm_code != 0:
             raise RuntimeError(

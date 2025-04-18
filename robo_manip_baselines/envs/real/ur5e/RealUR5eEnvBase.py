@@ -152,7 +152,7 @@ class RealUR5eEnvBase(RealEnvBase):
         )
 
         # Send command to UR5e
-        arm_joint_pos_command = action[self.arm_joint_idxes]
+        arm_joint_pos_command = action[self.body_config_list[0].arm_joint_idxes]
         velocity = 0.5
         acceleration = 0.5
         lookahead_time = 0.2  # [s]
@@ -169,7 +169,7 @@ class RealUR5eEnvBase(RealEnvBase):
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[self.gripper_joint_idxes][0]
+        gripper_pos = action[self.body_config_list[0].gripper_joint_idxes][0]
         speed = 50
         force = 10
         self.gripper.move(int(gripper_pos), speed, force)
