@@ -40,21 +40,25 @@ class DisplayCameraImage:
             raise LookupError()
         return cap
 
-    def display_camera_output(
-        self, horizontal_size, vertical_size, x_position, y_position
-    ):
+    def display_camera_output(self, horizontal_size, x_position, y_position):
         cv2.namedWindow(f"{self.camera_device_name} Live", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(
-            f"{self.camera_device_name} Live", horizontal_size, vertical_size
-        )
         cv2.moveWindow(f"{self.camera_device_name} Live", x_position, y_position)
 
         print(f"[{self.__class__.__name__}] Press q on image to exit.")
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if ret:
-                resize_frame = cv2.resize(frame, (horizontal_size, vertical_size))
-                cv2.imshow(f"{self.camera_device_name} Live", resize_frame)
+                if horizontal_size is not None:
+                    aspect_ratio = frame.shape[1] / frame.shape[0]
+                    vertical_size = int(horizontal_size / aspect_ratio)
+                    frame = cv2.resize(frame, (horizontal_size, vertical_size))
+                    cv2.resizeWindow(
+                        f"{self.camera_device_name} Live",
+                        horizontal_size,
+                        vertical_size,
+                    )
+
+                cv2.imshow(f"{self.camera_device_name} Live", frame)
 
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
@@ -69,7 +73,6 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--camera_device_name", type=str, default="Webcam")
     parser.add_argument("-w", "--horizontal_size", default=810)
-    parser.add_argument("-v", "--vertical_size", default=490)
     parser.add_argument("-x", "--x_position", default=0)
     parser.add_argument("-y", "--y_position", default=0)
     return parser.parse_args()
@@ -80,7 +83,7 @@ def main():
     try:
         disp = DisplayCameraImage(args.camera_device_name)
         disp.display_camera_output(
-            args.horizontal_size, args.vertical_size, args.x_position, args.y_position
+            args.horizontal_size, args.x_position, args.y_position
         )
     except LookupError:
         print(
