@@ -104,9 +104,9 @@ class KeyboardInputDevice(InputDeviceBase):
             delta_pos[0] -= self.pos_scale
 
         # Y-axis
-        if self.state["d"]:
-            delta_pos[1] += self.pos_scale
         if self.state["a"]:
+            delta_pos[1] += self.pos_scale
+        if self.state["d"]:
             delta_pos[1] -= self.pos_scale
 
         # Z-axis
@@ -131,9 +131,9 @@ class KeyboardInputDevice(InputDeviceBase):
 
         # Yaw
         if self.state["u"]:
-            delta_rpy[2] -= self.rpy_scale * 2.0
-        if self.state["o"]:
             delta_rpy[2] += self.rpy_scale * 2.0
+        if self.state["o"]:
+            delta_rpy[2] -= self.rpy_scale * 2.0
 
         target_se3 = self.arm_manager.target_se3.copy()
         target_se3.translation += delta_pos
