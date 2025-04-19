@@ -2,7 +2,6 @@ import threading
 
 import numpy as np
 import pinocchio as pin
-from pynput import keyboard
 
 from .InputDeviceBase import InputDeviceBase
 
@@ -24,7 +23,7 @@ class KeyboardInputDevice(InputDeviceBase):
         self.rpy_scale = rpy_scale
         self.gripper_scale = gripper_scale
 
-        self.key_states = {
+        self.state = {
             # position control keys
             "w": False,
             "s": False,
@@ -51,6 +50,8 @@ class KeyboardInputDevice(InputDeviceBase):
         if self.connected:
             return
 
+        from pynput import keyboard
+
         self.listener = keyboard.Listener(
             on_press=self._on_press, on_release=self._on_release
         )
@@ -61,9 +62,13 @@ class KeyboardInputDevice(InputDeviceBase):
         self.listener_thread.start()
 
         self.connected = True
-        print(
-            "[KeyboardInputDevice] Connected. Use WASD for XY movement, QE for Z, IJKL for rotation, ZX for gripper."
-        )
+        print(f"[{self.__class__.__name__}] Connected.")
+        print(f"""[{self.__class__.__name__}] Key Bindings:
+  - WASD : XY movement
+  - QE   : Z-axis movement
+  - IJKL : Roll and Pitch rotation
+  - UO  : Yaw rotation
+  - Z/X  : Gripper open/close""")
 
     def _start_listener(self):
         self.listener.start()
@@ -72,16 +77,16 @@ class KeyboardInputDevice(InputDeviceBase):
     def _on_press(self, key):
         try:
             k = key.char.lower()
-            if k in self.key_states:
-                self.key_states[k] = True
+            if k in self.state:
+                self.state[k] = True
         except AttributeError:
             pass
 
     def _on_release(self, key):
         try:
             k = key.char.lower()
-            if k in self.key_states:
-                self.key_states[k] = False
+            if k in self.state:
+                self.state[k] = False
         except AttributeError:
             pass
 
@@ -93,40 +98,41 @@ class KeyboardInputDevice(InputDeviceBase):
         delta_pos = np.zeros(3)
 
         # X-axis
-        if self.key_states["w"]:
+        if self.state["w"]:
             delta_pos[0] += self.pos_scale
-        if self.key_states["s"]:
+        if self.state["s"]:
             delta_pos[0] -= self.pos_scale
 
         # Y-axis
-        if self.key_states["d"]:
+        if self.state["d"]:
             delta_pos[1] += self.pos_scale
-        if self.key_states["a"]:
+        if self.state["a"]:
             delta_pos[1] -= self.pos_scale
 
         # Z-axis
-        if self.key_states["q"]:
+        if self.state["q"]:
             delta_pos[2] += self.pos_scale
-        if self.key_states["e"]:
+        if self.state["e"]:
             delta_pos[2] -= self.pos_scale
 
         delta_rpy = np.zeros(3)
 
         # Roll
-        if self.key_states["j"]:
+        if self.state["j"]:
             delta_rpy[0] -= self.rpy_scale
-        if self.key_states["l"]:
+        if self.state["l"]:
             delta_rpy[0] += self.rpy_scale
+
         # Pitch
-        if self.key_states["i"]:
+        if self.state["i"]:
             delta_rpy[1] += self.rpy_scale
-        if self.key_states["k"]:
+        if self.state["k"]:
             delta_rpy[1] -= self.rpy_scale
 
         # Yaw
-        if self.key_states["u"]:
+        if self.state["u"]:
             delta_rpy[2] -= self.rpy_scale * 2.0
-        if self.key_states["o"]:
+        if self.state["o"]:
             delta_rpy[2] += self.rpy_scale * 2.0
 
         target_se3 = self.arm_manager.target_se3.copy()
@@ -138,9 +144,9 @@ class KeyboardInputDevice(InputDeviceBase):
         # Set gripper command
         gripper_joint_pos = self.arm_manager.get_command_gripper_joint_pos().copy()
 
-        if self.key_states["z"] and not self.key_states["x"]:
+        if self.state["z"] and not self.state["x"]:
             gripper_joint_pos += self.gripper_scale
-        elif self.key_states["x"] and not self.key_states["z"]:
+        elif self.state["x"] and not self.state["z"]:
             gripper_joint_pos -= self.gripper_scale
 
         self.arm_manager.set_command_gripper_joint_pos(gripper_joint_pos)
@@ -150,4 +156,4 @@ class KeyboardInputDevice(InputDeviceBase):
             if self.listener:
                 self.listener.stop()
             self.connected = False
-            print("[KeyboardInputDevice] Disconnected.")
+            print(f"[{self.__class__.__name__}] Disconnected.")
