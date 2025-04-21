@@ -11,7 +11,11 @@ from isaacgym import (
 )
 
 from robo_manip_baselines.common import ArmConfig, DataKey, EnvDataMixin
-from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+from robo_manip_baselines.teleop import (
+    GelloInputDevice,
+    KeyboardInputDevice,
+    SpacemouseInputDevice,
+)
 
 
 class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
@@ -31,8 +35,8 @@ class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
         self.render_mode = kwargs.get("render_mode")
 
         # Setup Isaac Gym
-        self.gripper_joint_idxes = [6]
-        self.arm_joint_idxes = slice(0, 6)
+        self.arm_joint_idxes = np.arange(6)
+        self.gripper_joint_idxes = np.array([6])
         self.setup_sim(num_envs)
 
         # Setup robot
@@ -43,8 +47,8 @@ class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
                 ),
                 arm_root_pose=self.get_link_pose("ur5e", "base_link"),
                 ik_eef_joint_id=6,
-                arm_joint_idxes=np.arange(6),
-                gripper_joint_idxes=np.array([6]),
+                arm_joint_idxes=self.arm_joint_idxes,
+                gripper_joint_idxes=self.gripper_joint_idxes,
                 gripper_joint_idxes_in_gripper_joint_pos=np.array([0]),
                 eef_idx=0,
                 init_arm_joint_pos=self.init_qpos[0:6],
@@ -353,6 +357,8 @@ class IsaacUR5eEnvBase(EnvDataMixin, gym.Env, ABC):
             InputDeviceClass = SpacemouseInputDevice
         elif input_device_name == "gello":
             InputDeviceClass = GelloInputDevice
+        elif input_device_name == "keyboard":
+            InputDeviceClass = KeyboardInputDevice
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"

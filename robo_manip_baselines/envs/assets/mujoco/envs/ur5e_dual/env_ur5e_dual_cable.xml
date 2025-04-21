@@ -24,7 +24,7 @@
     </body>
 
     <body name="stand">
-      <geom type="box" size="0.33 0.33 0.4" pos="-0.605 0 0.4" material="stand"/>
+      <geom type="box" size="0.33 0.66 0.4" pos="-0.605 0 0.4" material="stand"/>
     </body>
 
     <body name="left/ur5e_root_frame" pos="-0.605 0.4 0.8">

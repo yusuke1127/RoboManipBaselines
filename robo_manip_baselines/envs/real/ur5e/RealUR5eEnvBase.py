@@ -8,7 +8,11 @@ from gello.robots.robotiq_gripper import RobotiqGripper
 from gymnasium.spaces import Box, Dict
 
 from robo_manip_baselines.common import ArmConfig
-from robo_manip_baselines.teleop import GelloInputDevice, SpacemouseInputDevice
+from robo_manip_baselines.teleop import (
+    GelloInputDevice,
+    KeyboardInputDevice,
+    SpacemouseInputDevice,
+)
 
 from ..RealEnvBase import RealEnvBase
 
@@ -104,6 +108,8 @@ class RealUR5eEnvBase(RealEnvBase):
             InputDeviceClass = SpacemouseInputDevice
         elif input_device_name == "gello":
             InputDeviceClass = GelloInputDevice
+        elif input_device_name == "keyboard":
+            InputDeviceClass = KeyboardInputDevice
         else:
             raise ValueError(
                 f"[{self.__class__.__name__}] Invalid input device key: {input_device_name}"
@@ -152,7 +158,7 @@ class RealUR5eEnvBase(RealEnvBase):
         )
 
         # Send command to UR5e
-        arm_joint_pos_command = action[self.arm_joint_idxes]
+        arm_joint_pos_command = action[self.body_config_list[0].arm_joint_idxes]
         velocity = 0.5
         acceleration = 0.5
         lookahead_time = 0.2  # [s]
@@ -169,7 +175,7 @@ class RealUR5eEnvBase(RealEnvBase):
         self.rtde_c.waitPeriod(period)
 
         # Send command to Robotiq gripper
-        gripper_pos = action[self.gripper_joint_idxes][0]
+        gripper_pos = action[self.body_config_list[0].gripper_joint_idxes][0]
         speed = 50
         force = 10
         self.gripper.move(int(gripper_pos), speed, force)
