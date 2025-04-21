@@ -27,7 +27,7 @@ To convert a depth image to mp4, [the videoio library](https://github.com/vguzov
 
 See [here](../robo_manip_baselines/misc/README.md#Data-utilities) for utility scripts for data conversion and visualization.
 
-### Loading data
+## Loading data
 RMB format files can be loaded as follows.
 ```python
 from robo_manip_baselines.common import RmbData, DataKey
