@@ -142,10 +142,14 @@ class TaskEventHandler:
             )
         if self.state == self.Stat.STARTED:
             if not is_satur_screen:
-                self.stop_env(
-                    i_frame_curr - self.shift_seconds * self.frame_rate,
-                    region_satur_mean,
+                i_frame_self_shifted = (
+                    i_frame_curr - self.shift_seconds * self.frame_rate
                 )
+                if i_frame_self_shifted > 0:
+                    self.stop_env(
+                        i_frame_curr - self.shift_seconds * self.frame_rate,
+                        region_satur_mean,
+                    )
         elif self.state == self.Stat.STOPPED:
             if is_satur_screen:
                 self.start_env(
