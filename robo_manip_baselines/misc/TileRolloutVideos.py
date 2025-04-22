@@ -73,12 +73,7 @@ class TaskEventHandler:
         self.quiet = quiet
 
     def write_message(
-        self,
-        time_str,
-        region_satur_mean,
-        func_name=None,
-        env_str=None,
-        state_name="",
+        self, time_str, region_satur_mean, func_name=None, env_str=None, state_name=""
     ):
         if env_str is None:
             env_str = f"env={self.env_idx:<2}"
@@ -122,6 +117,15 @@ class TaskEventHandler:
         self.task_period_list[-1] += time_str_stop
         self.env_idx += 1
 
+    def cancel_env(self, i_frame_curr, region_satur_mean):
+        self.state = self.Stat.STOPPED
+        if self.task_period_list:
+            self.task_period_list.pop()
+        time_str = seconds_to_time_str(i_frame_curr / self.frame_rate)
+        self.write_message(
+            time_str, region_satur_mean, func_name=self.cancel_env.__name__
+        )
+
     def initial_stop(self):
         self.state = self.Stat.STOPPED
 
@@ -142,19 +146,20 @@ class TaskEventHandler:
             )
         if self.state == self.Stat.STARTED:
             if not is_satur_screen:
-                i_frame_self_shifted = (
-                    i_frame_curr - self.shift_seconds * self.frame_rate
+                i_frame_stop = i_frame_curr - self.shift_seconds * self.frame_rate
+                time_str_start = self.task_period_list[-1].rstrip("-")
+                i_frame_start = int(
+                    self.frame_rate * time_str_to_seconds(time_str_start)
                 )
-                if i_frame_self_shifted > 0:
-                    self.stop_env(
-                        i_frame_curr - self.shift_seconds * self.frame_rate,
-                        region_satur_mean,
-                    )
+                if i_frame_start <= i_frame_stop:
+                    self.stop_env(i_frame_stop, region_satur_mean)
+                else:
+                    self.cancel_env(i_frame_start, region_satur_mean)
         elif self.state == self.Stat.STOPPED:
             if is_satur_screen:
                 self.start_env(
                     i_frame_curr
-                    + self.shift_seconds  # Skip brief frames: video begins shift_seconds sec post window
+                    + self.shift_seconds  # Skip brief frames: begin shift post-window
                     * self.frame_rate,
                     region_satur_mean,
                 )
@@ -201,9 +206,7 @@ class TileRolloutVideos:
 
     @staticmethod
     def resize_video_ifneeded(input_file_name, max_video_width, quiet):
-        """
-        Resizes the video if its width exceeds max_video_width, saving it as a temporary intermediate file.
-        """
+        """Resize a video exceeding max_video_width, saving to a temp file."""
         _, curr_video_width, _, _ = get_video_properties(input_file_name)
         if curr_video_width <= max_video_width:
             return input_file_name
@@ -666,8 +669,8 @@ def parse_arg():
     parser.add_argument("--quiet", "-q", action="store_true")
     args = parser.parse_args()
 
-    for i in range(len(args.satur_detection_region_ratio)):
-        assert 0.0 <= args.satur_detection_region_ratio[i] <= 1.0
+    for r in args.satur_detection_region_ratio:
+        assert 0.0 <= r <= 1.0
 
     assert args.input_file_name != args.output_file_name
 
