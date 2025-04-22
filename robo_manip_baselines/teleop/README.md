@@ -14,6 +14,11 @@ $ python ./bin/Teleop.py MujocoUR5eCable
 ```
 https://github.com/user-attachments/assets/59736023-a7f7-4aca-a860-176db84579f7
 
+If you want to use a keyboard as a teleoperation input device instead of SpaceMouse:
+```console
+$ python ./bin/Teleop.py MujocoUR5eCable --input_device keyboard
+```
+
 If you want to use [GELLO](https://wuphilipp.github.io/gello_site) as a teleoperation input device instead of SpaceMouse:
 ```console
 $ python ./bin/Teleop.py MujocoUR5eCable --input_device gello

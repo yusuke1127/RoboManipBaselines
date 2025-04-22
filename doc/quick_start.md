@@ -19,14 +19,17 @@ $ pip install -e .
 > [!TIP]
 > Instead of collecting data by teleoperation, you can download the public dataset `TeleopMujocoUR5eCable_Dataset30` from [here](./dataset_list.md#Demonstrations-in-MuJoCo-environments).
 
-You need [SpaceMouse Wireless](https://3dconnexion.com/us/product/spacemouse-wireless) for teleoperation.
 Operate the robot in the simulation and save the data:
 ```console
 # Go to the top directory of this repository
 $ cd robo_manip_baselines
 $ # Connect a SpaceMouse to your PC
-$ python ./bin/Teleop.py MujocoUR5eCable --world_idx_list 0 5
+$ python ./bin/Teleop.py MujocoUR5eCable --world_idx_list 0 5 --input_device keyboard
 ```
+
+> [!TIP]
+> A teleoperation input device such as a 3D mouse can be used instead of a keyboard. See [here](../robo_manip_baselines/teleop/README.md).
+
 In our experience, models can be trained stably with roughly 30 data sets.
 The teleoperation data is saved in the `robo_manip_baselines/dataset/MujocoUR5eCable_<date_suffix>` directory (e.g., `MujocoUR5eCable_20240101_120000`) in HDF5 format.
 
