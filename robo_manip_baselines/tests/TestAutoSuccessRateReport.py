@@ -16,7 +16,6 @@ class TestAutoSuccessRateReport(unittest.TestCase):
             policy="Act",
             env="MujocoUR5eCable",
             commit_id="0123456789abcdefghijklmnopqrstuvwxyz0123",
-            dataset_url="https://www.example-files.com/archive/project-v1.2.3.zip?dl=1",
         )
 
     @patch.object(AutoSuccessRateReport, "exec_command")

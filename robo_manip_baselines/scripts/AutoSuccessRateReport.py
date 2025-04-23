@@ -25,7 +25,7 @@ class AutoSuccessRateReport:
         policy,
         env,
         commit_id,
-        repository_owner_name,
+        repository_owner_name=None,
     ):
         """Initialize the instance with default or provided configurations."""
         self.policy = policy
