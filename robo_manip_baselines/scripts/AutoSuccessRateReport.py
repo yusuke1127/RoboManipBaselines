@@ -26,6 +26,7 @@ class AutoSuccessRateReport:
         args_file_train=None,
         args_file_rollout=None,
         rollout_duration=30.0,
+        rollout_world_idx_list=None,
     ):
         self.policy = policy
         self.env = env
@@ -35,6 +36,7 @@ class AutoSuccessRateReport:
         self.args_file_train = args_file_train
         self.args_file_rollout = args_file_rollout
         self.rollout_duration = rollout_duration
+        self.rollout_world_idx_list = rollout_world_idx_list
 
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
         self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
@@ -179,27 +181,30 @@ class AutoSuccessRateReport:
         self.exec_command(command)
 
     def rollout(self):
-        command = [
-            self.venv_python,
-            os.path.join(
-                self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
-            ),
-            self.policy,
-            self.env,
-            "--checkpoint",
-            os.path.join(
-                self.repository_tmp_dir,
-                "robo_manip_baselines/checkpoint_dir/",
+        for world_idx in self.rollout_world_idx_list or [None]:
+            command = [
+                self.venv_python,
+                os.path.join(
+                    self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
+                ),
                 self.policy,
                 self.env,
-                "policy_last.ckpt",
-            ),
-            "--duration",
-            self.rollout_duration,
-        ]
-        if self.args_file_rollout:
-            command.append("@" + self.args_file_rollout)
-        self.exec_command(command)
+                "--checkpoint",
+                os.path.join(
+                    self.repository_tmp_dir,
+                    "robo_manip_baselines/checkpoint_dir/",
+                    self.policy,
+                    self.env,
+                    "policy_last.ckpt",
+                ),
+                "--duration",
+                self.rollout_duration,
+            ]
+            if world_idx:
+                command.extend(["--world_idx", world_idx])
+            if self.args_file_rollout:
+                command.append("@" + self.args_file_rollout)
+            self.exec_command(command)
 
     def start(self):
         self.git_clone()
@@ -250,6 +255,12 @@ def parse_argument():
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
     parser.add_argument("--rollout_duration", type=float, required=False)
+    parser.add_argument(
+        "--rollout_world_idx_list",
+        type=int,
+        nargs="*",
+        help="list of world indexes",
+    )
     return parser.parse_args()
 
 
