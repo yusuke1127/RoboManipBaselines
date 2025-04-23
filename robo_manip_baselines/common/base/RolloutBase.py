@@ -1,5 +1,4 @@
 import argparse
-import math
 import os
 import pickle
 import sys
@@ -42,7 +41,7 @@ class RolloutPhase(PhaseBase):
         super().start()
 
         self.op.rollout_time_idx = 0
-        self._terminated_time = None
+        self.termination_time = None
         print(
             f"[{self.op.__class__.__name__}] Start policy rollout. Press the 'n' key to finish policy rollout."
         )
@@ -63,16 +62,32 @@ class RolloutPhase(PhaseBase):
 
     def check_transition(self):
         elapsed_duration = self.get_elapsed_duration()
-        if self.op.terminated and self._terminated_time is None:
-            self._terminated_time = elapsed_duration
-        if (
-            self.op.key == ord("n")
-            or (elapsed_duration > self.op.args.duration)
-            or (
-                (self._terminated_time is not None)
-                and (elapsed_duration >= self._terminated_time + 5.0)
-            )
+
+        if self.op.terminated and self.termination_time is None:
+            self.termination_time = elapsed_duration
+
+        transition_flag = False
+        post_termination_duration = 5.0  # [s]
+        if self.op.key == ord("n"):
+            transition_flag = True
+        elif (self.termination_time is not None) and (
+            elapsed_duration > self.termination_time + post_termination_duration
         ):
+            print(
+                f"[{self.op.__class__.__name__}] Terminate the rollout phase because the environment has been terminated."
+            )
+            transition_flag = True
+        elif (
+            (self.termination_time is None)
+            and (self.op.args.duration is not None)
+            and (elapsed_duration > self.op.args.duration)
+        ):
+            print(
+                f"[{self.op.__class__.__name__}] Terminate the rollout phase because the maximum duration has elapsed."
+            )
+            transition_flag = True
+
+        if transition_flag:
             self.op.print_statistics()
             return True
         else:
@@ -85,9 +100,11 @@ class EndRolloutPhase(PhaseBase):
 
         print(f"[{self.op.__class__.__name__}] Press the 'n' key to exit.")
 
-    def post_update(self):
-        if self.op.key == ord("n") or (not math.isinf(self.op.args.duration)):
+    def check_transition(self):
+        if (self.op.key == ord("n")) or (self.op.args.duration is not None):
             self.op.quit_flag = True
+
+        return False
 
 
 class RolloutBase(ABC):
@@ -168,7 +185,7 @@ class RolloutBase(ABC):
             "--duration",
             type=float,
             default=None,
-            help="threshold for transitioning to the next phase in RolloutPhase",
+            help="maximum duration to rollout policy [s]",
         )
 
         if argv is None:
@@ -177,9 +194,6 @@ class RolloutBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
-
-        if not self.args.duration:
-            self.args.duration = float("inf")
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
@@ -384,7 +398,6 @@ class RolloutBase(ABC):
             f"mean: {inference_duration_arr.mean():.2e}, std: {inference_duration_arr.std():.2e} "
             f"min: {inference_duration_arr.min():.2e}, max: {inference_duration_arr.max():.2e}"
         )
-        print(f"[{self.__class__.__name__}] Press the 'n' key to exit.")
 
     def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2

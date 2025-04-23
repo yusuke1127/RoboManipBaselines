@@ -150,9 +150,11 @@ class EndReplayPhase(PhaseBase):
             f"[{self.op.__class__.__name__}] The log motion has finished replaying. Press the 'n' key to exit."
         )
 
-    def post_update(self):
+    def check_transition(self):
         if self.op.key == ord("n"):
             self.op.quit_flag = True
+
+        return False
 
 
 class TeleopBase(ABC):
@@ -339,8 +341,9 @@ class TeleopBase(ABC):
 
         self.print_statistics()
 
-        for input_device in self.input_device_list:
-            input_device.close()
+        if self.args.replay_log is None:
+            for input_device in self.input_device_list:
+                input_device.close()
 
         # self.env.close()
 
