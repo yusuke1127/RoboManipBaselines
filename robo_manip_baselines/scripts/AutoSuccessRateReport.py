@@ -73,7 +73,7 @@ class AutoSuccessRateReport:
             ],
         )
         self.exec_command(
-            ["git", "switch", "-detach", self.commit_id], cwd=self.repository_tmp_dir
+            ["git", "switch", "--detach", self.commit_id], cwd=self.repository_tmp_dir
         )
 
     def install_common(self):
