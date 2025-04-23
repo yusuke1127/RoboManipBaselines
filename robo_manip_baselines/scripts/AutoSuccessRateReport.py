@@ -72,9 +72,11 @@ class AutoSuccessRateReport:
                 self.repository_tmp_dir,
             ],
         )
-        self.exec_command(
-            ["git", "switch", "--detach", self.commit_id], cwd=self.repository_tmp_dir
-        )
+        if self.commit_id is not None:
+            self.exec_command(
+                ["git", "switch", "--detach", self.commit_id],
+                cwd=self.repository_tmp_dir,
+            )
 
     def install_common(self):
         """Install common dependencies required for the environment."""
@@ -266,7 +268,7 @@ def parse_argument():
         type=str,
         help="environment",
     )
-    parser.add_argument("-c", "--commit_id", type=str, required=True)
+    parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
     parser.add_argument(
         "-u",
         "--repository_owner_name",
