@@ -205,10 +205,10 @@ class AutoSuccessRateReport:
                     "policy_last.ckpt",
                 ),
                 "--duration",
-                rollout_duration,
+                f"{rollout_duration}",
             ]
-            if world_idx:
-                command.extend(["--world_idx", world_idx])
+            if world_idx is not None:
+                command.extend(["--world_idx", f"{world_idx}"])
             if args_file_rollout:
                 command.append("@" + args_file_rollout)
             self.exec_command(command)
@@ -216,10 +216,10 @@ class AutoSuccessRateReport:
     def start(
         self,
         dataset_url,
-        args_file_train=None,
-        args_file_rollout=None,
-        rollout_duration=30.0,
-        rollout_world_idx_list=None,
+        args_file_train,
+        args_file_rollout,
+        rollout_duration,
+        rollout_world_idx_list,
     ):
         """Start all required processes."""
         self.git_clone()
@@ -277,7 +277,7 @@ def parse_argument():
     parser.add_argument("-d", "--dataset_url", type=str, required=True)
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
-    parser.add_argument("--rollout_duration", type=float, required=False)
+    parser.add_argument("--rollout_duration", type=float, required=False, default=30.0)
     parser.add_argument(
         "--rollout_world_idx_list",
         type=int,
@@ -297,4 +297,5 @@ if __name__ == "__main__":
         args.args_file_train,
         args.args_file_rollout,
         args.rollout_duration,
+        args.rollout_world_idx_list,
     )
