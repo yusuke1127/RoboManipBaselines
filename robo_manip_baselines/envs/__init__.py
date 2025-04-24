@@ -41,7 +41,7 @@ register(
     entry_point="robo_manip_baselines.envs.mujoco:MujocoUR5eDualCableEnv",
 )
 
-## Xarm7
+## xArm7
 register(
     id="robo_manip_baselines/MujocoXarm7CableEnv-v0",
     entry_point="robo_manip_baselines.envs.mujoco:MujocoXarm7CableEnv",
@@ -52,7 +52,13 @@ register(
     entry_point="robo_manip_baselines.envs.mujoco:MujocoXarm7RingEnv",
 )
 
-## Aloha
+## ViperX 300S
+register(
+    id="robo_manip_baselines/MujocoVx300sPickEnv-v0",
+    entry_point="robo_manip_baselines.envs.mujoco:MujocoVx300sPickEnv",
+)
+
+## ALOHA
 register(
     id="robo_manip_baselines/MujocoAlohaCableEnv-v0",
     entry_point="robo_manip_baselines.envs.mujoco:MujocoAlohaCableEnv",
@@ -87,7 +93,7 @@ register(
     entry_point="robo_manip_baselines.envs.real.ur5e:RealUR5eDemoEnv",
 )
 
-## Xarm7
+## xArm7
 register(
     id="robo_manip_baselines/RealXarm7DemoEnv-v0",
     entry_point="robo_manip_baselines.envs.real.xarm7:RealXarm7DemoEnv",

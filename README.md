@@ -86,7 +86,7 @@ Check out the [Contribution Guide](./CONTRIBUTING.md) to get started.
 ## 📄 License
 
 This repository is licensed under the **BSD 2-Clause License**, unless otherwise stated.  
-Please check individual files or directories (especially `third_party`) for specific license terms.
+Please check individual files or directories (especially `third_party` and `assets`) for specific license terms.
 
 ---
 

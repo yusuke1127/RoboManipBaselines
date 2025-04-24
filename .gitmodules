@@ -18,3 +18,6 @@
 	path = third_party/gello_software
 	url = https://github.com/mmurooka/gello_software.git
 	ignore = untracked
+[submodule "third_party/YCB_sim"]
+	path = third_party/YCB_sim
+	url = https://github.com/mmurooka/YCB_sim.git

@@ -12,6 +12,8 @@ from .ur5e_dual.MujocoUR5eDualCableEnv import MujocoUR5eDualCableEnv
 from .xarm7.MujocoXarm7CableEnv import MujocoXarm7CableEnv
 from .xarm7.MujocoXarm7RingEnv import MujocoXarm7RingEnv
 
+from .vx300s.MujocoVx300sPickEnv import MujocoVx300sPickEnv
+
 from .aloha.MujocoAlohaCableEnv import MujocoAlohaCableEnv
 
 from .hsr.MujocoHsrTidyupEnv import MujocoHsrTidyupEnv
