@@ -125,7 +125,10 @@ class RealUR5eEnvBase(RealEnvBase):
         ]
 
     def get_input_device_kwargs(self, input_device_name):
-        return {}
+        if input_device_name == "spacemouse":
+            return {"pos_scale": 1.5e-2, "rpy_scale": 1e-2, "gripper_scale": 10.0}
+        else:
+            return super().get_input_device_kwargs(input_device_name)
 
     def _reset_robot(self):
         print(

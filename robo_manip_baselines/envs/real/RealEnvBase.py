@@ -83,6 +83,11 @@ class RealEnvBase(EnvDataMixin, gym.Env, ABC):
                     self.tactiles[tactile_name] = tactile
                     break
 
+            if tactile_name not in self.tactiles:
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] Specified GelSight (name: {tactile_name}, ID: {tactile_id}) not detected."
+                )
+
     def reset(self, *, seed=None, options=None):
         self.init_time = time.time()
 
