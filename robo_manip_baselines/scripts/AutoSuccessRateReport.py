@@ -7,7 +7,10 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 import venv
+
+import schedule
 
 
 class AutoSuccessRateReport:
@@ -119,7 +122,7 @@ class AutoSuccessRateReport:
             # With subprocess.Popen(shell=False), use '&' without escape.
             dataset_url = dataset_url.replace(r"\&", r"&")
 
-        # dl=0 → dl=1
+        # dl=0 -> dl=1
         if dataset_url.endswith("dl=0"):
             print(f"[{cls.__name__}] The URL ends with 'dl=0'. Changing it to 'dl=1'.")
             dataset_url = dataset_url[: -len("dl=0")] + "dl=1"
@@ -155,14 +158,14 @@ class AutoSuccessRateReport:
             if e_stderr:
                 e_stderr = e_stderr.strip()
             sys.stderr.write(
-                f"[self.__class__.__name__] Warning: Command failed with return code "
+                f"[{self.__class__.__name__}] Warning: Command failed with return code "
                 f"{e.returncode}. {e_stderr}\n"
             )
         rmb_items_count = len(
             glob.glob(os.path.join(self.dataset_temp_dir, "dataset", "*.rmb"))
         )
         print(
-            f"[self.__class__.__name__] {rmb_items_count} rmb items have been unzipped."
+            f"[{self.__class__.__name__}] {rmb_items_count} rmb items have been unzipped."
         )
 
     def train(self, args_file_train):
@@ -258,10 +261,11 @@ def parse_argument():
         description="This is a parser for the evaluation based on a specific commit.",
     )
     parser.add_argument(
-        "policy",
+        "policies",
         type=str,
+        nargs="+",
         choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy"],
-        help="policy",
+        help="policies",
     )
     parser.add_argument(
         "env",
@@ -286,18 +290,58 @@ def parse_argument():
         nargs="*",
         help="list of world indexes",
     )
-    return parser.parse_args()
+    parser.add_argument(
+        "-t",
+        "--daily_schedule_time",
+        type=str,
+        required=False,
+        metavar="HH:MM",
+        help="daily schedule time, for example 18:30",
+    )
+    parsed_args = parser.parse_args()
+
+    if parsed_args.daily_schedule_time:
+        if not re.fullmatch(
+            r"(?:[01]\d|2[0-3]):[0-5]\d", parsed_args.daily_schedule_time
+        ):
+            parser.error(
+                f"Invalid time format for --daily_schedule_time: "
+                f"'{parsed_args.daily_schedule_time}'. Expected HH:MM (00-23,00-59)."
+            )
+
+    return parsed_args
 
 
 if __name__ == "__main__":
     args = parse_argument()
-    success_report = AutoSuccessRateReport(
-        args.policy, args.env, args.commit_id, args.repository_owner_name
-    )
-    success_report.start(
-        args.dataset_url,
-        args.args_file_train,
-        args.args_file_rollout,
-        args.rollout_duration,
-        args.rollout_world_idx_list,
-    )
+
+    def run_once():
+        """Execute the start function."""
+        for policy in args.policies:
+            success_report = AutoSuccessRateReport(
+                args.policies, args.env, args.commit_id, args.repository_owner_name
+            )
+            success_report.start(
+                args.dataset_url,
+                args.args_file_train,
+                args.args_file_rollout,
+                args.rollout_duration,
+                args.rollout_world_idx_list,
+            )
+
+    # Immediate execution mode (when -t is not specified)
+    if not args.daily_schedule_time:
+        run_once()
+        print("[main] Completed one-time run. Exiting.")
+        sys.exit(0)
+
+    # Scheduling mode
+    schedule.every().day.at(args.daily_schedule_time).do(run_once)
+    print(f"[main] Scheduled daily run at {args.daily_schedule_time}. Waiting...")
+
+    try:
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        print("\n[main] Scheduler stopped by user.")
