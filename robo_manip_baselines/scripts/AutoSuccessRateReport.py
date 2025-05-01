@@ -22,6 +22,12 @@ class AutoSuccessRateReport:
         "Act": ["act", "detr"],
         "DiffusionPolicy": ["diffusion_policy"],
     }
+    APT_REQUIRED_PACKAGE_NAMES = [
+        "libosmesa6-dev",
+        "libgl1-mesa-glx",
+        "libglfw3",
+        "patchelf",
+    ]
 
     def __init__(
         self,
@@ -80,6 +86,21 @@ class AutoSuccessRateReport:
                 ["git", "switch", "--detach", self.commit_id],
                 cwd=self.repository_tmp_dir,
             )
+
+    def check_apt_packages_installed(self, package_names):
+        """Check if required APT packages are installed."""
+        for pkg in package_names:
+            dpkg_query_result = subprocess.run(
+                ["dpkg-query", "-W", "-f=${Status}", pkg],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+            if (
+                dpkg_query_result.returncode != 0
+                or b"install ok installed" not in dpkg_query_result.stdout
+            ):
+                raise AssertionError("APT package not installed: " + pkg)
 
     def install_common(self):
         """Install common dependencies required for the environment."""
@@ -229,10 +250,7 @@ class AutoSuccessRateReport:
         """Start all required processes."""
         self.git_clone()
         venv.create(os.path.join(self.venv_python, "../../../venv/"), with_pip=True)
-
-        # TODO:
-        #     apt install is assumed to have already been finished,
-        #     but this should be checked and terminated if not installed.
+        self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
 
         self.install_common()
         self.install_each_policy()
