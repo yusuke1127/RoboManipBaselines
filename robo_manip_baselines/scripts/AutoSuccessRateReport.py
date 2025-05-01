@@ -319,7 +319,7 @@ if __name__ == "__main__":
         """Execute the start function."""
         for policy in args.policies:
             success_report = AutoSuccessRateReport(
-                args.policies, args.env, args.commit_id, args.repository_owner_name
+                policy, args.env, args.commit_id, args.repository_owner_name
             )
             success_report.start(
                 args.dataset_url,
