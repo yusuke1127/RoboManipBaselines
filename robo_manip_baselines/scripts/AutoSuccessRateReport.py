@@ -275,11 +275,11 @@ class AutoSuccessRateReport:
             reward_statuses = self.exec_command(
                 command, regex_pattern=reward_status_pattern
             )
-            assert len(reward_statuses) == 1, f"{len(reward_statuses)}"
+            assert len(reward_statuses) == 1, f"{len(reward_statuses)=}"
             assert reward_status_pattern[0] in (
                 "success",
                 "failure",
-            ), f"{reward_status_pattern[0]}"
+            ), f"{reward_status_pattern[0]=}"
             task_success_list.append(int(reward_status_pattern[0] == "success"))
 
         # Save task_success_list
