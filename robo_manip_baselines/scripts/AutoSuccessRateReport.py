@@ -9,6 +9,8 @@ import sys
 import tempfile
 import time
 import venv
+from datetime import datetime
+from urllib.parse import urlparse
 
 import schedule
 
@@ -44,12 +46,21 @@ class AutoSuccessRateReport:
 
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
         self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
-        self.dataset_temp_dir = tempfile.mkdtemp()
+        self.dataset_dir = None
+
+        self.result_datetime_dir = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "result/",
+            datetime.now().strftime("%Y%m%d_%H%M%S"),
+        )
 
     @classmethod
-    def exec_command(cls, command, cwd=None):
+    def exec_command(cls, command, cwd=None, regex_pattern=None):
         """Execute a shell command, optionally in the specified working directory."""
         print(f"[{cls.__name__}] Executing command: {command}", flush=True)
+
+        matched_results = []
+
         with subprocess.Popen(
             command,
             cwd=cwd,
@@ -61,10 +72,16 @@ class AutoSuccessRateReport:
         ) as process:
             for line in process.stdout:
                 print(line, end="", flush=True)
+                if regex_pattern:
+                    match = regex_pattern.match(line)
+                    if match:
+                        matched_results.append(match)
 
             return_code = process.wait()
             if return_code != 0:
                 raise subprocess.CalledProcessError(return_code, command)
+
+        return matched_results
 
     def git_clone(self):
         """Clone the target Git repository into a temporary directory."""
@@ -156,11 +173,12 @@ class AutoSuccessRateReport:
     def download_dataset(self, dataset_url):
         """Download the dataset from the specified URL."""
         zip_filename = "dataset.zip"
+        dataset_temp_dir = tempfile.mkdtemp()
         self.exec_command(
             [
                 "wget",
                 "-O",
-                os.path.join(self.dataset_temp_dir, zip_filename),
+                os.path.join(dataset_temp_dir, zip_filename),
                 self.adjust_dataset_url(dataset_url),
             ],
         )
@@ -172,7 +190,7 @@ class AutoSuccessRateReport:
                     "dataset/",
                     zip_filename,
                 ],
-                cwd=self.dataset_temp_dir,
+                cwd=dataset_temp_dir,
             )
         except subprocess.CalledProcessError as e:
             e_stderr = e.stderr
@@ -183,23 +201,34 @@ class AutoSuccessRateReport:
                 f"{e.returncode}. {e_stderr}\n"
             )
         rmb_items_count = len(
-            glob.glob(os.path.join(self.dataset_temp_dir, "dataset", "*.rmb"))
+            glob.glob(os.path.join(dataset_temp_dir, "dataset", "*.rmb"))
         )
         print(
             f"[{self.__class__.__name__}] {rmb_items_count} rmb items have been unzipped."
         )
+        self.dataset_dir = os.path.join(
+            dataset_temp_dir,
+            "dataset/",
+        )
+
+    def get_dataset(self, dataset_location):
+        if bool(urlparse(dataset_location).scheme):
+            self.download_dataset(self, dataset_location)
+            return
+        if os.path.isdir(dataset_location):
+            self.dataset_dir = dataset_location
+            return
+        raise ValueError(f"Invalid: {dataset_location=}.")
 
     def train(self, args_file_train):
         """Execute the training process using the specified arguments file."""
+        assert self.dataset_dir
         command = [
             self.venv_python,
             os.path.join(self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"),
             self.policy,
             "--dataset_dir",
-            os.path.join(
-                self.dataset_temp_dir,
-                "dataset/",
-            ),
+            self.dataset_dir,
             "--checkpoint_dir",
             os.path.join(
                 self.repository_tmp_dir,
@@ -214,6 +243,12 @@ class AutoSuccessRateReport:
 
     def rollout(self, args_file_rollout, rollout_duration, rollout_world_idx_list):
         """Execute the rollout using the provided configuration and duration."""
+        reward_status_pattern = re.compile(
+            r"Terminate the rollout phase with the task (success|failure) reward"
+        )
+
+        # Execute rollout
+        task_success_list = []
         for world_idx in rollout_world_idx_list or [None]:
             command = [
                 self.venv_python,
@@ -237,11 +272,28 @@ class AutoSuccessRateReport:
                 command.extend(["--world_idx", f"{world_idx}"])
             if args_file_rollout:
                 command.append("@" + args_file_rollout)
-            self.exec_command(command)
+            reward_statuses = self.exec_command(
+                command, regex_pattern=reward_status_pattern
+            )
+            assert len(reward_statuses) == 1, f"{len(reward_statuses)}"
+            assert reward_status_pattern[0] in (
+                "success",
+                "failure",
+            ), f"{reward_status_pattern[0]}"
+            task_success_list.append(int(reward_status_pattern[0] == "success"))
+
+        # Save task_success_list
+        output_dir_path = os.path.join(self.result_datetime_dir, self.policy, self.env)
+        os.makedirs(output_dir_path, exist_ok=True)
+        output_file_path = os.path.join(output_dir_path, "task_success_list.txt")
+        with open(output_file_path, "w", encoding="utf-8") as f:
+            f.write(" ".join(map(str, task_success_list)))
+
+        print(f"File has been saved: {output_file_path}")
 
     def start(
         self,
-        dataset_url,
+        dataset_location,
         args_file_train,
         args_file_rollout,
         rollout_duration,
@@ -255,7 +307,7 @@ class AutoSuccessRateReport:
         self.install_common()
         self.install_each_policy()
 
-        self.download_dataset(dataset_url)
+        self.get_dataset(dataset_location)
         self.train(args_file_train)
         self.rollout(args_file_rollout, rollout_duration, rollout_world_idx_list)
 
@@ -298,7 +350,13 @@ def parse_argument():
         default="isri-aist",
         help="github repository owner name (user or organization)",
     )
-    parser.add_argument("-d", "--dataset_url", type=str, required=True)
+    parser.add_argument(
+        "-d",
+        "--dataset_location",
+        type=str,
+        required=True,
+        help="specify URL of online storage or local directory",
+    )
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
     parser.add_argument("--rollout_duration", type=float, required=False, default=30.0)
@@ -340,7 +398,7 @@ if __name__ == "__main__":
                 policy, args.env, args.commit_id, args.repository_owner_name
             )
             success_report.start(
-                args.dataset_url,
+                args.dataset_location,
                 args.args_file_train,
                 args.args_file_rollout,
                 args.rollout_duration,
