@@ -248,7 +248,6 @@ class AutoSuccessRateReport:
     def rollout(self, args_file_rollout, rollout_duration, rollout_world_idx_list):
         """Execute the rollout using the provided configuration and duration."""
 
-        # Execute rollout
         task_success_list = []
         for world_idx in rollout_world_idx_list or [None]:
             command = [
@@ -283,7 +282,10 @@ class AutoSuccessRateReport:
             ), f"{reward_statuses[0].group(1)=}"
             task_success_list.append(int(reward_statuses[0].group(1) == "success"))
 
-        # Save task_success_list
+        return task_success_list
+
+    def save_result(self, task_success_list):
+        """Save task_success_list."""
         output_dir_path = os.path.join(self.result_datetime_dir, self.policy, self.env)
         os.makedirs(output_dir_path, exist_ok=True)
         output_file_path = os.path.join(output_dir_path, "task_success_list.txt")
@@ -310,7 +312,10 @@ class AutoSuccessRateReport:
 
         self.get_dataset(dataset_location)
         self.train(args_file_train)
-        self.rollout(args_file_rollout, rollout_duration, rollout_world_idx_list)
+        task_success_list = self.rollout(
+            args_file_rollout, rollout_duration, rollout_world_idx_list
+        )
+        self.save_result(task_success_list)
 
 
 def camel_to_snake(name):
