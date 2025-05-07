@@ -14,6 +14,10 @@ from urllib.parse import urlparse
 
 import schedule
 
+ROLLOUT_REWARD_STATUS_PATTERN = re.compile(
+    r"Terminate the rollout phase with the task (success|failure) reward"
+)
+
 
 class AutoSuccessRateReport:
     """Class for generating success rate reports based on commit evaluation."""
@@ -243,9 +247,6 @@ class AutoSuccessRateReport:
 
     def rollout(self, args_file_rollout, rollout_duration, rollout_world_idx_list):
         """Execute the rollout using the provided configuration and duration."""
-        reward_status_pattern = re.compile(
-            r"Terminate the rollout phase with the task (success|failure) reward"
-        )
 
         # Execute rollout
         task_success_list = []
@@ -273,14 +274,14 @@ class AutoSuccessRateReport:
             if args_file_rollout:
                 command.append("@" + args_file_rollout)
             reward_statuses = self.exec_command(
-                command, regex_pattern=reward_status_pattern
+                command, regex_pattern=ROLLOUT_REWARD_STATUS_PATTERN
             )
             assert len(reward_statuses) == 1, f"{len(reward_statuses)=}"
-            assert reward_status_pattern[0] in (
+            assert reward_statuses[0].group(1) in (
                 "success",
                 "failure",
-            ), f"{reward_status_pattern[0]=}"
-            task_success_list.append(int(reward_status_pattern[0] == "success"))
+            ), f"{reward_statuses[0].group(1)=}"
+            task_success_list.append(int(reward_statuses[0].group(1) == "success"))
 
         # Save task_success_list
         output_dir_path = os.path.join(self.result_datetime_dir, self.policy, self.env)
