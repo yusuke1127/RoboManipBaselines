@@ -1,6 +1,7 @@
 """Script for evaluation based on a specific commit."""
 
 import argparse
+import fcntl
 import glob
 import os
 import re
@@ -10,10 +11,15 @@ import tempfile
 import time
 import venv
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlparse
 
 import schedule
 
+LOCK_FILE_PATH = str(
+    Path("/tmp")
+    / f"{'_'.join(Path(__file__).resolve().parts[-4:-1] + (Path(__file__).resolve().stem,))}.lock"
+)
 ROLLOUT_REWARD_STATUS_PATTERN = re.compile(
     r"Terminate the rollout phase with the task (success|failure) reward"
 )
@@ -41,12 +47,14 @@ class AutoSuccessRateReport:
         env,
         commit_id,
         repository_owner_name=None,
+        is_rollout_disabled=False,
     ):
         """Initialize the instance with default or provided configurations."""
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
         self.repository_owner_name = repository_owner_name
+        self.is_rollout_disabled = is_rollout_disabled
 
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
         self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
@@ -61,7 +69,7 @@ class AutoSuccessRateReport:
     @classmethod
     def exec_command(cls, command, cwd=None, regex_pattern=None):
         """Execute a shell command, optionally in the specified working directory."""
-        print(f"[{cls.__name__}] Executing command: {command}", flush=True)
+        print(f"[{cls.__name__}] Executing command: {' '.join(command)}", flush=True)
 
         matched_results = []
 
@@ -303,19 +311,33 @@ class AutoSuccessRateReport:
         rollout_world_idx_list,
     ):
         """Start all required processes."""
-        self.git_clone()
-        venv.create(os.path.join(self.venv_python, "../../../venv/"), with_pip=True)
-        self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
+        with open(LOCK_FILE_PATH, "w") as lock_file:
+            print(f"[{self.__class__.__name__}] Lock file: {LOCK_FILE_PATH}")
+            print(f"[{self.__class__.__name__}] Attempting to acquire lock...")
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            print(f"[{self.__class__.__name__}] Lock acquired. Starting processing...")
+            try:
+                self.git_clone()
+                venv.create(
+                    os.path.join(self.venv_python, "../../../venv/"), with_pip=True
+                )
+                self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
 
-        self.install_common()
-        self.install_each_policy()
+                self.install_common()
+                self.install_each_policy()
 
-        self.get_dataset(dataset_location)
-        self.train(args_file_train)
-        task_success_list = self.rollout(
-            args_file_rollout, rollout_duration, rollout_world_idx_list
-        )
-        self.save_result(task_success_list)
+                self.get_dataset(dataset_location)
+                self.train(args_file_train)
+                if not self.is_rollout_disabled:
+                    task_success_list = self.rollout(
+                        args_file_rollout, rollout_duration, rollout_world_idx_list
+                    )
+                    self.save_result(task_success_list)
+
+                print(f"[{self.__class__.__name__}] Processing completed.")
+
+            finally:
+                print(f"[{self.__class__.__name__}] Releasing lock.")
 
 
 def camel_to_snake(name):
@@ -365,7 +387,13 @@ def parse_argument():
     )
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
-    parser.add_argument("--rollout_duration", type=float, required=False, default=30.0)
+    parser.add_argument(
+        "--rollout_duration",
+        type=float,
+        required=False,
+        default=30.0,
+        help="duration of rollout in seconds, disable rollout step if value is zero or negative",
+    )
     parser.add_argument(
         "--rollout_world_idx_list",
         type=int,
@@ -397,11 +425,21 @@ def parse_argument():
 if __name__ == "__main__":
     args = parse_argument()
 
+    is_rollout_disabled = args.rollout_duration <= 0.0
+    if is_rollout_disabled:
+        print(
+            f"[main] rollout step is disabled because {args.rollout_duration=} (<= 0)."
+        )
+
     def run_once():
         """Execute the start function."""
         for policy in args.policies:
             success_report = AutoSuccessRateReport(
-                policy, args.env, args.commit_id, args.repository_owner_name
+                policy,
+                args.env,
+                args.commit_id,
+                args.repository_owner_name,
+                is_rollout_disabled,
             )
             success_report.start(
                 args.dataset_location,
@@ -419,7 +457,10 @@ if __name__ == "__main__":
 
     # Scheduling mode
     schedule.every().day.at(args.daily_schedule_time).do(run_once)
-    print(f"[main] Scheduled daily run at {args.daily_schedule_time}. Waiting...")
+    print(
+        f"[main] Scheduled daily run at {args.daily_schedule_time}. Waiting...",
+        flush=True,
+    )
 
     try:
         while True:
