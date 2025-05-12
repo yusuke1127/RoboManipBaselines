@@ -12,10 +12,15 @@ class MlpPolicy(nn.Module):
         state_dim,
         action_dim,
         num_images,
+        n_obs_steps,
+        n_action_steps,
         hidden_dim_list,
         state_feature_dim,
     ):
         super().__init__()
+
+        # Setup Variable
+        self.n_action_steps = n_action_steps
 
         # Instantiate state feature extractor
         self.state_feature_extractor = nn.Sequential(
@@ -34,8 +39,12 @@ class MlpPolicy(nn.Module):
         image_feature_dim = resnet_model.fc.in_features
 
         # Instantiate linear layers
-        combined_feature_dim = state_feature_dim + num_images * image_feature_dim
-        linear_dim_list = [combined_feature_dim] + hidden_dim_list + [action_dim]
+        combined_feature_dim = n_obs_steps * (
+            state_feature_dim + num_images * image_feature_dim
+        )
+        linear_dim_list = (
+            [combined_feature_dim] + hidden_dim_list + [action_dim * n_action_steps]
+        )
         linear_layers = []
         for linear_idx in range(len(linear_dim_list) - 1):
             input_dim = linear_dim_list[linear_idx]
@@ -58,13 +67,16 @@ class MlpPolicy(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, state, images):
-        batch_size, num_images, C, H, W = images.shape
+    def forward(self, states, whole_images):
+        batch_size, num_obs_steps, num_images, C, H, W = whole_images.shape
 
+        # Extract state, images from states, whole_images
+        state = torch.concat(states, dim=1)
+        images = torch.concat(whole_images, dim=1)
         # Extract state feature
         state_feature = self.state_feature_extractor(
             state
-        )  # (batch_size, state_feature_dim)
+        )  # (batch_size, state_feature_dim * n_obs_steps)
 
         # Extract image feature
         image_features = []
@@ -78,12 +90,25 @@ class MlpPolicy(nn.Module):
             image_features.append(image_feature)
         image_features = torch.cat(
             image_features, dim=1
-        )  # (batch_size, num_images * image_feature_dim)
+        )  # (batch_size, num_images * num_obs_steps * image_feature_dim)
 
         # Apply linear layers
         combined_feature = torch.cat(
             [state_feature, image_features], dim=1
         )  # (batch_size, combined_feature_dim)
-        action = self.linear_layer_seq(combined_feature)  # (batch_size, action_dim)
+        action_feature = self.linear_layer_seq(
+            combined_feature
+        )  # (batch_size, action_dim * n_action_steps)
+        if self.n_action_steps > 1:
+            action = torch.tensor(
+                [
+                    torch.cat(
+                        a_feature.chunk(action_feature.shape[1] / self.n_action_steps)
+                    )
+                    for a_feature in action_feature
+                ]
+            )  # (batch_size, n_action_steps, action_dim)
+        else:
+            action = action_feature
 
         return action
