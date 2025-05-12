@@ -35,6 +35,18 @@ class TrainMlp(TrainBase):
             default=512,
             help="Dimension of state feature",
         )
+        parser.add_argument(
+            "--n_obs_steps",
+            type=int,
+            default=1,
+            help="number of steps in observation to input in the policy",
+        )
+        parser.add_argument(
+            "--n_action_steps",
+            type=int,
+            default=1,
+            help="number of steps in the action to output from the policy",
+        )
 
     def setup_policy(self):
         # Set policy args
