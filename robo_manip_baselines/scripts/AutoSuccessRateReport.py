@@ -232,9 +232,14 @@ class AutoSuccessRateReport:
             return
         raise ValueError(f"Invalid: {dataset_location=}.")
 
-    def train(self, args_file_train):
+    def train(self, args_file_train, seed):
         """Execute the training process using the specified arguments file."""
         assert self.dataset_dir
+
+        if seed == -1:
+            seed = int(time.time() * 1000000) % (2**32)
+            print(f"{seed=}")
+
         command = [
             self.venv_python,
             os.path.join(self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"),
@@ -251,6 +256,9 @@ class AutoSuccessRateReport:
         ]
         if args_file_train:
             command.append("@" + args_file_train)
+        if seed is not None:
+            command.extend(["--seed", str(seed)])
+
         self.exec_command(command)
 
     def rollout(self, args_file_rollout, rollout_duration, rollout_world_idx_list):
@@ -309,6 +317,7 @@ class AutoSuccessRateReport:
         args_file_rollout,
         rollout_duration,
         rollout_world_idx_list,
+        seed=None,
     ):
         """Start all required processes."""
         with open(LOCK_FILE_PATH, "w") as lock_file:
@@ -327,7 +336,7 @@ class AutoSuccessRateReport:
                 self.install_each_policy()
 
                 self.get_dataset(dataset_location)
-                self.train(args_file_train)
+                self.train(args_file_train, seed)
                 if not self.is_rollout_disabled:
                     task_success_list = self.rollout(
                         args_file_rollout, rollout_duration, rollout_world_idx_list
@@ -401,6 +410,12 @@ def parse_argument():
         help="list of world indexes",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        required=False,
+        help="random seed; use -1 to generate different value on each run",
+    )
+    parser.add_argument(
         "-t",
         "--daily_schedule_time",
         type=str,
@@ -447,6 +462,7 @@ if __name__ == "__main__":
                 args.args_file_rollout,
                 args.rollout_duration,
                 args.rollout_world_idx_list,
+                args.seed,
             )
 
     # Immediate execution mode (when -t is not specified)
