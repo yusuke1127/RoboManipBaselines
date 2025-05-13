@@ -12,6 +12,7 @@ class MlpPolicy(nn.Module):
         state_dim,
         action_dim,
         num_images,
+        horizon,
         n_obs_steps,
         n_action_steps,
         hidden_dim_list,
@@ -20,11 +21,13 @@ class MlpPolicy(nn.Module):
         super().__init__()
 
         # Setup Variable
+        self.horizon = horizon if n_obs_steps > 1 or n_action_steps > 1 else 1
+        self.n_obs_steps = n_obs_steps
         self.n_action_steps = n_action_steps
 
         # Instantiate state feature extractor
         self.state_feature_extractor = nn.Sequential(
-            nn.Linear(state_dim, state_feature_dim),
+            nn.Linear(state_dim * self.horizon, state_feature_dim),
             # nn.BatchNorm1d(state_feature_dim),
             nn.ReLU(),
         )
@@ -39,11 +42,11 @@ class MlpPolicy(nn.Module):
         image_feature_dim = resnet_model.fc.in_features
 
         # Instantiate linear layers
-        combined_feature_dim = n_obs_steps * (
-            state_feature_dim + num_images * image_feature_dim
+        combined_feature_dim = (
+            state_feature_dim + num_images * image_feature_dim * self.horizon
         )
         linear_dim_list = (
-            [combined_feature_dim] + hidden_dim_list + [action_dim * n_action_steps]
+            [combined_feature_dim] + hidden_dim_list + [action_dim * self.horizon]
         )
         linear_layers = []
         for linear_idx in range(len(linear_dim_list) - 1):
@@ -68,19 +71,48 @@ class MlpPolicy(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, states, whole_images):
-        batch_size, num_obs_steps, num_images, C, H, W = whole_images.shape
+        if self.n_obs_steps > 1:
+            batch_size, num_obs_steps, num_images, C, H, W = whole_images.shape
+            _, num_state_obs_steps, state_hdim = states.shape
+            if num_state_obs_steps < self.horizon and not self.training:
+                pad_len = self.horizon - num_state_obs_steps
+                states = torch.cat(
+                    [
+                        states,
+                        torch.zeros((batch_size, pad_len, state_hdim)).to(
+                            states.device
+                        ),
+                    ],
+                    dim=1,
+                ).to(states.device)
+            if num_obs_steps < self.horizon and not self.training:
+                pad_len = self.horizon - num_obs_steps
+                whole_images = torch.cat(
+                    [
+                        whole_images,
+                        torch.zeros((batch_size, pad_len, num_images, C, H, W)).to(
+                            whole_images.device
+                        ),
+                    ],
+                    dim=1,
+                ).to(whole_images.device)
+            # Extract state, images from states, whole_images
+            state = states.reshape(batch_size, -1)
+            images = whole_images.reshape(batch_size, -1, C, H, W)
+        else:
+            batch_size, num_images, C, H, W = whole_images.shape
+            state = states
+            images = whole_images
 
-        # Extract state, images from states, whole_images
-        state = torch.concat(states, dim=1)
-        images = torch.concat(whole_images, dim=1)
         # Extract state feature
         state_feature = self.state_feature_extractor(
             state
-        )  # (batch_size, state_feature_dim * n_obs_steps)
+        )  # (batch_size, state_feature_dim)
+        print(state_feature.shape)
 
         # Extract image feature
         image_features = []
-        for i in range(num_images):
+        for i in range(self.horizon):
             image_feature = self.image_feature_extractor(
                 images[:, i]
             )  # (batch_size, image_feature_dim, 1, 1)
@@ -90,7 +122,7 @@ class MlpPolicy(nn.Module):
             image_features.append(image_feature)
         image_features = torch.cat(
             image_features, dim=1
-        )  # (batch_size, num_images * num_obs_steps * image_feature_dim)
+        )  # (batch_size, num_images * horizon * image_feature_dim)
 
         # Apply linear layers
         combined_feature = torch.cat(
@@ -98,17 +130,12 @@ class MlpPolicy(nn.Module):
         )  # (batch_size, combined_feature_dim)
         action_feature = self.linear_layer_seq(
             combined_feature
-        )  # (batch_size, action_dim * n_action_steps)
+        )  # (batch_size, action_dim * horizon)
         if self.n_action_steps > 1:
-            action = torch.tensor(
-                [
-                    torch.cat(
-                        a_feature.chunk(action_feature.shape[1] / self.n_action_steps)
-                    )
-                    for a_feature in action_feature
-                ]
-            )  # (batch_size, n_action_steps, action_dim)
+            action = action_feature.reshape(
+                batch_size, self.horizon, -1
+            )  # (batch_size, horizon, action_dim)
         else:
-            action = action_feature
+            action = action_feature  # (batch_size, action_dim)
 
         return action

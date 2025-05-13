@@ -37,7 +37,7 @@ class MlpDataset(DatasetBase):
         # Sequential load
         else:
             horizon = self.model_meta_info["data"]["horizon"]
-            self.chunk_into_list = []
+            self.chunk_info_list = []
             for episode_idx, filename in enumerate(self.filenames):
                 with RmbData(filename) as rmb_data:
                     episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
@@ -50,7 +50,7 @@ class MlpDataset(DatasetBase):
         return (
             self.accum_step_idxes[-1]
             if self.accum_step_idxes is not None
-            else len(self.chunk_into_list)
+            else len(self.chunk_info_list)
         )
 
     def __getitem__(self, data_idx):
