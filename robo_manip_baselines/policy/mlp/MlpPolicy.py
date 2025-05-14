@@ -74,8 +74,10 @@ class MlpPolicy(nn.Module):
         if self.n_obs_steps > 1:
             batch_size, num_obs_steps, num_images, C, H, W = whole_images.shape
             _, num_state_obs_steps, state_hdim = states.shape
+            # Padding states and whole_images.
             if num_state_obs_steps < self.horizon and not self.training:
                 pad_len = self.horizon - num_state_obs_steps
+                # Bottom self[-1] padding
                 states = torch.cat(
                     [states]
                     + [
@@ -86,6 +88,7 @@ class MlpPolicy(nn.Module):
                 ).to(states.device)
             if num_obs_steps < self.horizon and not self.training:
                 pad_len = self.horizon - num_obs_steps
+                # Bottom self[-1] padding
                 whole_images = torch.cat(
                     [whole_images]
                     + [
