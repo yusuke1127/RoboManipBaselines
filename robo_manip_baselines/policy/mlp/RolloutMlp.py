@@ -38,8 +38,12 @@ class RolloutMlp(RolloutBase):
     def setup_variables(self):
         super().setup_variables()
 
+        self.n_obs_steps = self.model_meta_info["data"]["n_obs_steps"]
+        self.n_action_steps = self.model_meta_info["data"]["n_action_steps"]
+
         self.state_buf = None
         self.images_buf = None
+        self.policy_action_buf = None
 
     def get_buffered_state(self):
         # Get latest value
@@ -67,7 +71,16 @@ class RolloutMlp(RolloutBase):
 
     def get_buffered_images(self):
         # Get latest value
-        images = self.get_images()
+        images = []
+        for camera_name in self.camera_names:
+            image = self.info["rgb_images"][camera_name]
+
+            image = np.moveaxis(image, -1, -3)
+            image = torch.tensor(image.copy(), dtype=torch.uint8)
+            image = self.image_transforms(image)
+
+            images.append(image)
+
         # Store and return
         if self.images_buf is None:
             self.images_buf = [
@@ -79,27 +92,40 @@ class RolloutMlp(RolloutBase):
                 single_images_buf.pop(0)
                 single_images_buf.append(image)
 
-        images = [
-            torch.stack(single_images_buf, dim=0)[torch.newaxis].to(self.device)
-            for single_images_buf in self.images_buf
-        ]
+        images = torch.stack(
+            [
+                torch.stack(single_images_buf, dim=0)[torch.newaxis].to(self.device)
+                for single_images_buf in self.images_buf
+            ]
+        )
 
-        return images[0]
+        return images
 
     def infer_policy(self):
-        if self.model_meta_info["data"]["n_obs_steps"] > 1:
-            state = self.get_buffered_state()
-            images = self.get_buffered_images()
+        if self.n_obs_steps > 1:
+            if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
+                state = self.get_buffered_state()
+                images = self.get_buffered_images()
+                get_action_idx = self.n_action_steps
+                action = self.policy(state, images)[0][:get_action_idx]
         else:
             state = self.get_state()
             images = self.get_images()
-        action = (
-            self.policy(state, images)[0][0]
-            if self.policy.horizon > 1
-            else self.policy(state, images)[0]
-        )
-        action = action.cpu().detach().numpy().astype(np.float64)
-        self.policy_action = denormalize_data(action, self.model_meta_info["action"])
+            action = self.policy(state, images)[0]
+
+        if self.n_action_steps > 1:
+            if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
+                self.policy_action_buf = list(
+                    action.cpu().detach().numpy().astype(np.float64)
+                )
+            self.policy_action = denormalize_data(
+                self.policy_action_buf.pop(0), self.model_meta_info["action"]
+            )
+        else:
+            action = action.cpu().detach().numpy().astype(np.float64)
+            self.policy_action = denormalize_data(
+                action, self.model_meta_info["action"]
+            )
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
         )

@@ -77,22 +77,22 @@ class MlpPolicy(nn.Module):
             if num_state_obs_steps < self.horizon and not self.training:
                 pad_len = self.horizon - num_state_obs_steps
                 states = torch.cat(
-                    [
-                        states,
-                        torch.zeros((batch_size, pad_len, state_hdim)).to(
-                            states.device
-                        ),
+                    [states]
+                    + [
+                        states.clone()[:, -1].reshape(batch_size, 1, state_hdim)
+                        for _ in range(pad_len)
                     ],
                     dim=1,
                 ).to(states.device)
             if num_obs_steps < self.horizon and not self.training:
                 pad_len = self.horizon - num_obs_steps
                 whole_images = torch.cat(
-                    [
-                        whole_images,
-                        torch.zeros((batch_size, pad_len, num_images, C, H, W)).to(
-                            whole_images.device
-                        ),
+                    [whole_images]
+                    + [
+                        whole_images.clone()[:, -1].reshape(
+                            batch_size, 1, num_images, C, H, W
+                        )
+                        for _ in range(pad_len)
                     ],
                     dim=1,
                 ).to(whole_images.device)
@@ -108,7 +108,6 @@ class MlpPolicy(nn.Module):
         state_feature = self.state_feature_extractor(
             state
         )  # (batch_size, state_feature_dim)
-        print(state_feature.shape)
 
         # Extract image feature
         image_features = []
