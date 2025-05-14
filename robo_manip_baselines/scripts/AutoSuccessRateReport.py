@@ -47,6 +47,7 @@ class AutoSuccessRateReport:
         env,
         commit_id,
         repository_owner_name=None,
+        checkpoint_base_dir=None,
         is_rollout_disabled=False,
     ):
         """Initialize the instance with default or provided configurations."""
@@ -57,6 +58,11 @@ class AutoSuccessRateReport:
         self.is_rollout_disabled = is_rollout_disabled
 
         self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
+        self.checkpoint_temp_dir = (
+            tempfile.mkdtemp(dir=checkpoint_base_dir)
+            if checkpoint_base_dir is not None
+            else self.repository_tmp_dir
+        )
         self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
         self.dataset_dir = None
 
@@ -67,8 +73,9 @@ class AutoSuccessRateReport:
         )
 
     @classmethod
-    def exec_command(cls, command, cwd=None, regex_pattern=None):
-        """Execute a shell command, optionally in the specified working directory."""
+    def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
+        """Execute a shell command, optionally in the specified working directory,
+        and return lines from standard output that match the given regex pattern."""
         print(f"[{cls.__name__}] Executing command: {' '.join(command)}", flush=True)
 
         matched_results = []
@@ -82,10 +89,10 @@ class AutoSuccessRateReport:
             text=True,
             bufsize=1,
         ) as process:
-            for line in process.stdout:
-                print(line, end="", flush=True)
-                if regex_pattern:
-                    match = regex_pattern.match(line)
+            for stdout_line in process.stdout:
+                print(stdout_line, end="", flush=True)
+                if stdout_line_match_pattern:
+                    match = stdout_line_match_pattern.match(stdout_line)
                     if match:
                         matched_results.append(match)
 
@@ -225,7 +232,7 @@ class AutoSuccessRateReport:
 
     def get_dataset(self, dataset_location):
         if bool(urlparse(dataset_location).scheme):
-            self.download_dataset(self, dataset_location)
+            self.download_dataset(dataset_location)
             return
         if os.path.isdir(dataset_location):
             self.dataset_dir = dataset_location
@@ -248,7 +255,7 @@ class AutoSuccessRateReport:
             self.dataset_dir,
             "--checkpoint_dir",
             os.path.join(
-                self.repository_tmp_dir,
+                self.checkpoint_temp_dir,
                 "robo_manip_baselines/checkpoint_dir/",
                 self.policy,
                 self.env,
@@ -275,7 +282,7 @@ class AutoSuccessRateReport:
                 self.env,
                 "--checkpoint",
                 os.path.join(
-                    self.repository_tmp_dir,
+                    self.checkpoint_temp_dir,
                     "robo_manip_baselines/checkpoint_dir/",
                     self.policy,
                     self.env,
@@ -289,7 +296,7 @@ class AutoSuccessRateReport:
             if args_file_rollout:
                 command.append("@" + args_file_rollout)
             reward_statuses = self.exec_command(
-                command, regex_pattern=ROLLOUT_REWARD_STATUS_PATTERN
+                command, stdout_line_match_pattern=ROLLOUT_REWARD_STATUS_PATTERN
             )
             assert len(reward_statuses) == 1, f"{len(reward_statuses)=}"
             assert reward_statuses[0].group(1) in (
@@ -320,7 +327,7 @@ class AutoSuccessRateReport:
         seed=None,
     ):
         """Start all required processes."""
-        with open(LOCK_FILE_PATH, "w") as lock_file:
+        with open(LOCK_FILE_PATH, "w", encoding="utf-8") as lock_file:
             print(f"[{self.__class__.__name__}] Lock file: {LOCK_FILE_PATH}")
             print(f"[{self.__class__.__name__}] Attempting to acquire lock...")
             fcntl.flock(lock_file, fcntl.LOCK_EX)
@@ -416,6 +423,13 @@ def parse_argument():
         help="random seed; use -1 to generate different value on each run",
     )
     parser.add_argument(
+        "--checkpoint_base_dir",
+        type=str,
+        required=False,
+        default=None,
+        help="directory for temporary checkpoint storage if specified",
+    )
+    parser.add_argument(
         "-t",
         "--daily_schedule_time",
         type=str,
@@ -454,6 +468,7 @@ if __name__ == "__main__":
                 args.env,
                 args.commit_id,
                 args.repository_owner_name,
+                args.checkpoint_base_dir,
                 is_rollout_disabled,
             )
             success_report.start(
