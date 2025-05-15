@@ -114,7 +114,7 @@ class MlpPolicy(nn.Module):
 
         # Extract image feature
         image_features = []
-        for i in range(self.horizon):
+        for i in range(self.horizon * num_images):
             image_feature = self.image_feature_extractor(
                 images[:, i]
             )  # (batch_size, image_feature_dim, 1, 1)
@@ -133,7 +133,9 @@ class MlpPolicy(nn.Module):
         action_feature = self.linear_layer_seq(
             combined_feature
         )  # (batch_size, action_dim * horizon)
-        if self.n_action_steps > 1:
+        if self.n_action_steps > 1 or (
+            self.n_obs_steps > 1 and self.n_action_steps == 1
+        ):
             action = action_feature.reshape(
                 batch_size, self.horizon, -1
             )  # (batch_size, horizon, action_dim)
