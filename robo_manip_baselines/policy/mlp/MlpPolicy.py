@@ -72,36 +72,12 @@ class MlpPolicy(nn.Module):
 
     def forward(self, states, whole_images):
         if self.n_obs_steps > 1:
-            batch_size, num_obs_steps, num_images, C, H, W = whole_images.shape
-            _, num_state_obs_steps, state_hdim = states.shape
-            # Padding states and whole_images.
-            if num_state_obs_steps < self.horizon and not self.training:
-                pad_len = self.horizon - num_state_obs_steps
-                # Bottom self[-1] padding
-                states = torch.cat(
-                    [states]
-                    + [
-                        states.clone()[:, -1].reshape(batch_size, 1, state_hdim)
-                        for _ in range(pad_len)
-                    ],
-                    dim=1,
-                ).to(states.device)
-            if num_obs_steps < self.horizon and not self.training:
-                pad_len = self.horizon - num_obs_steps
-                # Bottom self[-1] padding
-                whole_images = torch.cat(
-                    [whole_images]
-                    + [
-                        whole_images.clone()[:, -1].reshape(
-                            batch_size, 1, num_images, C, H, W
-                        )
-                        for _ in range(pad_len)
-                    ],
-                    dim=1,
-                ).to(whole_images.device)
+            batch_size, _, num_images, C, H, W = whole_images.shape
+
             # Extract state, images from states, whole_images
             state = states.reshape(batch_size, -1)
             images = whole_images.reshape(batch_size, -1, C, H, W)
+            num_images = images.shape[1]
         else:
             batch_size, num_images, C, H, W = whole_images.shape
             state = states
@@ -114,7 +90,8 @@ class MlpPolicy(nn.Module):
 
         # Extract image feature
         image_features = []
-        for i in range(self.horizon * num_images):
+
+        for i in range(num_images):
             image_feature = self.image_feature_extractor(
                 images[:, i]
             )  # (batch_size, image_feature_dim, 1, 1)
