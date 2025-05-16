@@ -12,7 +12,6 @@ class MlpPolicy(nn.Module):
         state_dim,
         action_dim,
         num_images,
-        horizon,
         n_obs_steps,
         n_action_steps,
         hidden_dim_list,
@@ -21,13 +20,12 @@ class MlpPolicy(nn.Module):
         super().__init__()
 
         # Setup Variable
-        self.horizon = horizon if n_obs_steps > 1 or n_action_steps > 1 else 1
         self.n_obs_steps = n_obs_steps
         self.n_action_steps = n_action_steps
 
         # Instantiate state feature extractor
         self.state_feature_extractor = nn.Sequential(
-            nn.Linear(state_dim * self.horizon, state_feature_dim),
+            nn.Linear(state_dim * self.n_obs_steps, state_feature_dim),
             # nn.BatchNorm1d(state_feature_dim),
             nn.ReLU(),
         )
@@ -43,10 +41,12 @@ class MlpPolicy(nn.Module):
 
         # Instantiate linear layers
         combined_feature_dim = (
-            state_feature_dim + num_images * image_feature_dim * self.horizon
+            state_feature_dim + num_images * image_feature_dim * n_obs_steps
         )
         linear_dim_list = (
-            [combined_feature_dim] + hidden_dim_list + [action_dim * self.horizon]
+            [combined_feature_dim]
+            + hidden_dim_list
+            + [action_dim * self.n_action_steps]
         )
         linear_layers = []
         for linear_idx in range(len(linear_dim_list) - 1):
@@ -101,7 +101,7 @@ class MlpPolicy(nn.Module):
             image_features.append(image_feature)
         image_features = torch.cat(
             image_features, dim=1
-        )  # (batch_size, num_images * horizon * image_feature_dim)
+        )  # (batch_size, num_images * n_obs_steps * image_feature_dim)
 
         # Apply linear layers
         combined_feature = torch.cat(
@@ -109,13 +109,13 @@ class MlpPolicy(nn.Module):
         )  # (batch_size, combined_feature_dim)
         action_feature = self.linear_layer_seq(
             combined_feature
-        )  # (batch_size, action_dim * horizon)
+        )  # (batch_size, action_dim * n_action_steps)
         if self.n_action_steps > 1 or (
             self.n_obs_steps > 1 and self.n_action_steps == 1
         ):
             action = action_feature.reshape(
-                batch_size, self.horizon, -1
-            )  # (batch_size, horizon, action_dim)
+                batch_size, self.n_action_steps, -1
+            )  # (batch_size, n_action_steps, action_dim)
         else:
             action = action_feature  # (batch_size, action_dim)
 

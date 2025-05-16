@@ -35,7 +35,6 @@ class TrainMlp(TrainBase):
             default=512,
             help="Dimension of state feature",
         )
-        parser.add_argument("--horizon", type=int, default=8, help="prediction horizon")
         parser.add_argument(
             "--n_obs_steps",
             type=int,
@@ -52,7 +51,6 @@ class TrainMlp(TrainBase):
     def setup_model_meta_info(self):
         super().setup_model_meta_info()
 
-        self.model_meta_info["data"]["horizon"] = self.args.horizon
         self.model_meta_info["data"]["n_obs_steps"] = self.args.n_obs_steps
         self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
 
@@ -61,7 +59,6 @@ class TrainMlp(TrainBase):
         self.model_meta_info["policy"]["args"] = {
             "hidden_dim_list": self.args.hidden_dim_list,
             "state_feature_dim": self.args.state_feature_dim,
-            "horizon": self.args.horizon,
             "n_obs_steps": self.args.n_obs_steps,
             "n_action_steps": self.args.n_action_steps,
         }
