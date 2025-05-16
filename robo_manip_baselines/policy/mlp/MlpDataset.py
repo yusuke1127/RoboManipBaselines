@@ -15,13 +15,13 @@ class MlpDataset(DatasetBase):
 
     def setup_variables(self):
         skip = self.model_meta_info["data"]["skip"]
-        pad_before = self.model_meta_info["data"]["n_obs_steps"] - 1
-        pad_after = self.model_meta_info["data"]["n_action_steps"] - 1
+        start_time_idx_min = self.model_meta_info["data"]["n_obs_steps"] - 1
+        start_time_idx_max = self.model_meta_info["data"]["n_action_steps"] - 1
         self.accum_step_idxes = None
 
         # Switch single load mode and sequential load mode.
         # Single load
-        if pad_before <= 0 and pad_after <= 0:
+        if start_time_idx_min <= 0 and start_time_idx_max <= 0:
             self.accum_step_idxes = []
             for filename in self.filenames:
                 with RmbData(filename) as rmb_data:
@@ -36,13 +36,12 @@ class MlpDataset(DatasetBase):
 
         # Sequential load
         else:
-            horizon = self.model_meta_info["data"]["horizon"]
             self.chunk_info_list = []
             for episode_idx, filename in enumerate(self.filenames):
                 with RmbData(filename) as rmb_data:
                     episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
                     for start_time_idx in range(
-                        -1 * pad_before, episode_len - (horizon - 1) + pad_after
+                        start_time_idx_min, episode_len - start_time_idx_max
                     ):
                         self.chunk_info_list.append((episode_idx, start_time_idx))
 
@@ -129,13 +128,21 @@ class MlpDataset(DatasetBase):
 
     def _get_sequential_data(self, chunk_idx):
         skip = self.model_meta_info["data"]["skip"]
-        horizon = self.model_meta_info["data"]["horizon"]
+        chunked_obs_steps = self.model_meta_info["data"]["n_obs_steps"] - 1
+        n_action_steps = self.model_meta_info["data"]["n_action_steps"]
         episode_idx, start_time_idx = self.chunk_info_list[chunk_idx]
 
         with RmbData(self.filenames[episode_idx], self.enable_rmb_cache) as rmb_data:
             episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
-            time_idxes = np.clip(
-                np.arange(start_time_idx, start_time_idx + horizon), 0, episode_len - 1
+            obs_time_idxes = np.clip(
+                np.arange(start_time_idx - chunked_obs_steps, start_time_idx + 1),
+                0,
+                episode_len - n_action_steps,
+            )
+            action_time_idxes = np.clip(
+                np.arange(start_time_idx + 1, start_time_idx + 1 + n_action_steps),
+                0,
+                episode_len - n_action_steps,
             )
 
             # Load state
@@ -144,7 +151,9 @@ class MlpDataset(DatasetBase):
             else:
                 state = np.concatenate(
                     [
-                        get_skipped_data_seq(rmb_data[key][:], key, skip)[time_idxes]
+                        get_skipped_data_seq(rmb_data[key][:], key, skip)[
+                            obs_time_idxes
+                        ]
                         for key in self.model_meta_info["state"]["keys"]
                     ],
                     axis=1,
@@ -153,7 +162,7 @@ class MlpDataset(DatasetBase):
             # Load action
             action = np.concatenate(
                 [
-                    get_skipped_data_seq(rmb_data[key][:], key, skip)[time_idxes]
+                    get_skipped_data_seq(rmb_data[key][:], key, skip)[action_time_idxes]
                     for key in self.model_meta_info["action"]["keys"]
                 ],
                 axis=1,
@@ -162,7 +171,9 @@ class MlpDataset(DatasetBase):
             # Load images
             images = np.stack(
                 [
-                    rmb_data[DataKey.get_rgb_image_key(camera_name)][::skip][time_idxes]
+                    rmb_data[DataKey.get_rgb_image_key(camera_name)][::skip][
+                        obs_time_idxes
+                    ]
                     for camera_name in self.model_meta_info["image"]["camera_names"]
                 ],
                 axis=0,

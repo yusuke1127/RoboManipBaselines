@@ -101,43 +101,13 @@ class RolloutMlp(RolloutBase):
 
         return images
 
-    def pad_state_and_images(self, state, images):
-        batch_size, num_state_obs_steps, state_hdim = state.shape
-        batch_size, num_obs_steps, num_images, C, H, W = images.shape
-        # Padding state and images.
-        if num_state_obs_steps < self.policy.horizon:
-            pad_len = self.policy.horizon - num_state_obs_steps
-            # Bottom self[-1] padding
-            padded_state = torch.cat(
-                [state]
-                + [
-                    state.clone()[:, -1].reshape(batch_size, 1, state_hdim)
-                    for _ in range(pad_len)
-                ],
-                dim=1,
-            ).to(state.device)
-        if num_obs_steps < self.policy.horizon:
-            pad_len = self.policy.horizon - num_obs_steps
-            # Bottom self[-1] padding
-            padded_images = torch.cat(
-                [images]
-                + [
-                    images.clone()[:, -1].reshape(batch_size, 1, num_images, C, H, W)
-                    for _ in range(pad_len)
-                ],
-                dim=1,
-            ).to(images.device)
-
-        return padded_state, padded_images
-
     def infer_policy(self):
         if self.n_obs_steps > 1:
             if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
                 state = self.get_buffered_state()
                 images = self.get_buffered_images()
-                padded_state, padded_images = self.pad_state_and_images(state, images)
                 get_action_idx = self.n_action_steps
-                action = self.policy(padded_state, padded_images)[0][:get_action_idx]
+                action = self.policy(state, images)[0][:get_action_idx]
         else:
             state = self.get_state()
             images = self.get_images()
