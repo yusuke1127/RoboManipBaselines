@@ -140,9 +140,9 @@ class MlpDataset(DatasetBase):
                 episode_len - n_action_steps,
             )
             action_time_idxes = np.clip(
-                np.arange(start_time_idx + 1, start_time_idx + 1 + n_action_steps),
-                0,
-                episode_len - n_action_steps,
+                np.arange(start_time_idx, start_time_idx + n_action_steps),
+                chunked_obs_steps,
+                episode_len,
             )
 
             # Load state
