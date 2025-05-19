@@ -55,7 +55,9 @@ class RolloutPhase(PhaseBase):
         self.op.set_command_data()
 
     def post_update(self):
-        if self.op.rollout_time_idx % self.op.args.skip_draw == 0:
+        if (not self.op.args.no_plot) and (
+            self.op.rollout_time_idx % self.op.args.skip_draw == 0
+        ):
             self.op.draw_plot()
 
         self.op.rollout_time_idx += 1
@@ -122,7 +124,8 @@ class RolloutBase(ABC):
 
         self.setup_env()
 
-        self.setup_plot()
+        if not self.args.no_plot:
+            self.setup_plot()
 
         self.setup_variables()
 
@@ -175,6 +178,9 @@ class RolloutBase(ABC):
             help="step interval to draw the plot",
         )
         parser.add_argument("--seed", type=int, default=42, help="random seed")
+        parser.add_argument(
+            "--no_plot", action="store_true", help="whether to disable policy plot"
+        )
         parser.add_argument(
             "--win_xy_policy",
             type=int,
