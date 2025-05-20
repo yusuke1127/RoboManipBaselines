@@ -55,7 +55,9 @@ class RolloutPhase(PhaseBase):
         self.op.set_command_data()
 
     def post_update(self):
-        if self.op.rollout_time_idx % self.op.args.skip_draw == 0:
+        if (not self.op.args.no_plot) and (
+            self.op.rollout_time_idx % self.op.args.skip_draw == 0
+        ):
             self.op.draw_plot()
 
         self.op.rollout_time_idx += 1
@@ -122,7 +124,8 @@ class RolloutBase(ABC):
 
         self.setup_env()
 
-        self.setup_plot()
+        if not self.args.no_plot:
+            self.setup_plot()
 
         self.setup_variables()
 
@@ -176,7 +179,10 @@ class RolloutBase(ABC):
         )
         parser.add_argument("--seed", type=int, default=42, help="random seed")
         parser.add_argument(
-            "--win_xy_policy",
+            "--no_plot", action="store_true", help="whether to disable policy plot"
+        )
+        parser.add_argument(
+            "--win_xy_plot",
             type=int,
             nargs=2,
             help="xy position of window to plot policy information",
@@ -252,8 +258,8 @@ class RolloutBase(ABC):
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )
 
-        if self.args.win_xy_policy is not None:
-            cv2.moveWindow(self.policy_name, *self.args.win_xy_policy)
+        if self.args.win_xy_plot is not None:
+            cv2.moveWindow(self.policy_name, *self.args.win_xy_plot)
         cv2.waitKey(1)
 
         if len(self.action_keys) > 0:
