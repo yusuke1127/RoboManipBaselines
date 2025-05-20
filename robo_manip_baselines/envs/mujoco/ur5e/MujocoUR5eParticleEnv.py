@@ -72,8 +72,8 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
             np.all(np.abs(particle_pos - goal_center) <= goal_half_extents)
             for particle_pos in particle_pos_list
         )
-
-        return count >= 3
+        count_thre = 3
+        return count >= count_thre
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:

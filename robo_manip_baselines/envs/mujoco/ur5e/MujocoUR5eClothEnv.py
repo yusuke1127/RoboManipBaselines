@@ -1,5 +1,6 @@
 from os import path
 
+import mujoco
 import numpy as np
 
 from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
@@ -42,6 +43,44 @@ class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
                 [0.0, 0.08, 0.0],
             ]
         )  # [m]
+
+    def _get_success(self):
+        # Get grid position list of cloth
+        cloth_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "cloth")
+        cloth_grid_pos_list = []
+        for body_id in range(self.model.nbody):
+            if self.model.body_parentid[body_id] == cloth_body_id:
+                cloth_grid_pos_list.append(self.data.xpos[body_id].copy())
+        cloth_grid_pos_list = np.array(cloth_grid_pos_list)
+
+        # Get vertex position list of board
+        board_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "board")
+        board_center = self.data.geom_xpos[board_geom_id]
+        board_rotation = self.data.geom_xmat[board_geom_id].reshape(3, 3)
+        board_size = self.model.geom_size[board_geom_id]
+        signs = np.array(
+            [
+                [-1, -1, -1],
+                [-1, -1, 1],
+                [-1, 1, -1],
+                [-1, 1, 1],
+                [1, -1, -1],
+                [1, -1, 1],
+                [1, 1, -1],
+                [1, 1, 1],
+            ]
+        )
+        board_local_vertices = signs * board_size
+        board_world_vertices = (
+            board_rotation @ board_local_vertices.T
+        ).T + board_center
+
+        # Check position
+        x_thre = board_world_vertices[:, 0].min() - 0.001  # [m]
+        z_thre = board_world_vertices[:, 2].min() - 0.092  # [m]
+        return (cloth_grid_pos_list[:, 0].min() > x_thre) and (
+            cloth_grid_pos_list[:, 2].min() > z_thre
+        )
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
