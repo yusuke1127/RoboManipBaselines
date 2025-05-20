@@ -122,7 +122,8 @@ class RolloutBase(ABC):
 
         self.setup_policy()
 
-        self.setup_env()
+        render_mode = None if self.args.no_render else "human"
+        self.setup_env(render_mode=render_mode)
 
         if not self.args.no_plot:
             self.setup_plot()
@@ -178,6 +179,11 @@ class RolloutBase(ABC):
             help="step interval to draw the plot",
         )
         parser.add_argument("--seed", type=int, default=42, help="random seed")
+        parser.add_argument(
+            "--no_render",
+            action="store_true",
+            help="whether to disable simulation rendering",
+        )
         parser.add_argument(
             "--no_plot", action="store_true", help="whether to disable policy plot"
         )
