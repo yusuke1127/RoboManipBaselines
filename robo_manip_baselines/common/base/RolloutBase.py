@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import os
 import pickle
 import sys
@@ -18,6 +19,7 @@ from ..data.DataKey import DataKey
 from ..manager.MotionManager import MotionManager
 from ..manager.PhaseManager import PhaseManager
 from ..utils.DataUtils import normalize_data
+from ..utils.MiscUtils import remove_suffix
 from .PhaseBase import PhaseBase
 
 
@@ -91,6 +93,10 @@ class RolloutPhase(PhaseBase):
 
         if transition_flag:
             self.op.print_statistics()
+
+            if self.op.args.save_last_image:
+                self.op.save_rgb_image()
+
             return True
         else:
             return False
@@ -203,6 +209,17 @@ class RolloutBase(ABC):
             type=float,
             default=None,
             help="maximum duration to rollout policy [s]",
+        )
+        parser.add_argument(
+            "--save_last_image",
+            action="store_true",
+            help="whether to save the observation image of the last frame",
+        )
+        parser.add_argument(
+            "--output_image_dir",
+            type=str,
+            default=".",
+            help="directory to save the output image (default: current directory)",
         )
 
         if argv is None:
@@ -417,6 +434,25 @@ class RolloutBase(ABC):
             f"mean: {inference_duration_arr.mean():.2e}, std: {inference_duration_arr.std():.2e} "
             f"min: {inference_duration_arr.min():.2e}, max: {inference_duration_arr.max():.2e}"
         )
+
+    def save_rgb_image(self):
+        image = cv2.hconcat(list(self.info["rgb_images"].values()))
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+
+        demo_name = remove_suffix(self.env.spec.name, "Env")
+        datetime_now = datetime.datetime.now()
+        image_path = os.path.abspath(
+            os.path.join(
+                self.args.output_image_dir,
+                f"Rollout_{demo_name}_{datetime_now:%Y%m%d_%H%M%S}.png",
+            )
+        )
+
+        print(
+            f"[{self.__class__.__name__}] Save the observation image of the last frame: {image_path}"
+        )
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        cv2.imwrite(image_path, image)
 
     def calc_model_size(self):
         # https://discuss.pytorch.org/t/finding-model-size/130275/2
