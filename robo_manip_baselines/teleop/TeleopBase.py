@@ -176,7 +176,9 @@ class TeleopBase(ABC):
         self.motion_manager = self.MotionManagerClass(self.env)
 
         # Setup data manager
-        self.data_manager = self.DataManagerClass(self.env, demo_name=self.demo_name)
+        self.data_manager = self.DataManagerClass(
+            self.env, demo_name=self.demo_name, task_desc=self.args.task_desc
+        )
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
 
@@ -229,7 +231,10 @@ class TeleopBase(ABC):
             )
 
         parser.add_argument(
-            "--demo_name", type=str, default=None, help="demonstration name"
+            "--demo_name", type=str, default="", help="demonstration name"
+        )
+        parser.add_argument(
+            "--task_desc", type=str, default="", help="task_description"
         )
         parser.add_argument(
             "--file_format",
