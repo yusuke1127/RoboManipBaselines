@@ -73,7 +73,7 @@ class MujocoUR5eCableEnv(MujocoUR5eEnvBase):
             self.model, mujoco.mjtObj.mjOBJ_BODY, "cable_end"
         )
         cable_end_pos = self.data.xpos[cable_end_body_id].copy()
-        x_thre = pole1_pos[0]
+        x_thre = pole2_pos[0]
         y_thre = pole1_pos[1] - 0.05
         if cable_end_pos[0] < x_thre or cable_end_pos[1] > y_thre:
             return False
