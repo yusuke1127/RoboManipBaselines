@@ -565,7 +565,7 @@ class TeleopBase(ABC):
                     "..",
                     "dataset",
                     f"{self.demo_name}_{self.datetime_now:%Y%m%d_%H%M%S}",
-                    f"{self.demo_name}_env{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}.{self.args.file_format}",
+                    f"{self.demo_name}_world{self.data_manager.world_idx:0>1}_{self.data_manager.episode_idx:0>3}.{self.args.file_format}",
                 )
             )
         self.data_manager.save_data(filename)
