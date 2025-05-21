@@ -102,17 +102,24 @@ class EndTeleopPhase(PhaseBase):
     def start(self):
         super().start()
 
-        print(
-            f"[{self.op.__class__.__name__}] Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed."
-        )
+        if (not self.op.args.save_success_only) or (self.op.reward > 0.0):
+            print(
+                f"[{self.op.__class__.__name__}] Press the 's' key if the teleoperation succeeded, or the 'f' key if it failed."
+            )
+        else:
+            print(
+                f"[{self.op.__class__.__name__}] Press the 'f' key. (Data cannot be saved in success-only mode.)"
+            )
 
     def post_update(self):
-        if self.op.key == ord("s"):
+        if ((not self.op.args.save_success_only) or (self.op.reward > 0.0)) and (
+            self.op.key == ord("s")
+        ):
             self.op.save_data()
             self.op.reset_flag = True
         elif self.op.key == ord("f"):
             print(
-                f"[{self.op.__class__.__name__}] Teleoperation failed: Reset without saving"
+                f"[{self.op.__class__.__name__}] Teleoperation has failed. Reset without saving."
             )
             self.op.reset_flag = True
 
@@ -242,6 +249,11 @@ class TeleopBase(ABC):
             default="rmb",
             choices=["rmb", "hdf5"],
             help="file format to save ('rmb' or 'hdf5')",
+        )
+        parser.add_argument(
+            "--save_success_only",
+            action="store_true",
+            help="whether to save data only when the task succeeds",
         )
         parser.add_argument(
             "--input_device",
@@ -443,6 +455,12 @@ class TeleopBase(ABC):
             )
 
     def draw_image(self):
+        def get_text_func(phase):
+            text = remove_suffix(phase.name, "Phase")
+            if self.reward > 0.0:
+                text += " (success)"
+            return text
+
         def get_color_func(phase):
             if phase.name in ("InitialTeleopPhase", "StandbyTeleopPhase"):
                 return np.array([200, 200, 255])
@@ -455,7 +473,9 @@ class TeleopBase(ABC):
             else:
                 return np.array([200, 255, 200])
 
-        phase_image = self.phase_manager.get_phase_image(get_color_func=get_color_func)
+        phase_image = self.phase_manager.get_phase_image(
+            get_text_func=get_text_func, get_color_func=get_color_func
+        )
         rgb_images = []
         depth_images = []
         for camera_name in (
