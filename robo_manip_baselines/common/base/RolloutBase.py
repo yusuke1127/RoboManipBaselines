@@ -172,6 +172,7 @@ class RolloutBase(ABC):
             "--world_random_scale",
             nargs="+",
             type=float,
+            default=None,
             help="random scale of simulation world (no randomness by default)",
         )
         parser.add_argument(

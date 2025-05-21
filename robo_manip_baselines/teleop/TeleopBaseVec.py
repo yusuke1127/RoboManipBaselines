@@ -98,6 +98,7 @@ class TeleopBaseVec(TeleopBase):
             ]
 
         # Reset environment
+        self.env.unwrapped.world_random_scale = self.args.world_random_scale
         self.data_manager.setup_env_world(world_idx)
         self.env.reset()
         print(

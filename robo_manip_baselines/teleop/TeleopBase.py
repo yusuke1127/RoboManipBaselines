@@ -280,6 +280,13 @@ class TeleopBase(ABC):
             help="list of world indexes (if not given, loop through all world indicies)",
         )
         parser.add_argument(
+            "--world_random_scale",
+            nargs="+",
+            type=float,
+            default=None,
+            help="random scale of simulation world (no randomness by default)",
+        )
+        parser.add_argument(
             "--replay_log",
             type=str,
             default=None,
@@ -298,6 +305,9 @@ class TeleopBase(ABC):
         if argv is None:
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
+
+        if self.args.world_random_scale is not None:
+            self.args.world_random_scale = np.array(self.args.world_random_scale)
 
     def setup_env(self):
         raise NotImplementedError(
@@ -397,6 +407,7 @@ class TeleopBase(ABC):
                 )
 
         # Reset environment
+        self.env.unwrapped.world_random_scale = self.args.world_random_scale
         self.data_manager.setup_env_world(world_idx)
         self.env.reset()
         print(
