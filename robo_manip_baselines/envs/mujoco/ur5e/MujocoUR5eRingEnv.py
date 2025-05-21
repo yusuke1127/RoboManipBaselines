@@ -1,6 +1,8 @@
 from os import path
 
+import mujoco
 import numpy as np
+from matplotlib.path import Path
 
 from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
 
@@ -41,6 +43,35 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
                 [0.0, 0.20, 0.0],
             ]
         )  # [m]
+
+        self.ring_body_ids = None
+
+    def _get_success(self):
+        # Get grid position list of ring
+        if self.ring_body_ids is None:
+            self.ring_body_ids = []
+            for body_id in range(self.model.nbody):
+                name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_BODY, body_id)
+                if name is not None and name.startswith("ring_B"):
+                    self.ring_body_ids.append(body_id)
+        ring_grid_pos_list = np.array(
+            [self.data.xpos[body_id] for body_id in self.ring_body_ids]
+        )
+
+        # Get position of pole
+        pole_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "pole")
+        pole_pos = self.data.xpos[pole_body_id]
+
+        # Check z position
+        z_thre = pole_pos[2] + 0.04  # [m]
+        if ring_grid_pos_list[:, 2].max() > z_thre:
+            return False
+
+        # Check ring condition
+        ring_grid_xy_list = ring_grid_pos_list[:, :2]
+        ring_grid_xy_list = np.vstack([ring_grid_xy_list, ring_grid_xy_list[0]])
+        ring_path = Path(ring_grid_xy_list)
+        return ring_path.contains_point(pole_pos[:2])
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
