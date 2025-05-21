@@ -67,7 +67,7 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
         if ring_grid_pos_list[:, 2].max() > z_thre:
             return False
 
-        # Check ring condition
+        # Check if the ring hangs on the pole
         ring_grid_xy_list = ring_grid_pos_list[:, :2]
         ring_grid_xy_list = np.vstack([ring_grid_xy_list, ring_grid_xy_list[0]])
         ring_path = Path(ring_grid_xy_list)
