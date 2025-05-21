@@ -49,6 +49,13 @@ class MujocoUR5eCabinetEnv(MujocoUR5eEnvBase):
             ]
         )  # [m]
 
+    def _get_success(self):
+        hinge_thre = 120.0  # [deg]
+        slide_thre = 0.12  # [m]
+        return (self.data.joint("hinge").qpos[0] > np.deg2rad(hinge_thre)) or (
+            self.data.joint("slide").qpos[0] > slide_thre
+        )
+
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.cabinet_pos_offsets)
