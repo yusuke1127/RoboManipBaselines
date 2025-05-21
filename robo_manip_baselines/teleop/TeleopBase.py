@@ -243,6 +243,7 @@ class TeleopBase(ABC):
         parser.add_argument(
             "--task_desc", type=str, default="", help="task_description"
         )
+
         parser.add_argument(
             "--file_format",
             type=str,
@@ -255,6 +256,7 @@ class TeleopBase(ABC):
             action="store_true",
             help="whether to save data only when the task succeeds",
         )
+
         parser.add_argument(
             "--input_device",
             type=str,
@@ -265,14 +267,17 @@ class TeleopBase(ABC):
         parser.add_argument(
             "--input_device_config", type=str, help="configuration file of input device"
         )
+
         parser.add_argument(
             "--sync_before_record",
             action="store_true",
             help="whether to synchronize with input device before starting record",
         )
+
         parser.add_argument(
             "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
         )
+
         parser.add_argument(
             "--world_idx_list",
             type=int,
@@ -286,6 +291,7 @@ class TeleopBase(ABC):
             default=None,
             help="random scale of simulation world (no randomness by default)",
         )
+
         parser.add_argument(
             "--replay_log",
             type=str,
@@ -300,7 +306,7 @@ class TeleopBase(ABC):
             help="Command data keys when replaying log motion",
         )
 
-        parser.add_argument("--seed", type=int, default=42, help="random seed")
+        parser.add_argument("--seed", type=int, default=-1, help="random seed")
 
         if argv is None:
             argv = sys.argv
@@ -308,6 +314,9 @@ class TeleopBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
+
+        if self.args.seed < 0:
+            self.args.seed = int(time.time()) % (2**32)
 
     def setup_env(self):
         raise NotImplementedError(

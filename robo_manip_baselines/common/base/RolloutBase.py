@@ -19,6 +19,7 @@ from ..data.DataKey import DataKey
 from ..manager.MotionManager import MotionManager
 from ..manager.PhaseManager import PhaseManager
 from ..utils.DataUtils import normalize_data
+from ..utils.MathUtils import set_random_seed
 from ..utils.MiscUtils import remove_suffix
 from .PhaseBase import PhaseBase
 
@@ -124,6 +125,8 @@ class RolloutBase(ABC):
     def __init__(self):
         self.setup_args()
 
+        set_random_seed(self.args.seed)
+
         self.setup_model_meta_info()
 
         self.setup_policy()
@@ -175,6 +178,7 @@ class RolloutBase(ABC):
             default=None,
             help="random scale of simulation world (no randomness by default)",
         )
+
         parser.add_argument(
             "--skip",
             type=int,
@@ -185,7 +189,9 @@ class RolloutBase(ABC):
             type=int,
             help="step interval to draw the plot",
         )
-        parser.add_argument("--seed", type=int, default=42, help="random seed")
+
+        parser.add_argument("--seed", type=int, default=-1, help="random seed")
+
         parser.add_argument(
             "--no_render",
             action="store_true",
@@ -200,6 +206,7 @@ class RolloutBase(ABC):
             nargs=2,
             help="xy position of window to plot policy information",
         )
+
         parser.add_argument(
             "--wait_before_start",
             action="store_true",
@@ -211,6 +218,7 @@ class RolloutBase(ABC):
             default=None,
             help="maximum duration to rollout policy [s]",
         )
+
         parser.add_argument(
             "--save_last_image",
             action="store_true",
@@ -229,6 +237,9 @@ class RolloutBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
+
+        if self.args.seed < 0:
+            self.args.seed = int(time.time()) % (2**32)
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
