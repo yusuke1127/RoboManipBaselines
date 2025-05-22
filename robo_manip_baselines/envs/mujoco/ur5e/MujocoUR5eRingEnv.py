@@ -59,11 +59,10 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
         )
 
         # Get position of pole
-        pole_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "pole")
-        pole_pos = self.data.xpos[pole_body_id]
+        pole_pos = self.data.body("pole").xpos.copy()
 
         # Check z position
-        z_thre = pole_pos[2] + 0.04  # [m]
+        z_thre = pole_pos[2] + 0.05  # [m]
         if ring_grid_pos_list[:, 2].max() > z_thre:
             return False
 
@@ -76,7 +75,12 @@ class MujocoUR5eRingEnv(MujocoUR5eEnvBase):
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.pole_pos_offsets)
-        self.model.body("pole").pos = (
-            self.original_pole_pos + self.pole_pos_offsets[world_idx]
-        )
+
+        pole_pos = self.original_pole_pos + self.pole_pos_offsets[world_idx]
+        if self.world_random_scale is not None:
+            pole_pos += np.random.uniform(
+                low=-1.0 * self.world_random_scale, high=self.world_random_scale, size=3
+            )
+        self.model.body("pole").pos = pole_pos
+
         return world_idx

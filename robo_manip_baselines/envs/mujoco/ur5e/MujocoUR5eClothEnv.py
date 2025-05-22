@@ -85,10 +85,16 @@ class MujocoUR5eClothEnv(MujocoUR5eEnvBase):
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.pos_cloth_offsets)
-        self.model.body("cloth").pos = (
-            self.original_cloth_pos + self.pos_cloth_offsets[world_idx]
-        )
-        self.model.body("board").pos = (
-            self.original_board_pos + self.pos_cloth_offsets[world_idx]
-        )
+
+        cloth_pos = self.original_cloth_pos + self.pos_cloth_offsets[world_idx]
+        board_pos = self.original_board_pos + self.pos_cloth_offsets[world_idx]
+        if self.world_random_scale is not None:
+            delta_pos = np.random.uniform(
+                low=-1.0 * self.world_random_scale, high=self.world_random_scale, size=3
+            )
+            cloth_pos += delta_pos
+            board_pos += delta_pos
+        self.model.body("cloth").pos = cloth_pos
+        self.model.body("board").pos = board_pos
+
         return world_idx

@@ -1,6 +1,5 @@
 from os import path
 
-import mujoco
 import numpy as np
 
 from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
@@ -44,10 +43,8 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
         )  # [m]
 
     def _get_success(self):
-        peg_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "peg")
-        peg_pos = self.data.xpos[peg_body_id].copy()
-        hole_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "hole")
-        hole_pos = self.data.xpos[hole_body_id].copy()
+        peg_pos = self.data.body("peg").xpos.copy()
+        hole_pos = self.data.body("hole").xpos.copy()
 
         xy_thre = 0.01  # [m]
         z_thre = hole_pos[2] + 0.05  # [m]
