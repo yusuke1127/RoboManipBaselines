@@ -58,10 +58,8 @@ class MujocoUR5eCableEnv(MujocoUR5eEnvBase):
         )
 
         # Get position of poles
-        pole1_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "pole1")
-        pole1_pos = self.data.geom_xpos[pole1_geom_id]
-        pole2_geom_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, "pole2")
-        pole2_pos = self.data.geom_xpos[pole2_geom_id]
+        pole1_pos = self.data.geom("pole1").xpos.copy()
+        pole2_pos = self.data.geom("pole2").xpos.copy()
 
         # Check cable height
         z_thre = pole1_pos[2] + 0.01  # [m]
@@ -109,7 +107,12 @@ class MujocoUR5eCableEnv(MujocoUR5eEnvBase):
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.pole_pos_offsets)
-        self.model.body("poles").pos = (
-            self.original_pole_pos + self.pole_pos_offsets[world_idx]
-        )
+
+        pole_pos = self.original_pole_pos + self.pole_pos_offsets[world_idx]
+        if self.world_random_scale is not None:
+            pole_pos += np.random.uniform(
+                low=-1.0 * self.world_random_scale, high=self.world_random_scale, size=3
+            )
+        self.model.body("poles").pos = pole_pos
+
         return world_idx

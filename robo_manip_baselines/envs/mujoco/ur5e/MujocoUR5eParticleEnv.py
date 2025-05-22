@@ -61,10 +61,7 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
                 particle_pos_list.append(self.data.xpos[body_id].copy())
 
         # Get goal case position and size
-        goal_body_id = mujoco.mj_name2id(
-            self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_case"
-        )
-        goal_center = self.data.xpos[goal_body_id].copy()
+        goal_center = self.data.body("goal_case").xpos.copy()
         goal_half_extents = np.array([0.08, 0.08, 0.08])  # [m]
 
         # Check count
@@ -78,10 +75,16 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
             world_idx = cumulative_idx % len(self.pos_offsets)
-        self.model.body("source_case").pos = (
-            self.original_source_pos + self.pos_offsets[world_idx]
-        )
-        self.model.body("particle").pos = (
-            self.original_particle_pos + self.pos_offsets[world_idx]
-        )
+
+        source_pos = self.original_source_pos + self.pos_offsets[world_idx]
+        particle_pos = self.original_particle_pos + self.pos_offsets[world_idx]
+        if self.world_random_scale is not None:
+            delta_pos = np.random.uniform(
+                low=-1.0 * self.world_random_scale, high=self.world_random_scale, size=3
+            )
+            source_pos += delta_pos
+            particle_pos += delta_pos
+        self.model.body("source_case").pos = source_pos
+        self.model.body("particle").pos = particle_pos
+
         return world_idx
