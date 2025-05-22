@@ -113,7 +113,9 @@ class EndRolloutPhase(PhaseBase):
         if (self.op.key == ord("n")) or (self.op.args.duration is not None):
             reward_status_str = "success" if self.op.reward > 0.0 else "failure"
             print(
-                f"Terminate the rollout phase with the task {reward_status_str} reward.",
+                # Do not change the following print description, as it will be used
+                # to automatically obtain the task success/failure result
+                f"Rollout result: {reward_status_str}",
                 flush=True,
             )
             self.op.quit_flag = True
