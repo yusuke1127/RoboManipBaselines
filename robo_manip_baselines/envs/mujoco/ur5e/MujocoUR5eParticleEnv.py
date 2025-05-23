@@ -1,5 +1,6 @@
 from os import path
 
+import mujoco
 import numpy as np
 
 from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
@@ -48,6 +49,31 @@ class MujocoUR5eParticleEnv(MujocoUR5eEnvBase):
             return {"rpy_scale": 1e-2}
         else:
             return super().get_input_device_kwargs(input_device_name)
+
+    def _get_success(self):
+        # Get particle position list
+        particle_body_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, "particle"
+        )
+        particle_pos_list = []
+        for body_id in range(self.model.nbody):
+            if self.model.body_parentid[body_id] == particle_body_id:
+                particle_pos_list.append(self.data.xpos[body_id].copy())
+
+        # Get goal case position and size
+        goal_body_id = mujoco.mj_name2id(
+            self.model, mujoco.mjtObj.mjOBJ_BODY, "goal_case"
+        )
+        goal_center = self.data.xpos[goal_body_id].copy()
+        goal_half_extents = np.array([0.08, 0.08, 0.08])  # [m]
+
+        # Check count
+        count = sum(
+            np.all(np.abs(particle_pos - goal_center) <= goal_half_extents)
+            for particle_pos in particle_pos_list
+        )
+        count_thre = 3
+        return count >= count_thre
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
