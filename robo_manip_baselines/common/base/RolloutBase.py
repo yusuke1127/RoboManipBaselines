@@ -19,6 +19,7 @@ from ..data.DataKey import DataKey
 from ..manager.MotionManager import MotionManager
 from ..manager.PhaseManager import PhaseManager
 from ..utils.DataUtils import normalize_data
+from ..utils.MathUtils import set_random_seed
 from ..utils.MiscUtils import remove_suffix
 from .PhaseBase import PhaseBase
 
@@ -112,7 +113,9 @@ class EndRolloutPhase(PhaseBase):
         if (self.op.key == ord("n")) or (self.op.args.duration is not None):
             reward_status_str = "success" if self.op.reward > 0.0 else "failure"
             print(
-                f"Terminate the rollout phase with the task {reward_status_str} reward.",
+                # Do not change the following print description, as it will be used
+                # to automatically obtain the task success/failure result
+                f"Rollout result: {reward_status_str}",
                 flush=True,
             )
             self.op.quit_flag = True
@@ -123,6 +126,8 @@ class EndRolloutPhase(PhaseBase):
 class RolloutBase(ABC):
     def __init__(self):
         self.setup_args()
+
+        set_random_seed(self.args.seed)
 
         self.setup_model_meta_info()
 
@@ -172,8 +177,10 @@ class RolloutBase(ABC):
             "--world_random_scale",
             nargs="+",
             type=float,
+            default=None,
             help="random scale of simulation world (no randomness by default)",
         )
+
         parser.add_argument(
             "--skip",
             type=int,
@@ -184,7 +191,9 @@ class RolloutBase(ABC):
             type=int,
             help="step interval to draw the plot",
         )
-        parser.add_argument("--seed", type=int, default=42, help="random seed")
+
+        parser.add_argument("--seed", type=int, default=-1, help="random seed")
+
         parser.add_argument(
             "--no_render",
             action="store_true",
@@ -199,6 +208,7 @@ class RolloutBase(ABC):
             nargs=2,
             help="xy position of window to plot policy information",
         )
+
         parser.add_argument(
             "--wait_before_start",
             action="store_true",
@@ -210,6 +220,7 @@ class RolloutBase(ABC):
             default=None,
             help="maximum duration to rollout policy [s]",
         )
+
         parser.add_argument(
             "--save_last_image",
             action="store_true",
@@ -228,6 +239,9 @@ class RolloutBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
+
+        if self.args.seed < 0:
+            self.args.seed = int(time.time()) % (2**32)
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
