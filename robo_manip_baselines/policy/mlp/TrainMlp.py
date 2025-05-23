@@ -81,6 +81,9 @@ class TrainMlp(TrainBase):
 
         # Print policy information
         self.print_policy_info()
+        print(
+            f"  - obs steps: {self.args.n_obs_steps}, action steps: {self.args.n_action_steps}"
+        )
 
     def train_loop(self):
         for epoch in tqdm(range(self.args.num_epochs)):

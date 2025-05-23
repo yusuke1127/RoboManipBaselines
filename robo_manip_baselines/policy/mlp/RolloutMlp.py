@@ -12,6 +12,9 @@ class RolloutMlp(RolloutBase):
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()
+        print(
+            f"  - obs steps: {self.model_meta_info['data']['n_obs_steps']}, action steps: {self.model_meta_info['data']['n_action_steps']}"
+        )
 
         # Construct policy
         self.policy = MlpPolicy(
