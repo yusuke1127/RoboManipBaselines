@@ -1,5 +1,6 @@
 import os
 import sys
+from functools import lru_cache
 
 import cv2
 import matplotlib.pylab as plt
@@ -16,6 +17,11 @@ from robo_manip_baselines.common import (
     denormalize_data,
     generate_text_embeddings,
 )
+
+
+@lru_cache()
+def get_task_embedding_cached(task_desc):
+    return generate_text_embeddings([task_desc])
 
 
 class RolloutMtAct(RolloutBase):
@@ -70,7 +76,7 @@ class RolloutMtAct(RolloutBase):
         # Infer
         state = self.get_state()
         images = self.get_images()
-        task_emb = generate_text_embeddings([self.args.task_desc])[0]
+        task_emb = get_task_embedding_cached(self.args.task_desc)[0]
         task_emb_tensor = torch.tensor(np.asarray(task_emb), dtype=torch.float32)
         all_actions = self.policy(
             state, images, task_emb=task_emb_tensor.to(state.device)
