@@ -34,6 +34,7 @@ from .utils.VisionUtils import (
 from .utils.DataUtils import (
     normalize_data,
     denormalize_data,
+    generate_text_embeddings,
     get_skipped_data_seq,
     get_skipped_single_data,
 )

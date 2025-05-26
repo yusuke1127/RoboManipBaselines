@@ -40,6 +40,14 @@ def denormalize_data(data, stats):
         raise ValueError(f"[denormalize_data] Invalid normalization type: {norm_type}")
 
 
+def generate_text_embeddings(text_list):
+    """Generate text embeddings."""
+    from sentence_transformers import SentenceTransformer
+
+    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    return model.encode(text_list)
+
+
 def _aggregate_data_seq_with_skip(data_seq, skip, agg_func):
     """
     Aggregate elements along the first axis (axis=0) in chunks of skip.
