@@ -105,7 +105,7 @@ class RolloutMlp(RolloutBase):
         return images
 
     def infer_policy(self):
-        if self.n_obs_steps > 1:
+        if self.n_obs_steps > 1 or self.n_action_steps > 1:
             if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
                 state = self.get_buffered_state()
                 images = self.get_buffered_images()
@@ -116,7 +116,7 @@ class RolloutMlp(RolloutBase):
             images = self.get_images()
             action = self.policy(state, images)[0]
 
-        if self.n_action_steps > 1:
+        if self.n_action_steps > 1 or self.n_obs_steps > 1:
             if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
                 self.policy_action_buf = list(
                     action.cpu().detach().numpy().astype(np.float64)

@@ -71,7 +71,7 @@ class MlpPolicy(nn.Module):
                     nn.init.zeros_(m.bias)
 
     def forward(self, states, whole_images):
-        if self.n_obs_steps > 1:
+        if self.n_obs_steps > 1 or self.n_action_steps > 1:
             batch_size, _, num_images, C, H, W = whole_images.shape
 
             # Extract state, images from states, whole_images
