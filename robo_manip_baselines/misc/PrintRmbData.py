@@ -10,8 +10,11 @@ def parse_argument():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument("path", type=str, help=("path to data (*.hdf5 or *.rmb) "
-                                                "or directory containing them"))
+    parser.add_argument(
+        "path",
+        type=str,
+        help=("path to data (*.hdf5 or *.rmb) " "or directory containing them"),
+    )
 
     return parser.parse_args()
 
@@ -23,9 +26,10 @@ class PrintRmbData:
     def run(self):
         if os.path.isdir(self.path):
             pattern_hdf5 = os.path.join(self.path, "**", "*.hdf5")
-            pattern_rmb  = os.path.join(self.path, "**", "*.rmb")
-            file_list = glob.glob(pattern_hdf5, recursive=True) + \
-                        glob.glob(pattern_rmb, recursive=True)
+            pattern_rmb = os.path.join(self.path, "**", "*.rmb")
+            file_list = glob.glob(pattern_hdf5, recursive=True) + glob.glob(
+                pattern_rmb, recursive=True
+            )
             file_list = sorted(file_list)
             if not file_list:
                 print(
