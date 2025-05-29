@@ -93,7 +93,7 @@ class TrainMlp(TrainBase):
             for data in self.train_dataloader:
                 self.optimizer.zero_grad()
                 pred_action = self.policy(*[d.cuda() for d in data[0:2]])
-                loss = F.mse_loss(pred_action, data[2].cuda())
+                loss = F.l1_loss(pred_action, data[2].cuda())
                 loss.backward()
                 self.optimizer.step()
                 batch_result_list.append(self.detach_batch_result({"loss": loss}))
@@ -105,7 +105,7 @@ class TrainMlp(TrainBase):
                 batch_result_list = []
                 for data in self.val_dataloader:
                     pred_action = self.policy(*[d.cuda() for d in data[0:2]])
-                    loss = F.mse_loss(pred_action, data[2].cuda())
+                    loss = F.l1_loss(pred_action, data[2].cuda())
                     batch_result_list.append(self.detach_batch_result({"loss": loss}))
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
