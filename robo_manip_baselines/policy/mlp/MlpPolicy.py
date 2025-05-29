@@ -41,7 +41,7 @@ class MlpPolicy(nn.Module):
 
         # Instantiate linear layers
         combined_feature_dim = (
-            state_feature_dim + num_images * image_feature_dim * n_obs_steps
+            state_feature_dim + num_images * n_obs_steps * image_feature_dim
         )
         linear_dim_list = (
             [combined_feature_dim]
@@ -70,30 +70,24 @@ class MlpPolicy(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def forward(self, states, whole_images):
-        if self.n_obs_steps > 1 or self.n_action_steps > 1:
-            batch_size, _, num_images, C, H, W = whole_images.shape
+    def forward(self, state_seq, images_seq):
+        batch_size, _, _, C, H, W = images_seq.shape
 
-            # Extract state, images from states, whole_images
-            state = states.reshape(batch_size, -1)
-            images = whole_images.reshape(batch_size, -1, C, H, W)
-            num_images = images.shape[1]
-        else:
-            batch_size, num_images, C, H, W = whole_images.shape
-            state = states
-            images = whole_images
+        # Reshape state_seq and images_seq
+        state_seq = state_seq.reshape(batch_size, -1)
+        images_seq = images_seq.reshape(batch_size, -1, C, H, W)
 
         # Extract state feature
         state_feature = self.state_feature_extractor(
-            state
+            state_seq
         )  # (batch_size, state_feature_dim)
 
         # Extract image feature
         image_features = []
 
-        for i in range(num_images):
+        for i in range(images_seq.shape[1]):
             image_feature = self.image_feature_extractor(
-                images[:, i]
+                images_seq[:, i]
             )  # (batch_size, image_feature_dim, 1, 1)
             image_feature = image_feature.view(
                 batch_size, -1
@@ -107,16 +101,13 @@ class MlpPolicy(nn.Module):
         combined_feature = torch.cat(
             [state_feature, image_features], dim=1
         )  # (batch_size, combined_feature_dim)
-        action_feature = self.linear_layer_seq(
+        action_seq = self.linear_layer_seq(
             combined_feature
         )  # (batch_size, action_dim * n_action_steps)
-        if self.n_action_steps > 1 or (
-            self.n_obs_steps > 1 and self.n_action_steps == 1
-        ):
-            action = action_feature.reshape(
-                batch_size, self.n_action_steps, -1
-            )  # (batch_size, n_action_steps, action_dim)
-        else:
-            action = action_feature  # (batch_size, action_dim)
 
-        return action
+        # Reshape action_seq
+        action_seq = action_seq.reshape(
+            batch_size, self.n_action_steps, -1
+        )  # (batch_size, n_action_steps, action_dim)
+
+        return action_seq

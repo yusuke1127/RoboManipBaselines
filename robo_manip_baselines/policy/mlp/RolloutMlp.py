@@ -41,14 +41,11 @@ class RolloutMlp(RolloutBase):
     def setup_variables(self):
         super().setup_variables()
 
-        self.n_obs_steps = self.model_meta_info["data"]["n_obs_steps"]
-        self.n_action_steps = self.model_meta_info["data"]["n_action_steps"]
-
         self.state_buf = None
         self.images_buf = None
         self.policy_action_buf = None
 
-    def get_buffered_state(self):
+    def get_state(self):
         # Get latest value
         state = np.concatenate(
             [
@@ -72,7 +69,7 @@ class RolloutMlp(RolloutBase):
 
         return state
 
-    def get_buffered_images(self):
+    def get_images(self):
         # Get latest value
         images = []
         for camera_name in self.camera_names:
@@ -105,30 +102,19 @@ class RolloutMlp(RolloutBase):
         return images
 
     def infer_policy(self):
-        if self.n_obs_steps > 1 or self.n_action_steps > 1:
-            if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
-                state = self.get_buffered_state()
-                images = self.get_buffered_images()
-                get_action_idx = self.n_action_steps
-                action = self.policy(state, images)[0][:get_action_idx]
-        else:
+        # Infer
+        if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
             state = self.get_state()
             images = self.get_images()
             action = self.policy(state, images)[0]
+            self.policy_action_buf = list(
+                action.cpu().detach().numpy().astype(np.float64)
+            )
 
-        if self.n_action_steps > 1 or self.n_obs_steps > 1:
-            if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
-                self.policy_action_buf = list(
-                    action.cpu().detach().numpy().astype(np.float64)
-                )
-            self.policy_action = denormalize_data(
-                self.policy_action_buf.pop(0), self.model_meta_info["action"]
-            )
-        else:
-            action = action.cpu().detach().numpy().astype(np.float64)
-            self.policy_action = denormalize_data(
-                action, self.model_meta_info["action"]
-            )
+        # Store action
+        self.policy_action = denormalize_data(
+            self.policy_action_buf.pop(0), self.model_meta_info["action"]
+        )
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
         )

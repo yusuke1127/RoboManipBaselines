@@ -39,13 +39,13 @@ class TrainMlp(TrainBase):
             "--n_obs_steps",
             type=int,
             default=1,
-            help="number of steps in observation to input in the policy",
+            help="number of steps in the observation sequence to input in the policy",
         )
         parser.add_argument(
             "--n_action_steps",
             type=int,
             default=1,
-            help="number of steps in the action to output from the policy",
+            help="number of steps in the action sequence to output from the policy",
         )
 
     def setup_model_meta_info(self):
@@ -57,10 +57,10 @@ class TrainMlp(TrainBase):
     def setup_policy(self):
         # Set policy args
         self.model_meta_info["policy"]["args"] = {
-            "hidden_dim_list": self.args.hidden_dim_list,
-            "state_feature_dim": self.args.state_feature_dim,
             "n_obs_steps": self.args.n_obs_steps,
             "n_action_steps": self.args.n_action_steps,
+            "hidden_dim_list": self.args.hidden_dim_list,
+            "state_feature_dim": self.args.state_feature_dim,
         }
 
         # Construct policy
