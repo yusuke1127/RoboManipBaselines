@@ -31,6 +31,12 @@ class DiffusionPolicy3DDataset(DatasetBase):
                 ):
                     self.chunk_info_list.append((episode_idx, start_time_idx))
 
+    def pre_convert_data(self, state, action, images, depthes):
+        state, action, images = super().pre_convert_data(state, action, images)
+        depthes = np.moveaxis(images, -1, -3)
+
+        return state, action, images, depthes
+
     def __len__(self):
         return len(self.chunk_info_list)
 
@@ -76,6 +82,17 @@ class DiffusionPolicy3DDataset(DatasetBase):
                 axis=0,
             )
 
+            # Load Depthes
+            depthes = np.stack(
+                [
+                    rmb_data[DataKey.get_depth_image_key(camera_name)][::skip][
+                        time_idxes
+                    ]
+                    for camera_name in self.model_meta_info["image"]["camera_names"]
+                ],
+                axis=0,
+            )
+
         # Resize images
         K, T, H, W, C = images.shape
         image_size = self.model_meta_info["data"]["image_size"]
@@ -83,9 +100,17 @@ class DiffusionPolicy3DDataset(DatasetBase):
             [cv2.resize(img, image_size) for img in images.reshape(-1, H, W, C)]
         ).reshape(K, T, *image_size[::-1], C)
 
-        # Pre-convert data
-        state, action, images = self.pre_convert_data(state, action, images)
+        # Resize depthes
+        K, T, H, W, C = depthes.shape
+        image_size = self.model_meta_info["data"]["image_size"]
+        depthes = np.array(
+            [cv2.resize(dpth, image_size) for dpth in depthes.reshape(-1, H, W, C)]
+        ).reshape(K, T, *image_size[::-1], C)
 
+        # Pre-convert data
+        state, action, images, depthes = self.pre_convert_data(
+            state, action, images, depthes
+        )
         # Convert to tensor
         state_tensor = torch.tensor(state, dtype=torch.float32)
         action_tensor = torch.tensor(action, dtype=torch.float32)
@@ -96,6 +121,10 @@ class DiffusionPolicy3DDataset(DatasetBase):
             state_tensor, action_tensor, images_tensor
         )
 
+        # TODO: Convert image and depth to pointcloud
+        pointclouds = images  # dummy code
+        pointclouds_tensor = torch.tensor(pointclouds)
+
         # Convert to data structure of policy input and output
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
@@ -103,9 +132,9 @@ class DiffusionPolicy3DDataset(DatasetBase):
         for camera_idx, camera_name in enumerate(
             self.model_meta_info["image"]["camera_names"]
         ):
-            data["obs"][DataKey.get_rgb_image_key(camera_name)] = images_tensor[
-                camera_idx
-            ]
+            data["obs"]["point_cloud"][DataKey.get_rgb_image_key(camera_name)] = (
+                pointclouds_tensor[camera_idx]
+            )
 
         return data
 
