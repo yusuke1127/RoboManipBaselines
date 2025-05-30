@@ -155,6 +155,9 @@ class TrainBase(ABC):
         parser.add_argument("--batch_size", type=int, help="batch size")
         parser.add_argument("--num_epochs", type=int, help="number of epochs")
         parser.add_argument("--lr", type=float, help="learning rate")
+        parser.add_argument(
+            "--num_workers", type=int, default=4, help="number of workers in dataloader"
+        )
 
         parser.add_argument("--seed", type=int, default=42, help="random seed")
 
@@ -370,7 +373,7 @@ class TrainBase(ABC):
             batch_size=self.args.batch_size,
             shuffle=shuffle,
             pin_memory=True,
-            num_workers=4,
+            num_workers=self.args.num_workers,
             persistent_workers=True,
             prefetch_factor=4,
         )
