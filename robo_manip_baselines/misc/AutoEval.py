@@ -29,6 +29,7 @@ class AutoEval:
         "Sarnn": ["eipl"],
         "Act": ["act", "detr"],
         "DiffusionPolicy": ["diffusion_policy"],
+        "MtAct": ["roboagent"],
     }
     APT_REQUIRED_PACKAGE_NAMES = [
         "libosmesa6-dev",
@@ -43,23 +44,22 @@ class AutoEval:
         env,
         commit_id,
         repository_owner_name=None,
-        checkpoint_base_dir=None,
+        repository_dir=None,
+        input_checkpoint_file=None,
         is_rollout_disabled=False,
     ):
         """Initialize the instance with default or provided configurations."""
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
+
         self.repository_owner_name = repository_owner_name
         self.is_rollout_disabled = is_rollout_disabled
-
-        self.repository_tmp_dir = os.path.join(tempfile.mkdtemp(), self.REPOSITORY_NAME)
-        self.checkpoint_temp_dir = (
-            tempfile.mkdtemp(dir=checkpoint_base_dir)
-            if checkpoint_base_dir is not None
-            else self.repository_tmp_dir
-        )
-        self.venv_python = os.path.join(tempfile.mkdtemp(), "venv/bin/python")
+        self.repository_dir = self.adjust_repository_dir(repository_dir)
+        self.input_checkpoint_file = input_checkpoint_file
+        venv_dir = os.path.join(self.repository_dir, "..", "venv")
+        self.venv_python = os.path.join(venv_dir, "bin", "python")
+        venv.create(venv_dir, with_pip=True)
         self.dataset_dir = None
 
         self.result_datetime_dir = os.path.join(
@@ -67,6 +67,25 @@ class AutoEval:
             "result/",
             datetime.now().strftime("%Y%m%d_%H%M%S"),
         )
+
+    @classmethod
+    def adjust_repository_dir(cls, initial_repository_path):
+        """Normalize and validate the repository directory path."""
+        if initial_repository_path is None:
+            initial_repository_path = tempfile.mkdtemp()
+        final_repository_path = initial_repository_path.rstrip(os.sep)
+        basename = os.path.basename(final_repository_path)
+        _, ext = os.path.splitext(basename)
+        if ext:
+            raise IOError(f"File paths are not allowed: {initial_repository_path}")
+        assert os.path.isdir(
+            os.path.dirname(final_repository_path)
+        ), f"[{cls.__name__}] Parent directory does not exist: {initial_repository_path}"
+        if basename != cls.REPOSITORY_NAME:
+            final_repository_path = os.path.join(
+                final_repository_path, cls.REPOSITORY_NAME
+            )
+        return final_repository_path
 
     @classmethod
     def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
@@ -113,13 +132,13 @@ class AutoEval:
                 "clone",
                 "--recursive",
                 git_clone_url,
-                self.repository_tmp_dir,
+                self.repository_dir,
             ],
         )
         if self.commit_id is not None:
             self.exec_command(
                 ["git", "switch", "--detach", self.commit_id],
-                cwd=self.repository_tmp_dir,
+                cwd=self.repository_dir,
             )
 
     def check_apt_packages_installed(self, package_names):
@@ -141,7 +160,7 @@ class AutoEval:
         """Install common dependencies required for the environment."""
         self.exec_command(
             [self.venv_python, "-m", "pip", "install", "-e", "."],
-            cwd=self.repository_tmp_dir,
+            cwd=self.repository_dir,
         )
 
     def install_each_policy(self):
@@ -155,14 +174,14 @@ class AutoEval:
                 "-e",
                 ".[" + camel_to_snake(self.policy).replace("_", "-") + "]",
             ],
-            cwd=self.repository_tmp_dir,
+            cwd=self.repository_dir,
         )
 
         if self.policy in self.THIRD_PARTY_PATHS:
             self.exec_command(
                 [self.venv_python, "-m", "pip", "install", "-e", "."],
                 cwd=os.path.join(
-                    self.repository_tmp_dir,
+                    self.repository_dir,
                     "third_party/",
                     *self.THIRD_PARTY_PATHS[self.policy],
                 ),
@@ -194,12 +213,11 @@ class AutoEval:
     def download_dataset(self, dataset_url):
         """Download the dataset from the specified URL."""
         zip_filename = "dataset.zip"
-        dataset_temp_dir = tempfile.mkdtemp()
         self.exec_command(
             [
                 "wget",
                 "-O",
-                os.path.join(dataset_temp_dir, zip_filename),
+                os.path.join(self.dataset_dir, zip_filename),
                 self.adjust_dataset_url(dataset_url),
             ],
         )
@@ -211,7 +229,7 @@ class AutoEval:
                     "dataset/",
                     zip_filename,
                 ],
-                cwd=dataset_temp_dir,
+                cwd=self.dataset_dir,
             )
         except subprocess.CalledProcessError as e:
             e_stderr = e.stderr
@@ -222,25 +240,27 @@ class AutoEval:
                 f"{e.returncode}. {e_stderr}\n"
             )
         rmb_items_count = len(
-            glob.glob(os.path.join(dataset_temp_dir, "dataset", "*.rmb"))
+            glob.glob(os.path.join(self.dataset_dir, "**", "*.rmb"), recursive=True)
         )
         print(
             f"[{self.__class__.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {rmb_items_count} data files in RMB format have been unzipped."
         )
-        self.dataset_dir = os.path.join(
-            dataset_temp_dir,
-            "dataset/",
-        )
 
-    def get_dataset(self, dataset_location):
-        if bool(urlparse(dataset_location).scheme):
-            self.download_dataset(dataset_location)
-            return
-        elif os.path.isdir(dataset_location):
-            self.dataset_dir = dataset_location
+    def get_dataset(self, input_dataset_location):
+        if bool(urlparse(input_dataset_location).scheme):
+            self.dataset_dir = os.path.join(
+                self.repository_dir, "robo_manip_baselines/dataset"
+            )
+            if not os.path.isdir(self.dataset_dir):
+                raise FileNotFoundError(
+                    f"expected dataset directory not found: {self.dataset_dir}"
+                )
+            self.download_dataset(input_dataset_location)
+        elif os.path.isdir(input_dataset_location):
+            self.dataset_dir = input_dataset_location
             return
         else:
-            raise ValueError(f"Invalid: {dataset_location=}.")
+            raise ValueError(f"Invalid: {input_dataset_location=}.")
 
     def train(self, args_file_train, seed):
         """Execute the training process using the specified arguments file."""
@@ -254,14 +274,14 @@ class AutoEval:
 
         command = [
             self.venv_python,
-            os.path.join(self.repository_tmp_dir, "robo_manip_baselines/bin/Train.py"),
+            os.path.join(self.repository_dir, "robo_manip_baselines/bin/Train.py"),
             self.policy,
             "--dataset_dir",
             self.dataset_dir,
             "--checkpoint_dir",
             os.path.join(
-                self.checkpoint_temp_dir,
-                "robo_manip_baselines/checkpoint_dir/",
+                self.repository_dir,
+                "robo_manip_baselines/checkpoint",
                 self.policy,
                 self.env,
             ),
@@ -273,26 +293,40 @@ class AutoEval:
 
         self.exec_command(command)
 
-    def rollout(self, args_file_rollout, rollout_duration, rollout_world_idx_list):
+    def rollout(
+        self,
+        args_file_rollout,
+        rollout_duration,
+        rollout_world_idx_list,
+        input_checkpoint_file,
+    ):
         """Execute the rollout using the provided configuration and duration."""
 
         task_success_list = []
+        if self.input_checkpoint_file:
+            input_checkpoint_file = self.input_checkpoint_file
+        else:
+            input_checkpoint_file = os.path.join(
+                self.repository_dir,
+                "robo_manip_baselines/checkpoint",
+                self.policy,
+                self.env,
+                "policy_last.ckpt",
+            )
+        if not os.path.isfile(input_checkpoint_file):
+            raise FileNotFoundError(
+                f"checkpoint file not found: {input_checkpoint_file}"
+            )
         for world_idx in rollout_world_idx_list or [None]:
             command = [
                 self.venv_python,
                 os.path.join(
-                    self.repository_tmp_dir, "robo_manip_baselines/bin/Rollout.py"
+                    self.repository_dir, "robo_manip_baselines/bin/Rollout.py"
                 ),
                 self.policy,
                 self.env,
                 "--checkpoint",
-                os.path.join(
-                    self.checkpoint_temp_dir,
-                    "robo_manip_baselines/checkpoint_dir/",
-                    self.policy,
-                    self.env,
-                    "policy_last.ckpt",
-                ),
+                input_checkpoint_file,
                 "--duration",
                 f"{rollout_duration}",
                 "--no_plot",
@@ -300,7 +334,7 @@ class AutoEval:
                 "--save_last_image",
                 "--output_image_dir",
                 os.path.join(
-                    self.checkpoint_temp_dir,
+                    self.repository_dir,
                     "robo_manip_baselines/checkpoint_dir/",
                     self.policy,
                     self.env,
@@ -314,11 +348,13 @@ class AutoEval:
             reward_statuses = self.exec_command(
                 command, stdout_line_match_pattern=ROLLOUT_RESULT_PRINT_PATTERN
             )
-            assert len(reward_statuses) == 1, f"{len(reward_statuses)=}"
+            assert (
+                len(reward_statuses) == 1
+            ), f"[{self.__name__}] {len(reward_statuses)=}"
             assert reward_statuses[0].group(1) in (
                 "success",
                 "failure",
-            ), f"{reward_statuses[0].group(1)=}"
+            ), f"[{self.__name__}] {reward_statuses[0].group(1)=}"
 
             task_success_list.append(int(reward_statuses[0].group(1) == "success"))
 
@@ -356,7 +392,8 @@ class AutoEval:
 
     def start(
         self,
-        dataset_location,
+        input_dataset_location,
+        input_checkpoint_file,
         args_file_train,
         args_file_rollout,
         rollout_duration,
@@ -379,11 +416,14 @@ class AutoEval:
                 self.install_common()
                 self.install_each_policy()
 
-                self.get_dataset(dataset_location)
+                self.get_dataset(input_dataset_location)
                 self.train(args_file_train, seed)
                 if not self.is_rollout_disabled:
                     task_success_list = self.rollout(
-                        args_file_rollout, rollout_duration, rollout_world_idx_list
+                        args_file_rollout,
+                        rollout_duration,
+                        rollout_world_idx_list,
+                        input_checkpoint_file,
                     )
                     self.save_result(task_success_list)
 
@@ -415,7 +455,7 @@ def parse_argument():
         "policies",
         type=str,
         nargs="+",
-        choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy"],
+        choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "MtAct"],
         help="policies",
     )
     parser.add_argument(
@@ -424,6 +464,13 @@ def parse_argument():
         help="environment",
     )
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
+    parser.add_argument(
+        "--repository_dir",
+        type=str,
+        required=False,
+        default=None,
+        help="clone destination directory; if None, created under /tmp",
+    )
     parser.add_argument(
         "-u",
         "--repository_owner_name",
@@ -434,9 +481,18 @@ def parse_argument():
     parser.add_argument(
         "-d",
         "--dataset_location",
+        "--input_dataset_location",
         type=str,
+        dest="input_dataset_location",
         required=True,
         help="specify URL of online storage or local directory",
+    )
+    parser.add_argument(
+        "-k",
+        "--input_checkpoint_file",
+        type=str,
+        required=False,
+        help="specify checkpoint file to use",
     )
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
@@ -459,13 +515,6 @@ def parse_argument():
         type=int,
         required=False,
         help="random seed; use -1 to generate different value on each run",
-    )
-    parser.add_argument(
-        "--checkpoint_base_dir",
-        type=str,
-        required=False,
-        default=None,
-        help="directory for temporary checkpoint storage if specified",
     )
     parser.add_argument(
         "-t",
@@ -495,7 +544,7 @@ if __name__ == "__main__":
     is_rollout_disabled = args.rollout_duration <= 0.0
     if is_rollout_disabled:
         print(
-            f"[{AutoEval.__class__.__name__}] rollout step is disabled because {args.rollout_duration=} (<= 0)."
+            f"[{AutoEval.__name__}] rollout step is disabled because {args.rollout_duration=} (<= 0)."
         )
 
     def run_once():
@@ -506,11 +555,13 @@ if __name__ == "__main__":
                 args.env,
                 args.commit_id,
                 args.repository_owner_name,
-                args.checkpoint_base_dir,
+                args.repository_dir,
+                args.input_checkpoint_file,
                 is_rollout_disabled,
             )
             auto_eval.start(
-                args.dataset_location,
+                args.input_dataset_location,
+                args.input_checkpoint_file,
                 args.args_file_train,
                 args.args_file_rollout,
                 args.rollout_duration,
@@ -521,13 +572,13 @@ if __name__ == "__main__":
     # Immediate execution mode (when -t is not specified)
     if not args.daily_schedule_time:
         run_once()
-        print(f"[{AutoEval.__class__.__name__}] Completed one-time run. Exiting.")
+        print(f"[{AutoEval.__name__}] Completed one-time run. Exiting.")
         sys.exit(0)
 
     # Scheduling mode
     schedule.every().day.at(args.daily_schedule_time).do(run_once)
     print(
-        f"[{AutoEval.__class__.__name__}] Scheduled daily run at {args.daily_schedule_time}. Waiting...",
+        f"[{AutoEval.__name__}] Scheduled daily run at {args.daily_schedule_time}. Waiting...",
         flush=True,
     )
 
@@ -536,4 +587,4 @@ if __name__ == "__main__":
             schedule.run_pending()
             time.sleep(1)
     except (KeyboardInterrupt, SystemExit):
-        print("\n[{AutoEval.__class__.__name__}] Scheduler stopped by user.")
+        print("\n[{AutoEval.__name__}] Scheduler stopped by user.")
