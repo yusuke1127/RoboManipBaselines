@@ -63,18 +63,18 @@ diffusion-policy = [
   "robomimic==0.2.0",
   "huggingface_hub==0.21.4",
 ]
-diffusion-policy-3d = [
+3d-iffusion-policy = [
   "zarr==2.12.0",
   "wandb",
   "ipdb",
   "gpustat",
-  "dm_control",
+  "dm_control==1.0.20",
   "omegaconf",
   "hydra-core==1.2.0",
   "dill==0.3.5.1",
   "einops==0.4.1",
   "diffusers==0.11.1",
-  "numba==0.56.4",
+  "numba",
   "moviepy",
   "av",
   "termcolor",
