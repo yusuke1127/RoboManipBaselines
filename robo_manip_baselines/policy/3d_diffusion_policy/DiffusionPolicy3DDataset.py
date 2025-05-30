@@ -129,12 +129,7 @@ class DiffusionPolicy3DDataset(DatasetBase):
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
             data["obs"]["state"] = state_tensor
-        for camera_idx, camera_name in enumerate(
-            self.model_meta_info["image"]["camera_names"]
-        ):
-            data["obs"]["point_cloud"][DataKey.get_rgb_image_key(camera_name)] = (
-                pointclouds_tensor[camera_idx]
-            )
+        data["obs"]["point_cloud"] = pointclouds_tensor
 
         return data
 

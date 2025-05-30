@@ -9,7 +9,7 @@ from diffusion_policy_3d.model.diffusion.ema_model import EMAModel
 from diffusion_policy_3d.policy.dp3 import DP3
 from tqdm import tqdm
 
-from robo_manip_baselines.common import DataKey, TrainBase
+from robo_manip_baselines.common import TrainBase
 
 from .DiffusionPolicy3DDataset import DiffusionPolicy3DDataset
 
@@ -94,7 +94,7 @@ class Train3dDiffusionPolicy(TrainBase):
     def setup_policy(self):
         # Set policy args
         shape_meta = {
-            "obs": {},
+            "obs": {"point_cloud": {}},
             "action": {"shape": [len(self.model_meta_info["action"]["example"])]},
         }
         if len(self.args.state_keys) > 0:
@@ -102,11 +102,10 @@ class Train3dDiffusionPolicy(TrainBase):
                 "shape": [len(self.model_meta_info["state"]["example"])],
                 "type": "low_dim",
             }
-        for camera_name in self.args.camera_names:
-            shape_meta["obs"][DataKey.get_rgb_image_key(camera_name)] = {
-                "shape": [3, self.args.image_size[1], self.args.image_size[0]],
-                "type": "rgb",
-            }
+        shape_meta["obs"]["point_cloud"] = {
+            "shape": [512, 3],
+            "type": "point_cloud",
+        }
         self.model_meta_info["policy"]["args"] = {
             "shape_meta": shape_meta,
             "horizon": self.args.horizon,
@@ -119,9 +118,6 @@ class Train3dDiffusionPolicy(TrainBase):
             "down_dims": [512, 1024, 2048],
             "kernel_size": 5,
             "n_groups": 8,
-            "cond_predict_scale": True,
-            "obs_encoder_group_norm": True,
-            "eval_fixed_crop": True,
         }
         self.model_meta_info["policy"]["noise_scheduler_args"] = {
             "beta_end": 0.02,
