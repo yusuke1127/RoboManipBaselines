@@ -13,10 +13,19 @@ from robo_manip_baselines.common import RolloutBase, denormalize_data
 
 
 class RolloutAct(RolloutBase):
+    def set_additional_args(self, parser):
+        parser.add_argument(
+            "--no_temp_ensem",
+            action="store_true",
+            help="whether to disable temporal ensembling of the inferred policy",
+        )
+
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()
-        print(f"  - chunk size: {self.model_meta_info['data']['chunk_size']}")
+        print(
+            f"  - chunk size: {self.model_meta_info['data']['chunk_size']}, temporal_ensembling: {not self.args.no_temp_ensem}"
+        )
 
         # Construct policy
         DETRVAE.set_state_dim(self.state_dim)
@@ -53,26 +62,39 @@ class RolloutAct(RolloutBase):
     def setup_variables(self):
         super().setup_variables()
 
-        self.all_actions_history = []
+        self.policy_action_buf = []
+        self.policy_action_buf_history = []
 
     def infer_policy(self):
         # Infer
-        state = self.get_state()
-        images = self.get_images()
-        all_actions = self.policy(state, images)[0]
-        self.all_actions_history.append(
-            all_actions.cpu().detach().numpy().astype(np.float64)
-        )
-        if len(self.all_actions_history) > self.model_meta_info["data"]["chunk_size"]:
-            self.all_actions_history.pop(0)
+        if (not self.args.no_temp_ensem) or (len(self.policy_action_buf) == 0):
+            state = self.get_state()
+            images = self.get_images()
+            action = self.policy(state, images)[0]
+            self.policy_action_buf = list(
+                action.cpu().detach().numpy().astype(np.float64)
+            )
+            if not self.args.no_temp_ensem:
+                self.policy_action_buf_history.append(self.policy_action_buf)
+                if (
+                    len(self.policy_action_buf_history)
+                    > self.model_meta_info["data"]["chunk_size"]
+                ):
+                    self.policy_action_buf_history.pop(0)
 
-        # Apply temporal ensembling to action
-        k = 0.01
-        exp_weights = np.exp(-k * np.arange(len(self.all_actions_history)))
-        exp_weights = exp_weights / exp_weights.sum()
-        action = np.zeros(self.action_dim)
-        for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
-            action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
+        # Store action
+        if self.args.no_temp_ensem:
+            action = self.policy_action_buf.pop(0)
+        else:
+            # Apply temporal ensembling to action
+            k = 0.01
+            exp_weights = np.exp(-k * np.arange(len(self.policy_action_buf_history)))
+            exp_weights = exp_weights / exp_weights.sum()
+            action = np.zeros(self.action_dim)
+            for action_idx, _policy_action_buf in enumerate(
+                reversed(self.policy_action_buf_history)
+            ):
+                action += exp_weights[::-1][action_idx] * _policy_action_buf[action_idx]
         self.policy_action = denormalize_data(action, self.model_meta_info["action"])
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]

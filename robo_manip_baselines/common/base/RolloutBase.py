@@ -237,6 +237,8 @@ class RolloutBase(ABC):
             help="directory to save the output image (default: current directory)",
         )
 
+        self.set_additional_args(parser)
+
         if argv is None:
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
@@ -246,6 +248,9 @@ class RolloutBase(ABC):
 
         if self.args.seed < 0:
             self.args.seed = int(time.time()) % (2**32)
+
+    def set_additional_args(self, parser):
+        pass
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
