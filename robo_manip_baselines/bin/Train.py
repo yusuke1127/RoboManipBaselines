@@ -10,6 +10,9 @@ def camel_to_snake(name):
         r"([a-z0-9])([A-Z])", r"\1_\2", name
     )  # Insert '_' between a lowercase/number and an uppercase letter
     name = re.sub(
+        r"([a-z])([0-9])", r"\1_\2", name
+    )  # Insert '_' between a lowercase and a number letter
+    name = re.sub(
         r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name
     )  # Insert '_' between consecutive uppercase letters followed by a lowercase letter
     name = name[0].lower() + name[1:]  # Convert the first letter to lowercase
