@@ -10,7 +10,7 @@ from robo_manip_baselines.common import (
 )
 
 
-class DiffusionPolicy3DDataset(DatasetBase):
+class DiffusionPolicy3dDataset(DatasetBase):
     """Dataset to train 3d diffusion policy."""
 
     def setup_variables(self):
@@ -122,7 +122,7 @@ class DiffusionPolicy3DDataset(DatasetBase):
         )
 
         # TODO: Convert image and depth to pointcloud
-        pointclouds = images  # dummy code
+        pointclouds = np.random.random((depthes.shape[0], 512, 3))  # dummy code
         pointclouds_tensor = torch.tensor(pointclouds)
 
         # Convert to data structure of policy input and output

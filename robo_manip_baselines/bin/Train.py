@@ -28,7 +28,7 @@ def main():
         type=str,
         nargs="?",
         default=None,
-        choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "3dDiffusionPolicy"],
+        choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "DiffusionPolicy3d"],
         help="policy",
     )
     parser.add_argument(

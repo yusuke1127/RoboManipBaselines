@@ -3,8 +3,8 @@ import matplotlib.pylab as plt
 import numpy as np
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
-from diffusion_policy_3d.policy.dp3 import DP3
 
+from diffusion_policy_3d.policy.dp3 import DP3
 from robo_manip_baselines.common import (
     DataKey,
     RolloutBase,
@@ -13,7 +13,7 @@ from robo_manip_baselines.common import (
 )
 
 
-class Rollout3dDiffusionPolicy(RolloutBase):
+class RolloutDiffusionPolicy3d(RolloutBase):
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()

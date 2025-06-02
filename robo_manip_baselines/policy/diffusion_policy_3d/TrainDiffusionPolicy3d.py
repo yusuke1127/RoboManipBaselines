@@ -3,19 +3,19 @@ import copy
 
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from tqdm import tqdm
+
 from diffusion_policy_3d.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy_3d.model.common.lr_scheduler import get_scheduler
 from diffusion_policy_3d.model.diffusion.ema_model import EMAModel
 from diffusion_policy_3d.policy.dp3 import DP3
-from tqdm import tqdm
-
 from robo_manip_baselines.common import TrainBase
 
-from .DiffusionPolicy3DDataset import DiffusionPolicy3DDataset
+from .DiffusionPolicy3dDataset import DiffusionPolicy3dDataset
 
 
-class Train3dDiffusionPolicy(TrainBase):
-    DatasetClass = DiffusionPolicy3DDataset
+class TrainDiffusionPolicy3d(TrainBase):
+    DatasetClass = DiffusionPolicy3dDataset
 
     def setup_args(self):
         super().setup_args()
