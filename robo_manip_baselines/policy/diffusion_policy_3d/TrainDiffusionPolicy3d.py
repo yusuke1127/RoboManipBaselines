@@ -3,6 +3,7 @@ import copy
 
 import torch
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from omegaconf import OmegaConf
 from tqdm import tqdm
 
 from diffusion_policy_3d.common.pytorch_util import dict_apply, optimizer_to
@@ -93,12 +94,14 @@ class TrainDiffusionPolicy3d(TrainBase):
 
     def setup_policy(self):
         # Set policy args
-        shape_meta = {
-            "obs": {"point_cloud": {}},
-            "action": {"shape": [len(self.model_meta_info["action"]["example"])]},
-        }
+        shape_meta = OmegaConf.create(
+            {
+                "obs": {"point_cloud": {}},
+                "action": {"shape": [len(self.model_meta_info["action"]["example"])]},
+            }
+        )
         if len(self.args.state_keys) > 0:
-            shape_meta["obs"]["state"] = {
+            shape_meta["obs"]["agent_pos"] = {
                 "shape": [len(self.model_meta_info["state"]["example"])],
                 "type": "low_dim",
             }
@@ -106,6 +109,15 @@ class TrainDiffusionPolicy3d(TrainBase):
             "shape": [512, 3],
             "type": "point_cloud",
         }
+        pointcloud_encoder_conf = OmegaConf.create(
+            {
+                "in_channels": 3,
+                "out_channels": 256,
+                "use_layernorm": False,
+                "final_norm": "none",
+                "normal_channel": False,
+            }
+        )
         self.model_meta_info["policy"]["args"] = {
             "shape_meta": shape_meta,
             "horizon": self.args.horizon,
@@ -118,6 +130,7 @@ class TrainDiffusionPolicy3d(TrainBase):
             "down_dims": [512, 1024, 2048],
             "kernel_size": 5,
             "n_groups": 8,
+            "pointcloud_encoder_cfg": pointcloud_encoder_conf,
         }
         self.model_meta_info["policy"]["noise_scheduler_args"] = {
             "beta_end": 0.02,

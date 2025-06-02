@@ -101,11 +101,11 @@ class DiffusionPolicy3dDataset(DatasetBase):
         ).reshape(K, T, *image_size[::-1], C)
 
         # Resize depthes
-        K, T, H, W, C = depthes.shape
+        K, T, H, W = depthes.shape
         image_size = self.model_meta_info["data"]["image_size"]
         depthes = np.array(
-            [cv2.resize(dpth, image_size) for dpth in depthes.reshape(-1, H, W, C)]
-        ).reshape(K, T, *image_size[::-1], C)
+            [cv2.resize(dpth, image_size) for dpth in depthes.reshape(-1, H, W)]
+        ).reshape(K, T, *image_size[::-1])
 
         # Pre-convert data
         state, action, images, depthes = self.pre_convert_data(
@@ -122,13 +122,13 @@ class DiffusionPolicy3dDataset(DatasetBase):
         )
 
         # TODO: Convert image and depth to pointcloud
-        pointclouds = np.random.random((depthes.shape[0], 512, 3))  # dummy code
-        pointclouds_tensor = torch.tensor(pointclouds)
+        pointclouds = np.random.random((state.shape[0], 512, 3))  # dummy code
+        pointclouds_tensor = torch.tensor(pointclouds, dtype=torch.float32)
 
         # Convert to data structure of policy input and output
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
-            data["obs"]["state"] = state_tensor
+            data["obs"]["agent_pos"] = state_tensor
         data["obs"]["point_cloud"] = pointclouds_tensor
 
         return data
