@@ -70,7 +70,6 @@ diffusion-policy-3d = [
   "dill==0.3.5.1",
   "einops==0.4.1",
   "diffusers==0.11.1",
-  "termcolor",
 ]
 real-ur5e = [
   "ur_rtde",
