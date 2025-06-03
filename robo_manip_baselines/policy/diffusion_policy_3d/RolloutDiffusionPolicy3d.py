@@ -6,7 +6,6 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
 from diffusion_policy_3d.policy.dp3 import DP3
 from robo_manip_baselines.common import (
-    DataKey,
     RolloutBase,
     denormalize_data,
     normalize_data,
@@ -51,8 +50,11 @@ class RolloutDiffusionPolicy3d(RolloutBase):
     def setup_variables(self):
         super().setup_variables()
 
+        self.pointcloud_shape = self.model_meta_info["policy"]["args"]["shape_meta"][
+            "obs"
+        ]["point_cloud"]["shape"]
         self.state_buf = None
-        self.images_buf = None
+        self.pointclouds_buf = None
         self.policy_action_buf = None
 
     def infer_policy(self):
@@ -60,9 +62,9 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
             input_data = {}
             if len(self.state_keys) > 0:
-                input_data["state"] = self.get_state()
-            for camera_name, image in zip(self.camera_names, self.get_images()):
-                input_data[DataKey.get_rgb_image_key(camera_name)] = image
+                input_data["agent_pos"] = self.get_state()
+            if len(self.camera_names) > 0:
+                input_data["point_cloud"] = self.get_pointclouds()[0]
             action = self.policy.predict_action(input_data)["action"][0]
             self.policy_action_buf = list(
                 action.cpu().detach().numpy().astype(np.float64)
@@ -100,13 +102,15 @@ class RolloutDiffusionPolicy3d(RolloutBase):
 
         return state
 
-    def get_images(self):
+    def get_pointclouds(self):
         # Get latest value
-        images = []
+        pointclouds = []
         for camera_name in self.camera_names:
             image = self.info["rgb_images"][camera_name]
+            depth = self.info["depth_images"][camera_name]
 
             image = cv2.resize(image, self.model_meta_info["data"]["image_size"])
+            depth = cv2.resize(depth, self.model_meta_info["data"]["image_size"])
 
             image = np.moveaxis(image, -1, -3)
             image = torch.tensor(image, dtype=torch.uint8)
@@ -114,25 +118,33 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             # Adjust to a range from -1 to 1 to match the original implementation
             image = image * 2.0 - 1.0
 
-            images.append(image)
+            depth = torch.tensor(depth, dtype=torch.uint16)
+            depth = self.image_transforms(depth)
+
+            # TODO: Convert to pointcloud
+            # dummy pointcloud
+            pointcloud = np.random.random(self.pointcloud_shape)
+            pointclouds.append(torch.tensor(pointcloud, dtype=torch.float32))
 
         # Store and return
-        if self.images_buf is None:
-            self.images_buf = [
-                [image for _ in range(self.model_meta_info["data"]["n_obs_steps"])]
-                for image in images
+        if self.pointclouds_buf is None:
+            self.pointclouds_buf = [
+                [pointcloud for _ in range(self.model_meta_info["data"]["n_obs_steps"])]
+                for pointcloud in pointclouds
             ]
         else:
-            for single_images_buf, image in zip(self.images_buf, images):
-                single_images_buf.pop(0)
-                single_images_buf.append(image)
+            for single_pointclouds_buf, pointcloud in zip(
+                self.pointclouds_buf, pointclouds
+            ):
+                single_pointclouds_buf.pop(0)
+                single_pointclouds_buf.append(pointcloud)
 
-        images = [
-            torch.stack(single_images_buf, dim=0)[torch.newaxis].to(self.device)
-            for single_images_buf in self.images_buf
+        pointclouds = [
+            torch.stack(single_pointclouds_buf, dim=0)[torch.newaxis].to(self.device)
+            for single_pointclouds_buf in self.pointclouds_buf
         ]
 
-        return images
+        return pointclouds
 
     def draw_plot(self):
         # Clear plot
