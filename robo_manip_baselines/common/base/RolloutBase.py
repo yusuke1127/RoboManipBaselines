@@ -68,35 +68,40 @@ class RolloutPhase(PhaseBase):
     def check_transition(self):
         elapsed_duration = self.get_elapsed_duration()
 
-        if self.op.terminated and self.termination_time is None:
-            self.termination_time = elapsed_duration
-
         transition_flag = False
-        post_termination_duration = 5.0  # [s]
         if self.op.key == ord("n"):
             transition_flag = True
-        elif (self.termination_time is not None) and (
-            elapsed_duration > self.termination_time + post_termination_duration
-        ):
-            print(
-                f"[{self.op.__class__.__name__}] Terminate the rollout phase because the environment has been terminated."
-            )
-            transition_flag = True
-        elif (
-            (self.termination_time is None)
-            and (self.op.args.duration is not None)
-            and (elapsed_duration > self.op.args.duration)
-        ):
-            print(
-                f"[{self.op.__class__.__name__}] Terminate the rollout phase because the maximum duration has elapsed."
-            )
-            transition_flag = True
+        elif self.op.args.auto_exit:
+            if self.op.terminated and (self.termination_time is None):
+                self.termination_time = elapsed_duration
+
+            post_termination_duration = 3.0  # [s]
+            if self.termination_time is not None:
+                if elapsed_duration > self.termination_time + post_termination_duration:
+                    print(
+                        f"[{self.op.__class__.__name__}] Terminate the rollout phase because the environment has been terminated."
+                    )
+                    transition_flag = True
+            else:
+                if elapsed_duration > self.op.args.max_duration:
+                    print(
+                        f"[{self.op.__class__.__name__}] Terminate the rollout phase because the maximum duration has elapsed."
+                    )
+                    transition_flag = True
 
         if transition_flag:
             self.op.print_statistics()
 
             if self.op.args.save_last_image:
                 self.op.save_rgb_image()
+
+            reward_status_str = "success" if self.op.reward > 0.0 else "failure"
+            print(
+                # Do not change the following print description, as it will be used
+                # to automatically obtain the task success/failure result
+                f"Rollout result: {reward_status_str}",
+                flush=True,
+            )
 
             return True
         else:
@@ -107,17 +112,11 @@ class EndRolloutPhase(PhaseBase):
     def start(self):
         super().start()
 
-        print(f"[{self.op.__class__.__name__}] Press the 'n' key to exit.")
+        if not self.op.args.auto_exit:
+            print(f"[{self.op.__class__.__name__}] Press the 'n' key to exit.")
 
     def check_transition(self):
-        if (self.op.key == ord("n")) or (self.op.args.duration is not None):
-            reward_status_str = "success" if self.op.reward > 0.0 else "failure"
-            print(
-                # Do not change the following print description, as it will be used
-                # to automatically obtain the task success/failure result
-                f"Rollout result: {reward_status_str}",
-                flush=True,
-            )
+        if (self.op.key == ord("n")) or self.op.args.auto_exit:
             self.op.quit_flag = True
 
         return False
@@ -215,10 +214,15 @@ class RolloutBase(ABC):
             help="whether to wait a key input before starting motion",
         )
         parser.add_argument(
-            "--duration",
+            "--auto_exit",
+            action="store_true",
+            help="whether to automatically exit from rollout",
+        )
+        parser.add_argument(
+            "--max_duration",
             type=float,
-            default=None,
-            help="maximum duration to rollout policy [s]",
+            default=30.0,
+            help="maximum rollout duration for automatic exit [s]",
         )
 
         parser.add_argument(
@@ -233,6 +237,8 @@ class RolloutBase(ABC):
             help="directory to save the output image (default: current directory)",
         )
 
+        self.set_additional_args(parser)
+
         if argv is None:
             argv = sys.argv
         self.args = parser.parse_args(argv[1:])
@@ -242,6 +248,9 @@ class RolloutBase(ABC):
 
         if self.args.seed < 0:
             self.args.seed = int(time.time()) % (2**32)
+
+    def set_additional_args(self, parser):
+        pass
 
     def setup_model_meta_info(self):
         checkpoint_dir = os.path.split(self.args.checkpoint)[0]
