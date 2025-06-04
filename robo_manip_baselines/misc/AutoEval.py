@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 
 import schedule
 
+from robo_manip_baselines.common import camel_to_snake
+
 LOCK_FILE_PATH = str(
     Path("/tmp")
     / f"{'_'.join(Path(__file__).resolve().parts[-4:-1] + (Path(__file__).resolve().stem,))}.lock"
@@ -391,18 +393,6 @@ class AutoEval:
 
             finally:
                 print(f"[{self.__class__.__name__}] Releasing lock.")
-
-
-def camel_to_snake(name):
-    """Converts camelCase or PascalCase to snake_case (also converts the first letter to lowercase)"""
-    name = re.sub(
-        r"([a-z0-9])([A-Z])", r"\1_\2", name
-    )  # Insert '_' between a lowercase/number and an uppercase letter
-    name = re.sub(
-        r"([A-Z]+)([A-Z][a-z])", r"\1_\2", name
-    )  # Insert '_' between consecutive uppercase letters followed by a lowercase letter
-    name = name[0].lower() + name[1:]  # Convert the first letter to lowercase
-    return name.lower()
 
 
 def parse_argument():
