@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import fcntl
 import glob
 import os
@@ -44,7 +45,7 @@ class AutoEval:
         env,
         commit_id,
         repository_owner_name=None,
-        repository_dir=None,
+        target_dir=None,
         input_checkpoint_file=None,
         is_rollout_disabled=False,
     ):
@@ -55,7 +56,7 @@ class AutoEval:
 
         self.repository_owner_name = repository_owner_name
         self.is_rollout_disabled = is_rollout_disabled
-        self.repository_dir = self.adjust_repository_dir(repository_dir)
+        self.repository_dir = self.resolve_repository_path(target_dir)
         self.input_checkpoint_file = input_checkpoint_file
         venv_dir = os.path.join(self.repository_dir, "..", "venv")
         self.venv_python = os.path.join(venv_dir, "bin", "python")
@@ -69,22 +70,40 @@ class AutoEval:
         )
 
     @classmethod
-    def adjust_repository_dir(cls, initial_repository_path):
-        """Normalize and validate the repository directory path."""
-        if initial_repository_path is None:
-            initial_repository_path = tempfile.mkdtemp()
-        final_repository_path = initial_repository_path.rstrip(os.sep)
+    def resolve_repository_path(cls, target_dir):
+        """Resolve and validate repository path; create temp dir or append name if needed."""
+
+        # generate temporary directory with timestamped prefix when no target_dir is specified
+        if target_dir is None:
+            datetime_now = datetime.datetime.now()
+            prefix = f"RmbAutoEval_{datetime_now:%Y%m%d_%H%M%S}_"
+            temp_dir = tempfile.mkdtemp(prefix=prefix, dir=target_dir)
+
+            # log creation of temporary directory
+            print(f"[{cls.__name__}] Temporary directory created: {temp_dir}")
+            target_dir = temp_dir
+
+        # remove trailing slashes to normalize path
+        final_repository_path = target_dir.rstrip(os.sep)
+
+        # extract base directory name and check if it is a file path
         basename = os.path.basename(final_repository_path)
         _, ext = os.path.splitext(basename)
         if ext:
-            raise IOError(f"File paths are not allowed: {initial_repository_path}")
+            raise IOError(f"File paths are not allowed: {target_dir}")
+
+        # verify that parent directory exists
         assert os.path.isdir(
             os.path.dirname(final_repository_path)
-        ), f"[{cls.__name__}] Parent directory does not exist: {initial_repository_path}"
+        ), f"[{cls.__name__}] Parent directory does not exist: {target_dir}"
+
+        # append repository name if not already part of path
         if basename != cls.REPOSITORY_NAME:
             final_repository_path = os.path.join(
                 final_repository_path, cls.REPOSITORY_NAME
             )
+
+        # return normalized and validated repository path
         return final_repository_path
 
     @classmethod
@@ -465,11 +484,11 @@ def parse_argument():
     )
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
     parser.add_argument(
-        "--repository_dir",
+        "--target_dir",
         type=str,
         required=False,
         default=None,
-        help="clone destination directory; if None, created under /tmp",
+        help="base directory used throughout program for repository clone, virtual environment, dataset, and result outputs",
     )
     parser.add_argument(
         "-u",
@@ -555,7 +574,7 @@ if __name__ == "__main__":
                 args.env,
                 args.commit_id,
                 args.repository_owner_name,
-                args.repository_dir,
+                args.target_dir,
                 args.input_checkpoint_file,
                 is_rollout_disabled,
             )
