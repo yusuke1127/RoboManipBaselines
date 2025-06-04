@@ -42,6 +42,13 @@ class TrainDiffusionPolicy3d(TrainBase):
         )
 
         parser.add_argument(
+            "--use_pc_color",
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help="Enable or disable color information of pointcloud",
+        )
+
+        parser.add_argument(
             "--horizon", type=int, default=16, help="prediction horizon"
         )
         parser.add_argument(
@@ -55,6 +62,13 @@ class TrainDiffusionPolicy3d(TrainBase):
             type=int,
             default=8,
             help="number of steps in the action to output from the policy",
+        )
+
+        parser.add_argument(
+            "--num_points",
+            type=int,
+            default=512,
+            help="number of points in one pointcloud.",
         )
 
         parser.add_argument(
@@ -80,6 +94,8 @@ class TrainDiffusionPolicy3d(TrainBase):
         self.model_meta_info["data"]["horizon"] = self.args.horizon
         self.model_meta_info["data"]["n_obs_steps"] = self.args.n_obs_steps
         self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
+        self.model_meta_info["data"]["num_points"] = self.args.num_points
+        self.model_meta_info["data"]["n_point_dim"] = 6 if self.args.use_pc_color else 3
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
@@ -105,13 +121,17 @@ class TrainDiffusionPolicy3d(TrainBase):
                 "shape": [len(self.model_meta_info["state"]["example"])],
                 "type": "low_dim",
             }
+        pointcloud_shape = (
+            self.model_meta_info["data"]["num_points"],
+            self.model_meta_info["data"]["n_point_dim"],
+        )
         shape_meta["obs"]["point_cloud"] = {
-            "shape": [512, 3],
+            "shape": pointcloud_shape,
             "type": "point_cloud",
         }
         pointcloud_encoder_conf = OmegaConf.create(
             {
-                "in_channels": 3,
+                "in_channels": self.model_meta_info["data"]["n_point_dim"],
                 "out_channels": 256,
                 "use_layernorm": False,
                 "final_norm": "none",
@@ -131,6 +151,7 @@ class TrainDiffusionPolicy3d(TrainBase):
             "kernel_size": 5,
             "n_groups": 8,
             "pointcloud_encoder_cfg": pointcloud_encoder_conf,
+            "use_pc_color": self.args.use_pc_color,
         }
         self.model_meta_info["policy"]["noise_scheduler_args"] = {
             "beta_end": 0.02,
