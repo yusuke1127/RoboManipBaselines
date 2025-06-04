@@ -321,7 +321,6 @@ class AutoEval:
     def rollout(
         self,
         args_file_rollout,
-        rollout_duration,
         rollout_world_idx_list,
         input_checkpoint_file,
     ):
@@ -352,8 +351,7 @@ class AutoEval:
                 self.env,
                 "--checkpoint",
                 input_checkpoint_file,
-                "--duration",
-                f"{rollout_duration}",
+                "--auto_exit",
                 "--no_plot",
                 "--no_render",
                 "--save_last_image",
@@ -421,7 +419,6 @@ class AutoEval:
         input_checkpoint_file,
         args_file_train,
         args_file_rollout,
-        rollout_duration,
         rollout_world_idx_list,
         seed=None,
     ):
@@ -446,7 +443,6 @@ class AutoEval:
                 if not self.is_rollout_disabled:
                     task_success_list = self.rollout(
                         args_file_rollout,
-                        rollout_duration,
                         rollout_world_idx_list,
                         input_checkpoint_file,
                     )
@@ -522,11 +518,9 @@ def parse_argument():
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
     parser.add_argument(
-        "--rollout_duration",
-        type=float,
-        required=False,
-        default=30.0,
-        help="duration of rollout in seconds, disable rollout step if value is zero or negative",
+        "--is_rollout_disabled",
+        action="store_true",
+        help="disable rollout step when set",
     )
     parser.add_argument(
         "--rollout_world_idx_list",
@@ -566,12 +560,6 @@ def parse_argument():
 if __name__ == "__main__":
     args = parse_argument()
 
-    is_rollout_disabled = args.rollout_duration <= 0.0
-    if is_rollout_disabled:
-        print(
-            f"[{AutoEval.__name__}] rollout step is disabled because {args.rollout_duration=} (<= 0)."
-        )
-
     def run_once():
         """Execute the start function."""
         for policy in args.policies:
@@ -582,14 +570,13 @@ if __name__ == "__main__":
                 args.repository_owner_name,
                 args.target_dir,
                 args.input_checkpoint_file,
-                is_rollout_disabled,
+                args.is_rollout_disabled,
             )
             auto_eval.start(
                 args.input_dataset_location,
                 args.input_checkpoint_file,
                 args.args_file_train,
                 args.args_file_rollout,
-                args.rollout_duration,
                 args.rollout_world_idx_list,
                 args.seed,
             )
