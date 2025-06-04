@@ -9,7 +9,6 @@ import sys
 import tempfile
 import time
 import venv
-from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -53,9 +52,9 @@ class AutoEval:
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
-
         self.repository_owner_name = repository_owner_name
         self.is_rollout_disabled = is_rollout_disabled
+
         self.repository_dir = self.resolve_repository_path(target_dir)
         self.input_checkpoint_file = input_checkpoint_file
         venv_dir = os.path.join(self.repository_dir, "..", "venv")
@@ -66,25 +65,37 @@ class AutoEval:
         self.result_datetime_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "result/",
-            datetime.now().strftime("%Y%m%d_%H%M%S"),
+            datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
         )
 
     @classmethod
     def resolve_repository_path(cls, target_dir):
-        """Resolve and validate repository path; create temp dir or append name if needed."""
+        """Resolve a suitable repository path under the given or temporary directory."""
 
-        # generate temporary directory with timestamped prefix when no target_dir is specified
-        if target_dir is None:
+        # normalize input path by removing trailing separator if provided
+        normalized_path = target_dir.rstrip(os.sep) if target_dir is not None else None
+
+        # determine final_repository_path: either use normalized_path if it matches pattern, else create new temp dir
+        should_create_new_tempdir = True
+        if normalized_path is not None:
+            if os.path.basename(
+                normalized_path
+            ) == cls.REPOSITORY_NAME and re.fullmatch(
+                r"^RmbAutoEval_\d{8}_\d{6}_.+$",
+                os.path.basename(os.path.dirname(normalized_path)),
+            ):
+                final_repository_path = normalized_path
+                should_create_new_tempdir = False
+
+        if should_create_new_tempdir:
+            # generate timestamped prefix and create temporary directory
             datetime_now = datetime.datetime.now()
             prefix = f"RmbAutoEval_{datetime_now:%Y%m%d_%H%M%S}_"
             temp_dir = tempfile.mkdtemp(prefix=prefix, dir=target_dir)
-
-            # log creation of temporary directory
             print(f"[{cls.__name__}] Temporary directory created: {temp_dir}")
-            target_dir = temp_dir
 
-        # remove trailing slashes to normalize path
-        final_repository_path = target_dir.rstrip(os.sep)
+            # append repository name and return full path
+            final_repository_path = os.path.join(temp_dir, cls.REPOSITORY_NAME)
 
         # extract base directory name and check if it is a file path
         basename = os.path.basename(final_repository_path)
@@ -93,15 +104,10 @@ class AutoEval:
             raise IOError(f"File paths are not allowed: {target_dir}")
 
         # verify that parent directory exists
+        parent_dir = os.path.dirname(final_repository_path)
         assert os.path.isdir(
-            os.path.dirname(final_repository_path)
-        ), f"[{cls.__name__}] Parent directory does not exist: {target_dir}"
-
-        # append repository name if not already part of path
-        if basename != cls.REPOSITORY_NAME:
-            final_repository_path = os.path.join(
-                final_repository_path, cls.REPOSITORY_NAME
-            )
+            parent_dir
+        ), f"[{cls.__name__}] Parent directory does not exist: {parent_dir}"
 
         # return normalized and validated repository path
         return final_repository_path
@@ -111,7 +117,7 @@ class AutoEval:
         """Execute a shell command, optionally in the specified working directory,
         and return lines from standard output that match the given regex pattern."""
         print(
-            f"[{cls.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Executing command: {' '.join(command)}",
+            f"[{cls.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Executing command: {' '.join(command)}",
             flush=True,
         )
 
@@ -220,7 +226,7 @@ class AutoEval:
         # dl=0 -> dl=1
         if dataset_url.endswith("dl=0"):
             print(
-                f"[{cls.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] The URL ends with 'dl=0'. Changing it to 'dl=1'."
+                f"[{cls.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] The URL ends with 'dl=0'. Changing it to 'dl=1'."
             )
             dataset_url = dataset_url[: -len("dl=0")] + "dl=1"
 
@@ -262,7 +268,7 @@ class AutoEval:
             glob.glob(os.path.join(self.dataset_dir, "**", "*.rmb"), recursive=True)
         )
         print(
-            f"[{self.__class__.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {rmb_items_count} data files in RMB format have been unzipped."
+            f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {rmb_items_count} data files in RMB format have been unzipped."
         )
 
     def get_dataset(self, input_dataset_location):
@@ -288,7 +294,7 @@ class AutoEval:
         if seed == -1:
             seed = int(time.time() * 1000000) % (2**32)
             print(
-                f"[{self.__class__.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {seed=}"
+                f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {seed=}"
             )
 
         command = [
@@ -394,7 +400,7 @@ class AutoEval:
                 if not os.path.exists(new_file_path):
                     os.rename(output_file_path, new_file_path)
                     print(
-                        f"[{self.__class__.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Existing file renamed to: {new_file_path}"
+                        f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Existing file renamed to: {new_file_path}"
                     )
                     break
             else:
@@ -406,7 +412,7 @@ class AutoEval:
         with open(output_file_path, "w", encoding="utf-8") as f:
             f.write(" ".join(map(str, task_success_list)))
         print(
-            f"[{self.__class__.__name__}] [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] File has been saved: {output_file_path}"
+            f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] File has been saved: {output_file_path}"
         )
 
     def start(
