@@ -62,7 +62,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
             input_data = {}
             if len(self.state_keys) > 0:
-                input_data["agent_pos"] = self.get_state()
+                input_data["state"] = self.get_state()
             if len(self.camera_names) > 0:
                 input_data["point_cloud"] = self.get_pointclouds()[0]
             action = self.policy.predict_action(input_data)["action"][0]

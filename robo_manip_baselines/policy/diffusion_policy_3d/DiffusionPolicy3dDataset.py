@@ -128,7 +128,7 @@ class DiffusionPolicy3dDataset(DatasetBase):
         # Convert to data structure of policy input and output
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
-            data["obs"]["agent_pos"] = state_tensor
+            data["obs"]["state"] = state_tensor
         data["obs"]["point_cloud"] = pointclouds_tensor
 
         return data

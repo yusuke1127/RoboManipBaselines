@@ -101,7 +101,7 @@ class TrainDiffusionPolicy3d(TrainBase):
             }
         )
         if len(self.args.state_keys) > 0:
-            shape_meta["obs"]["agent_pos"] = {
+            shape_meta["obs"]["state"] = {
                 "shape": [len(self.model_meta_info["state"]["example"])],
                 "type": "low_dim",
             }
