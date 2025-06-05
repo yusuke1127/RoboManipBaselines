@@ -46,14 +46,16 @@ class AutoEval:
         repository_owner_name=None,
         target_dir=None,
         input_checkpoint_file=None,
-        is_rollout_disabled=False,
+        no_train=False,
+        no_rollout=False,
     ):
         """Initialize the instance with default or provided configurations."""
         self.policy = policy
         self.env = env
         self.commit_id = commit_id
         self.repository_owner_name = repository_owner_name
-        self.is_rollout_disabled = is_rollout_disabled
+        self.no_train = no_train
+        self.no_rollout = no_rollout
 
         self.repository_dir = self.resolve_repository_path(target_dir)
         self.input_checkpoint_file = input_checkpoint_file
@@ -438,15 +440,25 @@ class AutoEval:
                 self.install_common()
                 self.install_each_policy()
 
-                self.get_dataset(input_dataset_location)
-                self.train(args_file_train, seed)
-                if not self.is_rollout_disabled:
+                if not self.no_train:
+                    self.get_dataset(input_dataset_location)
+                    self.train(args_file_train, seed)
+                else:
+                    print(
+                        f"[{self.__class__.__name__}] Dataset download and training disabled due to settings."
+                    )
+
+                if not self.no_rollout:
                     task_success_list = self.rollout(
                         args_file_rollout,
                         rollout_world_idx_list,
                         input_checkpoint_file,
                     )
                     self.save_result(task_success_list)
+                else:
+                    print(
+                        f"[{self.__class__.__name__}] Rollout execution disabled due to current settings."
+                    )
 
                 print(f"[{self.__class__.__name__}] Processing completed.")
 
@@ -518,9 +530,14 @@ def parse_argument():
     parser.add_argument("--args_file_train", type=str, required=False)
     parser.add_argument("--args_file_rollout", type=str, required=False)
     parser.add_argument(
-        "--is_rollout_disabled",
+        "--no_train",
         action="store_true",
-        help="disable rollout step when set",
+        help="disable training step if set",
+    )
+    parser.add_argument(
+        "--no_rollout",
+        action="store_true",
+        help="disable rollout step if set",
     )
     parser.add_argument(
         "--rollout_world_idx_list",
@@ -570,7 +587,7 @@ if __name__ == "__main__":
                 args.repository_owner_name,
                 args.target_dir,
                 args.input_checkpoint_file,
-                args.is_rollout_disabled,
+                args.no_rollout,
             )
             auto_eval.start(
                 args.input_dataset_location,
