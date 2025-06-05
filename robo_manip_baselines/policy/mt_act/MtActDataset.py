@@ -16,19 +16,11 @@ class MtActDataset(DatasetBase):
     def __init__(self, filenames, model_meta_info, enable_rmb_cache=False):
         super().__init__(filenames, model_meta_info, enable_rmb_cache)
 
-        desc_set = set()
+        self.task_desc_list = set()
         for f in filenames:
             with RmbData(f) as rmb_data:
-                desc_set.add(rmb_data.attrs["task_desc"])
-        desc_sorted_list = sorted(set(desc_set))
-
-        embeddings_matrix = generate_text_embeddings(desc_sorted_list)
-        assert embeddings_matrix.shape[0] == len(desc_sorted_list)
-        assert embeddings_matrix.shape[1] == 384
-
-        self.desc_embedding_dict = {
-            desc: embeddings_matrix[i] for i, desc in enumerate(desc_sorted_list)
-        }
+                self.task_desc_list.add(rmb_data.attrs["task_desc"])
+        self.task_desc_list = tuple(sorted(self.task_desc_list))
 
     def __len__(self):
         return len(self.filenames)
@@ -75,12 +67,10 @@ class MtActDataset(DatasetBase):
             images = np.stack(
                 [
                     # This allows for a common hash of cache
-                    (
-                        rmb_data[key][::skip][start_time_idx]
-                        if self.enable_rmb_cache
-                        # This allows for minimal loading when reading from HDF5
-                        else rmb_data[key][start_time_idx * skip]
-                    )
+                    rmb_data[key][::skip][start_time_idx]
+                    if self.enable_rmb_cache
+                    # This allows for minimal loading when reading from HDF5
+                    else rmb_data[key][start_time_idx * skip]
                     for key in image_keys
                 ],
                 axis=0,
@@ -88,7 +78,7 @@ class MtActDataset(DatasetBase):
 
             # Load task_desc
             task_desc = rmb_data.attrs["task_desc"]
-            task_emb = self.desc_embedding_dict[task_desc]
+            task_idx = self.task_desc_list.index(task_desc)
 
         # Chunk action
         action_len = action.shape[0]
@@ -107,7 +97,7 @@ class MtActDataset(DatasetBase):
         action_tensor = torch.tensor(action_chunked, dtype=torch.float32)
         images_tensor = torch.tensor(images, dtype=torch.uint8)
         is_pad_tensor = torch.tensor(is_pad, dtype=torch.bool)
-        task_emb_tensor = torch.tensor(np.asarray(task_emb), dtype=torch.float32)
+        task_idx_tensor = torch.tensor(task_idx, dtype=torch.long)
 
         # Augment data
         state_tensor, action_tensor, images_tensor = self.augment_data(
@@ -120,5 +110,5 @@ class MtActDataset(DatasetBase):
             images_tensor,
             action_tensor,
             is_pad_tensor,
-            task_emb_tensor,
+            task_idx_tensor,
         )
