@@ -3,10 +3,12 @@ import sys
 
 import torch
 from tqdm import tqdm
+from sentence_transformers import SentenceTransformer
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
+from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
 from robo_manip_baselines.common import TrainBase
@@ -42,9 +44,21 @@ class TrainMtAct(TrainBase):
 
         self.model_meta_info["data"]["chunk_size"] = self.args.chunk_size
 
+        # Set list of all task descriptions
+        all_filenames = [
+            f
+            for f in glob.glob(f"{self.args.dataset_dir}/**/*.*", recursive=True)
+            if f.endswith(".rmb")
+            or (f.endswith(".hdf5") and not f.endswith(".rmb.hdf5"))
+        ]
+        self.task_desc_list = set()
+        for filename in all_filenames:
+            with RmbData(filename) as rmb_data:
+                self.task_desc_list.add(rmb_data.attrs["task_desc"])
+        self.task_desc_list = tuple(sorted(self.task_desc_list))
+        self.model_meta_info["data"]["task_desc_list"] = self.task_desc_list
+
     def setup_policy(self):
-        if "--ckpt_dir" not in sys.argv:
-            sys.argv.extend(["--ckpt_dir", self.args.checkpoint_dir])
         # Set policy args
         self.model_meta_info["policy"]["args"] = {
             "lr": self.args.lr,
@@ -61,6 +75,8 @@ class TrainMtAct(TrainBase):
         }
 
         # Construct policy
+        DETRVAE.set_state_dim(len(self.model_meta_info["state"]["example"]))
+        DETRVAE.set_action_dim(len(self.model_meta_info["action"]["example"]))
         self.policy = ACTPolicy(self.model_meta_info["policy"]["args"])
         self.policy.cuda()
 
@@ -71,6 +87,10 @@ class TrainMtAct(TrainBase):
         self.print_policy_info()
         print(f"  - chunk size: {self.args.chunk_size}")
 
+        # Construct text encoder
+        self.text_encoder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+        self.text_encoder.cuda()
+
     def train_loop(self):
         for epoch in tqdm(range(self.args.num_epochs)):
             # Run train step
@@ -78,7 +98,8 @@ class TrainMtAct(TrainBase):
             batch_result_list = []
             for data in self.train_dataloader:
                 self.optimizer.zero_grad()
-                batch_result = self.policy(*[d.cuda() for d in data])
+                task_embed = self.text_encoder.encode(self.task_desc_list[data[-1]])
+                batch_result = self.policy(*[d.cuda() for d in data[:-1]], task_embed)
                 loss = batch_result["loss"]
                 loss.backward()
                 self.optimizer.step()

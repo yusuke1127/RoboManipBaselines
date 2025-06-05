@@ -13,21 +13,13 @@ from robo_manip_baselines.common import (
 class MtActDataset(DatasetBase):
     """Dataset to train MT-ACT policy."""
 
-    def __init__(self, filenames, model_meta_info, enable_rmb_cache=False):
-        super().__init__(filenames, model_meta_info, enable_rmb_cache)
-
-        self.task_desc_list = set()
-        for f in filenames:
-            with RmbData(f) as rmb_data:
-                self.task_desc_list.add(rmb_data.attrs["task_desc"])
-        self.task_desc_list = tuple(sorted(self.task_desc_list))
-
     def __len__(self):
         return len(self.filenames)
 
     def __getitem__(self, episode_idx):
         skip = self.model_meta_info["data"]["skip"]
         chunk_size = self.model_meta_info["data"]["chunk_size"]
+        task_desc_list = self.model_meta_info["data"]["task_desc_list"]
 
         with RmbData(self.filenames[episode_idx], self.enable_rmb_cache) as rmb_data:
             episode_len = rmb_data[DataKey.TIME][::skip].shape[0]
@@ -78,7 +70,7 @@ class MtActDataset(DatasetBase):
 
             # Load task_desc
             task_desc = rmb_data.attrs["task_desc"]
-            task_idx = self.task_desc_list.index(task_desc)
+            task_idx = task_desc_list.index(task_desc)
 
         # Chunk action
         action_len = action.shape[0]
