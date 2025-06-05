@@ -410,7 +410,7 @@ class TrainBase(ABC):
             f"  - state keys: {self.args.state_keys}\n"
             f"  - action keys: {self.args.action_keys}\n"
             f"  - camera names: {self.args.camera_names}\n"
-            f"  - skip: {self.args.skip}, batch size: {self.args.batch_size}, num epochs: {self.args.num_epochs}"
+            f"  - skip: {self.args.skip}, batch size: {self.args.batch_size}, num epochs: {self.args.num_epochs}, num workers: {self.args.num_workers}"
         )
 
     def run(self):

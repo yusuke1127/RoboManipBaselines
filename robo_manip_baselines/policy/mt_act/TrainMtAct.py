@@ -1,19 +1,24 @@
+import glob
 import os
 import sys
 
 import torch
-from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
+from tqdm import tqdm
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
+import os
+
 from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
-from robo_manip_baselines.common import TrainBase
+from robo_manip_baselines.common import RmbData, TrainBase
 
 from .MtActDataset import MtActDataset
+
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 class TrainMtAct(TrainBase):
@@ -88,8 +93,9 @@ class TrainMtAct(TrainBase):
         print(f"  - chunk size: {self.args.chunk_size}")
 
         # Construct text encoder
-        self.text_encoder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-        self.text_encoder.cuda()
+        self.text_encoder = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2"
+        )
 
     def train_loop(self):
         for epoch in tqdm(range(self.args.num_epochs)):
@@ -98,8 +104,13 @@ class TrainMtAct(TrainBase):
             batch_result_list = []
             for data in self.train_dataloader:
                 self.optimizer.zero_grad()
-                task_embed = self.text_encoder.encode(self.task_desc_list[data[-1]])
-                batch_result = self.policy(*[d.cuda() for d in data[:-1]], task_embed)
+                task_text = [
+                    self.task_desc_list[task_idx] for task_idx in data[-1].tolist()
+                ]
+                task_emb = self.text_encoder.encode(
+                    task_text, convert_to_tensor=True, device="cuda"
+                )
+                batch_result = self.policy(*[d.cuda() for d in data[:-1]], task_emb)
                 loss = batch_result["loss"]
                 loss.backward()
                 self.optimizer.step()
@@ -111,7 +122,13 @@ class TrainMtAct(TrainBase):
                 self.policy.eval()
                 batch_result_list = []
                 for data in self.val_dataloader:
-                    batch_result = self.policy(*[d.cuda() for d in data])
+                    task_text = [
+                        self.task_desc_list[task_idx] for task_idx in data[-1].tolist()
+                    ]
+                    task_emb = self.text_encoder.encode(
+                        task_text, convert_to_tensor=True, device="cuda"
+                    )
+                    batch_result = self.policy(*[d.cuda() for d in data[:-1]], task_emb)
                     batch_result_list.append(self.detach_batch_result(batch_result))
                 epoch_summary = self.log_epoch_summary(batch_result_list, "val", epoch)
 
