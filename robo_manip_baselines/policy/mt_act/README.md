@@ -19,13 +19,13 @@ Run a trained policy:
 ```console
 # Go to the top directory of this repository
 $ cd robo_manip_baselines
-$ python ./bin/Rollout.py MtAct MujocoUR5eCable --checkpoint ./checkpoint/MtAct/<checkpoint_name>/policy_last.ckpt
+$ python ./bin/Rollout.py MtAct MujocoUR5eCable --checkpoint ./checkpoint/MtAct/<checkpoint_name>/policy_last.ckpt --task_desc "Pick up an object"
 ```
 
 ## Technical Details
 For more information on the technical details, please see the following paper:
 ```bib
-@inproceedings{bharadhwaj2024roboagent,
+@INPROCEEDINGS{MT_ACT_ICRA2024,
   author = {Homanga Bharadhwaj and Jay Vakil and Mohit Sharma and Abhinav Gupta and Shubham Tulsiani and Vikash Kumar},
   title = {Roboagent: Generalization and efficiency in robot manipulation via semantic augmentations and action chunking},
   booktitle = {IEEE International Conference on Robotics and Automation},
