@@ -1,27 +1,18 @@
 import os
 import sys
-from functools import lru_cache
 
 import cv2
 import matplotlib.pylab as plt
 import numpy as np
-import torch
+from sentence_transformers import SentenceTransformer
 
 sys.path.append(
     os.path.join(os.path.dirname(__file__), "../../../third_party/roboagent")
 )
+from detr.models.detr_vae import DETRVAE
 from policy import ACTPolicy
 
-from robo_manip_baselines.common import (
-    RolloutBase,
-    denormalize_data,
-    generate_text_embeddings,
-)
-
-
-@lru_cache()
-def get_task_embedding_cached(task_desc):
-    return generate_text_embeddings([task_desc])
+from robo_manip_baselines.common import RolloutBase, denormalize_data
 
 
 class RolloutMtAct(RolloutBase):
@@ -30,14 +21,22 @@ class RolloutMtAct(RolloutBase):
             "--task_desc", type=str, required=True, help="task description"
         )
 
+        parser.add_argument(
+            "--no_temp_ensem",
+            action="store_true",
+            help="whether to disable temporal ensembling of the inferred policy",
+        )
+
     def setup_policy(self):
-        if "--ckpt_dir" not in sys.argv:
-            sys.argv.extend(["--ckpt_dir", self.args.checkpoint])
         # Print policy information
         self.print_policy_info()
-        print(f"  - chunk size: {self.model_meta_info['data']['chunk_size']}")
+        print(
+            f"  - chunk size: {self.model_meta_info['data']['chunk_size']}, temporal ensembling: {not self.args.no_temp_ensem}"
+        )
 
         # Construct policy
+        DETRVAE.set_state_dim(self.state_dim)
+        DETRVAE.set_action_dim(self.action_dim)
         self.policy = ACTPolicy(self.model_meta_info["policy"]["args"])
 
         # Register fook to visualize attention images
@@ -52,6 +51,11 @@ class RolloutMtAct(RolloutBase):
 
         # Load checkpoint
         self.load_ckpt()
+
+        # Construct text encoder
+        self.text_encoder = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2"
+        )
 
     def setup_plot(self):
         fig_ax = plt.subplots(
@@ -70,34 +74,52 @@ class RolloutMtAct(RolloutBase):
     def setup_variables(self):
         super().setup_variables()
 
-        self.all_actions_history = []
+        self.policy_action_buf = []
+        self.policy_action_buf_history = []
+        self.task_text_emb_map = {}
 
     def infer_policy(self):
         # Infer
-        state = self.get_state()
-        images = self.get_images()
-        task_emb = get_task_embedding_cached(self.args.task_desc)[0]
-        task_emb_tensor = torch.tensor(np.asarray(task_emb), dtype=torch.float32)
-        all_actions = self.policy(
-            state, images, task_emb=task_emb_tensor.to(state.device)
-        )[0]
-        self.all_actions_history.append(
-            all_actions.cpu().detach().numpy().astype(np.float64)
-        )
-        if len(self.all_actions_history) > self.model_meta_info["data"]["chunk_size"]:
-            self.all_actions_history.pop(0)
+        if (not self.args.no_temp_ensem) or (len(self.policy_action_buf) == 0):
+            state = self.get_state()
+            images = self.get_images()
+            task_emb = self.get_task_emb(self.args.task_desc).to(self.device)
+            action = self.policy(state, images, task_emb=task_emb)[0]
+            self.policy_action_buf = list(
+                action.cpu().detach().numpy().astype(np.float64)
+            )
+            if not self.args.no_temp_ensem:
+                self.policy_action_buf_history.append(self.policy_action_buf)
+                if (
+                    len(self.policy_action_buf_history)
+                    > self.model_meta_info["data"]["chunk_size"]
+                ):
+                    self.policy_action_buf_history.pop(0)
 
-        # Apply temporal ensembling to action
-        k = 0.01
-        exp_weights = np.exp(-k * np.arange(len(self.all_actions_history)))
-        exp_weights = exp_weights / exp_weights.sum()
-        action = np.zeros(self.action_dim)
-        for action_idx, _all_actions in enumerate(reversed(self.all_actions_history)):
-            action += exp_weights[::-1][action_idx] * _all_actions[action_idx]
+        # Store action
+        if self.args.no_temp_ensem:
+            action = self.policy_action_buf.pop(0)
+        else:
+            # Apply temporal ensembling to action
+            k = 0.01
+            exp_weights = np.exp(-k * np.arange(len(self.policy_action_buf_history)))
+            exp_weights = exp_weights / exp_weights.sum()
+            action = np.zeros(self.action_dim)
+            for action_idx, _policy_action_buf in enumerate(
+                reversed(self.policy_action_buf_history)
+            ):
+                action += exp_weights[::-1][action_idx] * _policy_action_buf[action_idx]
         self.policy_action = denormalize_data(action, self.model_meta_info["action"])
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
         )
+
+    def get_task_emb(self, task_text):
+        if task_text not in self.task_text_emb_map:
+            self.task_text_emb_map[task_text] = self.text_encoder.encode(
+                [task_text], convert_to_tensor=True, device="cpu"
+            )
+        return self.task_text_emb_map[task_text]
 
     def draw_plot(self):
         # Clear plot
