@@ -5,7 +5,6 @@ from robo_manip_baselines.common import (
     DataKey,
     DatasetBase,
     RmbData,
-    generate_text_embeddings,
     get_skipped_data_seq,
     get_skipped_single_data,
 )
