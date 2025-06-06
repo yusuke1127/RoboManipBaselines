@@ -25,12 +25,14 @@ class PrintRmbData:
 
     def run(self):
         if os.path.isdir(self.path):
-            pattern_hdf5 = os.path.join(self.path, "**", "*.hdf5")
-            pattern_rmb = os.path.join(self.path, "**", "*.rmb")
-            file_list = glob.glob(pattern_hdf5, recursive=True) + glob.glob(
-                pattern_rmb, recursive=True
+            file_list = sorted(
+                [
+                    f
+                    for f in glob.glob(f"{self.path}/**/*.*", recursive=True)
+                    if f.endswith(".rmb")
+                    or (f.endswith(".hdf5") and not f.endswith(".rmb.hdf5"))
+                ]
             )
-            file_list = sorted(file_list)
             if not file_list:
                 print(
                     f"[{self.__class__.__name__}] No target files found in directory: {self.path}"
