@@ -6,6 +6,17 @@ from .MujocoUR5eEnvBase import MujocoUR5eEnvBase
 
 
 class MujocoUR5ePickEnv(MujocoUR5eEnvBase):
+    sim_timestep = 0.002
+    frame_skip = 16
+    metadata = {
+        "render_modes": [
+            "human",
+            "rgb_array",
+            "depth_array",
+        ],
+        "render_fps": int(1 / (sim_timestep * frame_skip)),
+    }
+
     def __init__(
         self,
         **kwargs,
