@@ -28,10 +28,11 @@ class InitialTeleopPhase(PhaseBase):
     def start(self):
         super().start()
 
-        print(f"[{self.op.__class__.__name__}] Press the 'n' key to proceed.")
+        if not self.op.auto_mode:
+            print(f"[{self.op.__class__.__name__}] Press the 'n' key to proceed.")
 
     def check_transition(self):
-        return self.op.key == ord("n")
+        return self.op.auto_mode or (self.op.key == ord("n"))
 
 
 class StandbyTeleopPhase(PhaseBase):
@@ -154,12 +155,13 @@ class EndReplayPhase(PhaseBase):
     def start(self):
         super().start()
 
-        print(
-            f"[{self.op.__class__.__name__}] Replay of the log is finished. Press the 'n' key to reset."
-        )
+        msg = f"[{self.op.__class__.__name__}] Replay of the log is finished."
+        if not self.op.auto_mode:
+            msg += " Press the 'n' key to reset."
+        print(msg)
 
     def post_update(self):
-        if self.op.key == ord("n"):
+        if self.op.auto_mode or (self.op.key == ord("n")):
             if self.op.args.save_replay:
                 self.op.save_data()
             self.op.replay_file_idx += 1
@@ -331,6 +333,11 @@ class TeleopBase(ABC):
             help="log file path when replaying log motion",
         )
         parser.add_argument(
+            "--auto_replay",
+            action="store_true",
+            help="whether replay proceeds automatically",
+        )
+        parser.add_argument(
             "--save_replay",
             action="store_true",
             help="whether to save replayed data",
@@ -351,6 +358,8 @@ class TeleopBase(ABC):
 
         if self.args.world_random_scale is not None:
             self.args.world_random_scale = np.array(self.args.world_random_scale)
+
+        self.auto_mode = (self.args.replay_log is not None) and self.args.auto_replay
 
         if self.args.seed < 0:
             self.args.seed = int(time.time()) % (2**32)
@@ -411,7 +420,7 @@ class TeleopBase(ABC):
             ):
                 self.iteration_duration_list.append(iteration_duration)
 
-            if iteration_duration < self.env.unwrapped.dt:
+            if (not self.auto_mode) and (iteration_duration < self.env.unwrapped.dt):
                 time.sleep(self.env.unwrapped.dt - iteration_duration)
 
         self.print_statistics()
