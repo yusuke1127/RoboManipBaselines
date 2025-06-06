@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import glob
 import os
 import sys
 import time
@@ -161,7 +162,11 @@ class EndReplayPhase(PhaseBase):
         if self.op.key == ord("n"):
             if self.op.args.save_replay:
                 self.op.save_data()
-            self.op.reset_flag = True
+            self.op.replay_file_idx += 1
+            if self.op.replay_file_idx == len(self.op.replay_filenames):
+                self.op.quit_flag = True
+            else:
+                self.op.reset_flag = True
 
         return False
 
@@ -191,10 +196,30 @@ class TeleopBase(ABC):
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
 
-        # Setup data manager for replay
         if self.args.replay_log is not None:
+            # Setup data manager for replay
             self.replay_data_manager = DataManager(self.env, demo_name=self.demo_name)
             self.replay_data_manager.setup_camera_info()
+
+            # Set log files for replay
+            if self.args.replay_log.rstrip("/").endswith((".rmb", ".hdf5")):
+                self.replay_filenames = [self.args.replay_log]
+            elif os.path.isdir(self.args.replay_log):
+                self.replay_filenames = sorted(
+                    [
+                        f
+                        for f in glob.glob(
+                            f"{self.args.replay_log}/**/*.*", recursive=True
+                        )
+                        if f.endswith(".rmb")
+                        or (f.endswith(".hdf5") and not f.endswith(".rmb.hdf5"))
+                    ]
+                )
+            else:
+                raise ValueError(
+                    f"[{self.__class__.__name__}] Invalid path for replaying log: {self.args.replay_log}"
+                )
+            self.replay_file_idx = 0
 
         # Setup phase manager
         if self.args.replay_log is None:
@@ -415,9 +440,11 @@ class TeleopBase(ABC):
             self.replay_data_manager.reset()
             if self.args.replay_keys is None:
                 self.args.replay_keys = self.env.unwrapped.command_keys_for_step
-            self.replay_data_manager.load_data(self.args.replay_log, skip_image=True)
+            replay_file = self.replay_filenames[self.replay_file_idx]
+            self.replay_data_manager.load_data(replay_file, skip_image=True)
             print(
-                f"[{self.__class__.__name__}] Load teleoperation data: {self.args.replay_log}\n"
+                f"[{self.__class__.__name__}] Load teleoperation data "
+                f"({self.replay_file_idx+1}/{len(self.replay_filenames)}): {replay_file}\n"
                 f"  - replay keys: {self.args.replay_keys}"
             )
             world_idx = self.replay_data_manager.get_meta_data("world_idx")
