@@ -135,7 +135,7 @@ class ReplayPhase(PhaseBase):
         for replay_key in self.op.args.replay_keys:
             self.op.motion_manager.set_command_data(
                 replay_key,
-                self.op.data_manager.get_single_data(
+                self.op.replay_data_manager.get_single_data(
                     replay_key, self.op.teleop_time_idx
                 ),
             )
@@ -145,7 +145,7 @@ class ReplayPhase(PhaseBase):
 
     def check_transition(self):
         return self.op.teleop_time_idx == len(
-            self.op.data_manager.get_data_seq(DataKey.TIME)
+            self.op.replay_data_manager.get_data_seq(DataKey.TIME)
         )
 
 
@@ -154,12 +154,14 @@ class EndReplayPhase(PhaseBase):
         super().start()
 
         print(
-            f"[{self.op.__class__.__name__}] The log motion has finished replaying. Press the 'n' key to exit."
+            f"[{self.op.__class__.__name__}] Replay of the log is finished. Press the 'n' key to reset."
         )
 
-    def check_transition(self):
+    def post_update(self):
         if self.op.key == ord("n"):
-            self.op.quit_flag = True
+            if self.op.args.save_replay:
+                self.op.save_data()
+            self.op.reset_flag = True
 
         return False
 
@@ -188,6 +190,11 @@ class TeleopBase(ABC):
         )
         self.data_manager.setup_camera_info()
         self.datetime_now = datetime.datetime.now()
+
+        # Setup data manager for replay
+        if self.args.replay_log is not None:
+            self.replay_data_manager = DataManager(self.env, demo_name=self.demo_name)
+            self.replay_data_manager.setup_camera_info()
 
         # Setup phase manager
         if self.args.replay_log is None:
@@ -299,11 +306,16 @@ class TeleopBase(ABC):
             help="log file path when replaying log motion",
         )
         parser.add_argument(
+            "--save_replay",
+            action="store_true",
+            help="whether to save replayed data",
+        )
+        parser.add_argument(
             "--replay_keys",
             nargs="+",
             choices=DataKey.COMMAND_DATA_KEYS,
             default=None,
-            help="Command data keys when replaying log motion",
+            help="command data keys when replaying log motion",
         )
 
         parser.add_argument("--seed", type=int, default=-1, help="random seed")
@@ -348,7 +360,7 @@ class TeleopBase(ABC):
                 ]
             )
 
-            if self.phase_manager.is_phase("TeleopPhase"):
+            if self.phase_manager.is_phases(["TeleopPhase", "ReplayPhase"]):
                 self.record_data()
 
             self.obs, self.reward, _, _, self.info = self.env.step(action)
@@ -369,7 +381,9 @@ class TeleopBase(ABC):
                 break
 
             iteration_duration = time.time() - iteration_start_time
-            if self.phase_manager.is_phase("TeleopPhase") and self.teleop_time_idx > 0:
+            if self.phase_manager.is_phases(["TeleopPhase", "ReplayPhase"]) and (
+                self.teleop_time_idx > 0
+            ):
                 self.iteration_duration_list.append(iteration_duration)
 
             if iteration_duration < self.env.unwrapped.dt:
@@ -387,24 +401,26 @@ class TeleopBase(ABC):
         # Reset motion manager
         self.motion_manager.reset()
 
-        # Reset or load data
-        if self.args.replay_log is None:
-            self.data_manager.reset()
-            if self.args.world_idx_list is None:
-                world_idx = None
-            else:
-                world_idx = self.args.world_idx_list[
-                    self.data_manager.episode_idx % len(self.args.world_idx_list)
-                ]
+        # Reset data manager
+        self.data_manager.reset()
+        if self.args.world_idx_list is None:
+            world_idx = None
         else:
+            world_idx = self.args.world_idx_list[
+                self.data_manager.episode_idx % len(self.args.world_idx_list)
+            ]
+
+        # Load replay data
+        if self.args.replay_log is not None:
+            self.replay_data_manager.reset()
             if self.args.replay_keys is None:
                 self.args.replay_keys = self.env.unwrapped.command_keys_for_step
-            self.data_manager.load_data(self.args.replay_log, skip_image=True)
+            self.replay_data_manager.load_data(self.args.replay_log, skip_image=True)
             print(
                 f"[{self.__class__.__name__}] Load teleoperation data: {self.args.replay_log}\n"
                 f"  - replay keys: {self.args.replay_keys}"
             )
-            world_idx = self.data_manager.get_meta_data("world_idx")
+            world_idx = self.replay_data_manager.get_meta_data("world_idx")
 
             # Set initial joint position for relative command
             if not set(self.args.replay_keys).isdisjoint(
@@ -412,7 +428,9 @@ class TeleopBase(ABC):
             ):
                 self.motion_manager.set_command_data(
                     DataKey.COMMAND_JOINT_POS,
-                    self.data_manager.get_single_data(DataKey.COMMAND_JOINT_POS, 0),
+                    self.replay_data_manager.get_single_data(
+                        DataKey.COMMAND_JOINT_POS, 0
+                    ),
                 )
 
         # Reset environment
