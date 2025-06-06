@@ -2,6 +2,7 @@ import argparse
 import datetime
 import fcntl
 import glob
+import json
 import os
 import re
 import subprocess
@@ -14,10 +15,24 @@ from urllib.parse import urlparse
 
 import schedule
 
-LOCK_FILE_PATH = str(
-    Path("/tmp")
-    / f"{'_'.join(Path(__file__).resolve().parts[-4:-1] + (Path(__file__).resolve().stem,))}.lock"
-)
+COMMON_PARAM_NAMES = [
+    "env",
+    "commit_id",
+    "repository_owner_name",
+    "target_dir",
+    "input_dataset_location",
+    "input_checkpoint_file",
+    "args_file_train",
+    "args_file_rollout",
+    "no_train",
+    "no_rollout",
+    "rollout_world_idx_list",
+    "seed",
+]
+JOB_INFO_KEYS = [
+    "job_id",
+    "policy",
+] + COMMON_PARAM_NAMES
 ROLLOUT_RESULT_PRINT_PATTERN = re.compile(r"Rollout result: (success|failure)")
 
 
@@ -57,12 +72,16 @@ class AutoEval:
         self.no_train = no_train
         self.no_rollout = no_rollout
 
+        # Resolve destination path for the repository
         self.repository_dir = self.resolve_repository_path(target_dir)
         self.input_checkpoint_file = input_checkpoint_file
+
+        # Set the Python executable path for the virtual environment
         venv_dir = os.path.join(self.repository_dir, "..", "venv")
         self.venv_python = os.path.join(venv_dir, "bin", "python")
         venv.create(venv_dir, with_pip=True)
         self.dataset_dir = None
+        self.lock_file_path = self.initialize_lock_file_path(target_dir)
 
         self.result_datetime_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -83,7 +102,7 @@ class AutoEval:
             if os.path.basename(
                 normalized_path
             ) == cls.REPOSITORY_NAME and re.fullmatch(
-                r"^RmbAutoEval_\d{8}_\d{6}_.+$",
+                rf"^{re.escape(cls.__name__)}_\d{{8}}_\d{{6}}_.+$",
                 os.path.basename(os.path.dirname(normalized_path)),
             ):
                 final_repository_path = normalized_path
@@ -92,7 +111,7 @@ class AutoEval:
         if should_create_new_tempdir:
             # generate timestamped prefix and create temporary directory
             datetime_now = datetime.datetime.now()
-            prefix = f"RmbAutoEval_{datetime_now:%Y%m%d_%H%M%S}_"
+            prefix = f"Rmb{cls.__name__}_{datetime_now:%Y%m%d_%H%M%S}_"
             temp_dir = tempfile.mkdtemp(prefix=prefix, dir=target_dir)
             print(f"[{cls.__name__}] Temporary directory created: {temp_dir}")
 
@@ -115,11 +134,26 @@ class AutoEval:
         return final_repository_path
 
     @classmethod
+    def initialize_lock_file_path(cls, target_dir):
+        """Initialize the lock file path."""
+        if target_dir:
+            locks_dir = os.path.join(target_dir, "locks")
+            os.makedirs(locks_dir, exist_ok=True)
+        else:
+            locks_dir = tempfile.mkdtemp(prefix=f"{cls.__name__}_locks_")
+
+        script_base = Path(__file__).resolve().stem
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        lock_filename = f"{script_base}_{timestamp}.lock"
+        return os.path.join(locks_dir, lock_filename)
+
+    @classmethod
     def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
         """Execute a shell command, optionally in the specified working directory,
         and return lines from standard output that match the given regex pattern."""
         print(
-            f"[{cls.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Executing command: {' '.join(command)}",
+            f"[{cls.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+            f"Executing command: {' '.join(command)}",
             flush=True,
         )
 
@@ -270,7 +304,8 @@ class AutoEval:
             glob.glob(os.path.join(self.dataset_dir, "**", "*.rmb"), recursive=True)
         )
         print(
-            f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {rmb_items_count} data files in RMB format have been unzipped."
+            f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+            f"{rmb_items_count} data files in RMB format have been unzipped."
         )
 
     def get_dataset(self, input_dataset_location):
@@ -375,11 +410,11 @@ class AutoEval:
             )
             assert (
                 len(reward_statuses) == 1
-            ), f"[{self.__name__}] {len(reward_statuses)=}"
+            ), f"[{self.__class__.__name__}] {len(reward_statuses)=}"
             assert reward_statuses[0].group(1) in (
                 "success",
                 "failure",
-            ), f"[{self.__name__}] {reward_statuses[0].group(1)=}"
+            ), f"[{self.__class__.__name__}] {reward_statuses[0].group(1)=}"
 
             task_success_list.append(int(reward_statuses[0].group(1) == "success"))
 
@@ -400,7 +435,9 @@ class AutoEval:
                 if not os.path.exists(new_file_path):
                     os.rename(output_file_path, new_file_path)
                     print(
-                        f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Existing file renamed to: {new_file_path}"
+                        f"[{self.__class__.__name__}] "
+                        f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+                        f"Existing file renamed to: {new_file_path}"
                     )
                     break
             else:
@@ -412,10 +449,12 @@ class AutoEval:
         with open(output_file_path, "w", encoding="utf-8") as f:
             f.write(" ".join(map(str, task_success_list)))
         print(
-            f"[{self.__class__.__name__}] [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] File has been saved: {output_file_path}"
+            f"[{self.__class__.__name__}] "
+            f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] "
+            f"File has been saved: {output_file_path}"
         )
 
-    def start(
+    def execute_job(
         self,
         input_dataset_location,
         input_checkpoint_file,
@@ -424,30 +463,45 @@ class AutoEval:
         rollout_world_idx_list,
         seed=None,
     ):
-        """Start all required processes."""
-        with open(LOCK_FILE_PATH, "w", encoding="utf-8") as lock_file:
-            print(f"[{self.__class__.__name__}] Lock file: {LOCK_FILE_PATH}")
+        """
+        Execute a single job:
+        1) Acquire lock
+        2) Git clone & checkout
+        3) Create venv & check/install dependencies
+        4) Train (unless no_train)
+        5) Rollout and save results (unless no_rollout)
+        """
+        with open(self.lock_file_path, "w", encoding="utf-8") as lock_file:
+            print(f"[{self.__class__.__name__}] Lock file: {self.lock_file_path}")
             print(f"[{self.__class__.__name__}] Attempting to acquire lock...")
             fcntl.flock(lock_file, fcntl.LOCK_EX)
             print(f"[{self.__class__.__name__}] Lock acquired. Starting processing...")
+
             try:
+                # Clone the Git repository and switch to the specified commit
                 self.git_clone()
+
+                # Create virtual environment and check APT packages
                 venv.create(
                     os.path.join(self.venv_python, "../../../venv/"), with_pip=True
                 )
                 self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
 
+                # Install common dependencies and policy-specific dependencies
                 self.install_common()
                 self.install_each_policy()
 
+                # Training phase
                 if not self.no_train:
                     self.get_dataset(input_dataset_location)
                     self.train(args_file_train, seed)
                 else:
                     print(
-                        f"[{self.__class__.__name__}] Dataset download and training disabled due to settings."
+                        f"[{self.__class__.__name__}] "
+                        "Dataset download and training disabled due to settings."
                     )
 
+                # Rollout & save results
                 if not self.no_rollout:
                     task_success_list = self.rollout(
                         args_file_rollout,
@@ -457,7 +511,8 @@ class AutoEval:
                     self.save_result(task_success_list)
                 else:
                     print(
-                        f"[{self.__class__.__name__}] Rollout execution disabled due to current settings."
+                        f"[{self.__class__.__name__}] "
+                        "Rollout execution disabled due to current settings."
                     )
 
                 print(f"[{self.__class__.__name__}] Processing completed.")
@@ -485,15 +540,26 @@ def parse_argument():
         description="This is a parser for the evaluation based on a specific commit.",
     )
     parser.add_argument(
+        "--job_del",
+        dest="job_del",
+        type=str,
+        required=False,
+        help="delete previously enqueued job by job ID (filename without extension)",
+    )
+    parser.add_argument(
+        "--job_stat", action="store_true", help="show all currently enqueued job IDs"
+    )
+    parser.add_argument(
         "policies",
         type=str,
-        nargs="+",
+        nargs="*",
         choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "MtAct"],
         help="policies",
     )
     parser.add_argument(
         "env",
         type=str,
+        nargs="?",
         help="environment",
     )
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
@@ -502,7 +568,8 @@ def parse_argument():
         type=str,
         required=False,
         default=None,
-        help="base directory used throughout program for repository clone, virtual environment, dataset, and result outputs",
+        help="base directory used throughout program for repository clone, "
+        "virtual environment, dataset, and result outputs",
     )
     parser.add_argument(
         "-u",
@@ -544,7 +611,7 @@ def parse_argument():
         type=int,
         nargs="*",
         required=True,
-        help="list of world indicies",
+        help="list of world indices",
     )
     parser.add_argument(
         "--seed",
@@ -562,11 +629,23 @@ def parse_argument():
     )
     parsed_args = parser.parse_args()
 
+    # If --job_del or --job_stat is specified, skip policies/env check
+    if parsed_args.job_del or parsed_args.job_stat:
+        return parsed_args
+
+    # Otherwise, both policies and env must be provided
+    if not parsed_args.policies or not parsed_args.env:
+        raise ValueError(
+            "Both policies and env are required. "
+            "Use --job_del <JOB_ID> to delete a job or --job_stat to list jobs."
+        )
+
+    # Validate daily_schedule_time format if provided
     if parsed_args.daily_schedule_time:
         if not re.fullmatch(
             r"(?:[01]\d|2[0-3]):[0-5]\d", parsed_args.daily_schedule_time
         ):
-            parser.error(
+            raise ValueError(
                 f"Invalid time format for --daily_schedule_time: "
                 f"'{parsed_args.daily_schedule_time}'. Expected HH:MM (00-23,00-59)."
             )
@@ -574,38 +653,148 @@ def parse_argument():
     return parsed_args
 
 
-if __name__ == "__main__":
+def show_queue_status(queue_dir):
+    """Display currently enqueued job IDs (JSON filenames without extension)."""
+    queued_files = glob.glob(os.path.join(queue_dir, "*.json"))
+    if not queued_files:
+        print(f"[{AutoEval.__name__}] There are currently no jobs enqueued.")
+    else:
+        print(f"[{AutoEval.__name__}] === Enqueued Job IDs ===")
+        for jf in sorted(queued_files):
+            job_id = os.path.splitext(os.path.basename(jf))[0]
+            print(f"- {job_id}")
+
+
+def delete_queued_job(queue_dir, job_id):
+    """Delete the specified job JSON from the queue directory."""
+    target_file = os.path.join(queue_dir, f"{job_id}.json")
+    if os.path.isfile(target_file):
+        os.remove(target_file)
+        print(f"[{AutoEval.__name__}] Deleted job '{job_id}' from the queue.")
+    else:
+        print(
+            f"[{AutoEval.__name__}] The specified job ID '{job_id}' does not exist in the queue."
+        )
+
+
+def main():
     args = parse_argument()
 
-    def run_once():
-        """Execute the start function."""
-        for policy in args.policies:
-            auto_eval = AutoEval(
-                policy,
-                args.env,
-                args.commit_id,
-                args.repository_owner_name,
-                args.target_dir,
-                args.input_checkpoint_file,
-                args.no_rollout,
-            )
-            auto_eval.start(
-                args.input_dataset_location,
-                args.input_checkpoint_file,
-                args.args_file_train,
-                args.args_file_rollout,
-                args.rollout_world_idx_list,
-                args.seed,
-            )
+    # Determine base directory for job queue
+    if args.target_dir:
+        base_for_queue = args.target_dir
+    else:
+        base_for_queue = os.path.dirname(os.path.abspath(__file__))
 
-    # Immediate execution mode (when -t is not specified)
+    script_name = Path(__file__).resolve().stem
+    queue_dir = os.path.join(base_for_queue, f"auto_eval_queue_{script_name}")
+    os.makedirs(queue_dir, exist_ok=True)
+
+    if args.job_stat:
+        show_queue_status(queue_dir)
+        return
+
+    if args.job_del:
+        delete_queued_job(queue_dir, args.job_del)
+        return
+
+    def register_jobs() -> list:
+        """
+        Register one JSON per policy under queue_dir.
+        Returns a list of enqueued job IDs.
+        """
+        args_dict = vars(args)
+        enqueued_job_ids = []
+        for policy in args.policies:
+            # Combine timestamp and policy name to create a unique job ID
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            job_id = f"{timestamp}_{policy}"
+
+            # Register job information as JSON
+            job_info = {"job_id": job_id, "policy": policy}
+            for key in COMMON_PARAM_NAMES:
+                job_info[key] = args_dict.get(key)
+
+            # Write as JSON file
+            job_file_path = os.path.join(queue_dir, f"{job_id}.json")
+            with open(job_file_path, "w", encoding="utf-8") as jf:
+                json.dump(job_info, jf, ensure_ascii=False, indent=4)
+            print(f"[{AutoEval.__name__}] Job registered: {job_id}")
+
+            enqueued_job_ids.append(job_id)
+            # Sleep briefly to avoid job ID collision
+            time.sleep(0.001)
+
+        return enqueued_job_ids
+
+    def process_job(job_id: str):
+        """
+        Load job_info from JSON, execute it via AutoEval.execute_job(),
+        then delete the JSON file.
+        """
+        job_file_path = os.path.join(queue_dir, f"{job_id}.json")
+        if not os.path.isfile(job_file_path):
+            print(f"[{AutoEval.__name__}] Job file does not exist: {job_id}")
+            return
+
+        # Load job_info from JSON
+        with open(job_file_path, "r", encoding="utf-8") as jf:
+            job_info = json.load(jf)
+
+        print(f"\n[{AutoEval.__name__}] Execute job: {job_id}")
+        auto_eval = AutoEval(
+            job_info["policy"],
+            job_info["env"],
+            job_info["commit_id"],
+            job_info["repository_owner_name"],
+            job_info["target_dir"],
+            job_info["input_checkpoint_file"],
+            job_info["no_rollout"],
+        )
+        try:
+            # Call new execute_job (replacing the old start)
+            auto_eval.execute_job(
+                job_info["input_dataset_location"],
+                job_info["input_checkpoint_file"],
+                job_info["args_file_train"],
+                job_info["args_file_rollout"],
+                job_info["rollout_world_idx_list"],
+                job_info["seed"],
+            )
+            print(f"[{AutoEval.__name__}] Completed: {job_id}")
+        except Exception as e:
+            print(f"[{AutoEval.__name__}] Error ({job_id}): {e}")
+            raise
+
+        # Delete job file after completion
+        try:
+            os.remove(job_file_path)
+            print(f"[{AutoEval.__name__}] Removed job from queue: {job_id}")
+        except Exception as e:
+            print(f"[{AutoEval.__name__}] Failed to delete job file ({job_id}): {e}")
+
+    def handle_all_jobs():
+        # Register all policies as jobs
+        enqueued_job_ids = register_jobs()
+
+        # Display list of enqueued job IDs
+        print(f"\n[{AutoEval.__name__}] === Enqueued Job IDs ===")
+        for jid in enqueued_job_ids:
+            print(f"- {jid}")
+        print()
+
+        # Process each job sequentially
+        for jid in enqueued_job_ids:
+            process_job(jid)
+
+    # Immediate execution mode (no schedule)
     if not args.daily_schedule_time:
-        run_once()
+        handle_all_jobs()
         print(f"[{AutoEval.__name__}] Completed one-time run. Exiting.")
-        sys.exit(0)
+        return
 
     # Scheduling mode
-    schedule.every().day.at(args.daily_schedule_time).do(run_once)
+    schedule.every().day.at(args.daily_schedule_time).do(handle_all_jobs)
     print(
         f"[{AutoEval.__name__}] Scheduled daily run at {args.daily_schedule_time}. Waiting...",
         flush=True,
@@ -615,5 +804,9 @@ if __name__ == "__main__":
         while True:
             schedule.run_pending()
             time.sleep(1)
-    except (KeyboardInterrupt, SystemExit):
-        print("\n[{AutoEval.__name__}] Scheduler stopped by user.")
+    except KeyboardInterrupt:
+        print(f"\n[{AutoEval.__name__}] Scheduler stopped by user.")
+
+
+if __name__ == "__main__":
+    main()
