@@ -554,14 +554,13 @@ def parse_argument():
     parser.add_argument(
         "policies",
         type=str,
-        nargs="*",
+        nargs="+",
         choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "MtAct"],
         help="policies",
     )
     parser.add_argument(
         "env",
         type=str,
-        nargs="?",
         help="environment",
     )
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
@@ -631,18 +630,6 @@ def parse_argument():
     )
     parsed_args = parser.parse_args()
 
-    # If --job_del or --job_stat is specified, skip policies/env check
-    if parsed_args.job_del or parsed_args.job_stat:
-        return parsed_args
-
-    # Otherwise, both policies and env must be provided
-    if not parsed_args.policies or not parsed_args.env:
-        raise ValueError(
-            "Both policies and env are required. "
-            "Use --job_del <JOB_ID> to delete a job or --job_stat to list jobs."
-        )
-
-    # Validate daily_schedule_time format if provided
     if parsed_args.daily_schedule_time:
         if not re.fullmatch(
             r"(?:[01]\d|2[0-3]):[0-5]\d", parsed_args.daily_schedule_time
