@@ -7,6 +7,7 @@ from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from diffusion_policy_3d.policy.dp3 import DP3
 from robo_manip_baselines.common import (
     RolloutBase,
+    convert_depth_image_to_point_cloud,
     denormalize_data,
     normalize_data,
 )
@@ -56,6 +57,9 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         self.state_buf = None
         self.pointclouds_buf = None
         self.policy_action_buf = None
+        self.min_bound = self.model_meta_info["data"]["min_bound"]
+        self.max_bound = self.model_meta_info["data"]["max_bound"]
+        self.num_points = self.model_meta_info["data"]["num_points"]
 
     def infer_policy(self):
         # Infer
@@ -108,6 +112,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         for camera_name in self.camera_names:
             image = self.info["rgb_images"][camera_name]
             depth = self.info["depth_images"][camera_name]
+            fovy = self.info["fovy"][camera_name]
 
             image = cv2.resize(image, self.model_meta_info["data"]["image_size"])
             depth = cv2.resize(depth, self.model_meta_info["data"]["image_size"])
@@ -123,7 +128,16 @@ class RolloutDiffusionPolicy3d(RolloutBase):
 
             # TODO: Convert to pointcloud
             # dummy pointcloud
-            pointcloud = np.random.random(self.pointcloud_shape)
+            pointcloud = self.farthest_point_sampling(
+                self.crop_points(
+                    convert_depth_image_to_point_cloud(
+                        depth, fovy, image, far_clip=3.0
+                    ),
+                    self.min_bound,
+                    self.max_bound,
+                ),
+                num_points=self.num_points,
+            )
             pointclouds.append(torch.tensor(pointcloud, dtype=torch.float32))
 
         # Store and return
@@ -164,3 +178,30 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             self.policy_name,
             cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
         )
+
+    def crop_points(self, pointcloud: np.ndarray, min_bound=None, max_bound=None):
+        # Crop pointcloud before downsampling.
+        if min_bound is not None:
+            mask = np.all(pointcloud[:, :3] > min_bound, axis=1)
+            pointcloud = pointcloud[mask]
+        if max_bound is not None:
+            mask = np.all(pointcloud[:, :3] < max_bound, axis=1)
+            pointcloud = pointcloud[mask]
+        return pointcloud
+
+    def farthest_point_sampling(self, pointcloud: np.ndarray, num_points: int):
+        # DownSampling pointclouds.
+        N, D = pointcloud.shape[:2]
+        xyz = pointcloud[:, :, :3]
+        centroids = np.zeros((num_points,))
+        distance = np.ones((N,)) * 1e10
+        farthest = np.random.randint(0, N)
+        for i in range(num_points):
+            centroids[i] = farthest
+            centroid = xyz[farthest, :]
+            dist = np.sum((xyz - centroid) ** 2, -1)
+            mask = dist < distance
+            distance[mask] = dist[mask]
+            farthest = np.argmax(distance, -1)
+        pc = pointcloud[centroids.astype(np.int32)]
+        return pc

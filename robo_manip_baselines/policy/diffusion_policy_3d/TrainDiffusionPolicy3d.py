@@ -44,7 +44,7 @@ class TrainDiffusionPolicy3d(TrainBase):
         parser.add_argument(
             "--use_pc_color",
             action=argparse.BooleanOptionalAction,
-            default=True,
+            default=False,
             help="Enable or disable color information of pointcloud",
         )
 
@@ -86,6 +86,21 @@ class TrainDiffusionPolicy3d(TrainBase):
             help="Image size (width, height) to be cropped after resize. In the case of multiple image inputs, it is assumed that all images share the same size.",
         )
 
+        parser.add_argument(
+            "--min_bound",
+            type=int,
+            nargs=3,
+            default=[-1, -1, -1],
+            help="Min bounding box for cropping pointcloud before downsampling.",
+        )
+        parser.add_argument(
+            "--max_bound",
+            type=int,
+            nargs=3,
+            default=[1, 1, 1],
+            help="Max bounding box for cropping pointcloud before downsampling.",
+        )
+
     def setup_model_meta_info(self):
         super().setup_model_meta_info()
 
@@ -96,6 +111,8 @@ class TrainDiffusionPolicy3d(TrainBase):
         self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
         self.model_meta_info["data"]["num_points"] = self.args.num_points
         self.model_meta_info["data"]["n_point_dim"] = 6 if self.args.use_pc_color else 3
+        self.model_meta_info["data"]["min_bound"] = self.args.min_bound
+        self.model_meta_info["data"]["max_bound"] = self.args.max_bound
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
