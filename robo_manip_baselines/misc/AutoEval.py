@@ -97,6 +97,7 @@ class AutoEval:
         normalized_path = target_dir.rstrip(os.sep) if target_dir is not None else None
 
         # determine final_repository_path: either use normalized_path if it matches pattern, else create new temp dir
+        final_repository_path = None
         should_create_new_tempdir = True
         if normalized_path is not None:
             if os.path.basename(
@@ -118,11 +119,17 @@ class AutoEval:
             # append repository name and return full path
             final_repository_path = os.path.join(temp_dir, cls.REPOSITORY_NAME)
 
+        # explicitly raise an error if final_repository_path is still unset
+        if final_repository_path is None:
+            raise RuntimeError(
+                f"[{cls.__name__}] Failed to resolve repository path from target_dir={target_dir!r}"
+            )
+
         # extract base directory name and check if it is a file path
         basename = os.path.basename(final_repository_path)
         _, ext = os.path.splitext(basename)
         if ext:
-            raise IOError(f"File paths are not allowed: {target_dir}")
+            raise IOError(f"[{cls.__name__}] File paths are not allowed: {target_dir}")
 
         # verify that parent directory exists
         parent_dir = os.path.dirname(final_repository_path)
@@ -137,15 +144,10 @@ class AutoEval:
     def initialize_lock_file_path(cls, target_dir):
         """Initialize the lock file path."""
         if target_dir:
-            locks_dir = os.path.join(target_dir, "locks")
-            os.makedirs(locks_dir, exist_ok=True)
+            lock_dir = target_dir
         else:
-            locks_dir = tempfile.mkdtemp(prefix=f"{cls.__name__}_locks_")
-
-        script_base = Path(__file__).resolve().stem
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        lock_filename = f"{script_base}_{timestamp}.lock"
-        return os.path.join(locks_dir, lock_filename)
+            lock_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(lock_dir, Path(__file__).resolve().stem + ".lock")
 
     @classmethod
     def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
