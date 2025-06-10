@@ -24,7 +24,7 @@ class RolloutAct(RolloutBase):
         # Print policy information
         self.print_policy_info()
         print(
-            f"  - chunk size: {self.model_meta_info['data']['chunk_size']}, temporal_ensembling: {not self.args.no_temp_ensem}"
+            f"  - chunk size: {self.model_meta_info['data']['chunk_size']}, temporal ensembling: {not self.args.no_temp_ensem}"
         )
 
         # Construct policy
