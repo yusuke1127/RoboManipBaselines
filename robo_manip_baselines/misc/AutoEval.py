@@ -521,6 +521,15 @@ class AutoEval:
 
             finally:
                 print(f"[{self.__class__.__name__}] Releasing lock.")
+        try:
+            os.remove(self.lock_file_path)
+            print(
+                f"[{self.__class__.__name__}] Lock file removed: {self.lock_file_path}"
+            )
+        except OSError as e:
+            print(
+                f"[{self.__class__.__name__}] Warning: failed to remove lock file ({e})"
+            )
 
 
 def camel_to_snake(name):
@@ -585,7 +594,6 @@ def parse_argument():
         "--input_dataset_location",
         type=str,
         dest="input_dataset_location",
-        required=True,
         help="specify URL of online storage or local directory",
     )
     parser.add_argument(
@@ -719,7 +727,7 @@ def main():
     def process_job(job_id: str):
         """
         Load job_info from JSON, execute it via AutoEval.execute_job(),
-        then delete the JSON file.
+        then delete the JSON file. Skip if the file is missing.
         """
         job_file_path = os.path.join(queue_dir, f"{job_id}.json")
         if not os.path.isfile(job_file_path):
@@ -753,14 +761,15 @@ def main():
             print(f"[{AutoEval.__name__}] Completed: {job_id}")
         except Exception as e:
             print(f"[{AutoEval.__name__}] Error ({job_id}): {e}")
-            raise
-
-        # Delete job file after completion
-        try:
-            os.remove(job_file_path)
-            print(f"[{AutoEval.__name__}] Removed job from queue: {job_id}")
-        except Exception as e:
-            print(f"[{AutoEval.__name__}] Failed to delete job file ({job_id}): {e}")
+        finally:
+            # Always delete job file regardless of exception occurrence
+            try:
+                os.remove(job_file_path)
+                print(f"[{AutoEval.__name__}] Removed job from queue: {job_id}")
+            except OSError as e:
+                print(
+                    f"[{AutoEval.__name__}] Failed to delete job file ({job_id}): {e}"
+                )
 
     def handle_all_jobs():
         # Register all policies as jobs
