@@ -702,25 +702,39 @@ def main():
         """
         args_dict = vars(args)
         enqueued_job_ids = []
-        for policy in args.policies:
-            # Combine timestamp and policy name to create a unique job ID
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-            job_id = f"{timestamp}_{policy}"
 
-            # Register job information as JSON
-            job_info = {"job_id": job_id, "policy": policy}
-            for key in COMMON_PARAM_NAMES:
-                job_info[key] = args_dict.get(key)
+        # Exclusive control using a lock file
+        lock_path = os.path.join(queue_dir, "register.lock")
+        try:
+            with open(lock_path, "w") as lock_file:
+                fcntl.flock(lock_file, fcntl.LOCK_EX)
 
-            # Write as JSON file
-            job_file_path = os.path.join(queue_dir, f"{job_id}.json")
-            with open(job_file_path, "w", encoding="utf-8") as jf:
-                json.dump(job_info, jf, ensure_ascii=False, indent=4)
-            print(f"[{AutoEval.__name__}] Job registered: {job_id}")
+                for policy in args.policies:
+                    # Combine timestamp and policy name to create a unique job ID
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+                    job_id = f"{timestamp}_{policy}"
+                    # Register job information as JSON
+                    job_info = {"job_id": job_id, "policy": policy}
+                    for key in COMMON_PARAM_NAMES:
+                        job_info[key] = args_dict.get(key)
 
-            enqueued_job_ids.append(job_id)
-            # Sleep briefly to avoid job ID collision
-            time.sleep(0.001)
+                    # Write as JSON file
+                    job_file_path = os.path.join(queue_dir, f"{job_id}.json")
+                    with open(job_file_path, "w", encoding="utf-8") as jf:
+                        json.dump(job_info, jf, ensure_ascii=False, indent=4)
+                    print(f"[{AutoEval.__name__}] Job registered: {job_id}")
+                    enqueued_job_ids.append(job_id)
+                    # Sleep briefly to avoid job ID collision
+                    time.sleep(0.001)
+
+                fcntl.flock(lock_file, fcntl.LOCK_UN)
+        finally:
+            try:
+                os.remove(lock_path)
+            except FileNotFoundError:
+                pass
+            except OSError as e:
+                print(f"[{AutoEval.__name__}] Warning: failed to remove lock file ({e})")
 
         return enqueued_job_ids
 
