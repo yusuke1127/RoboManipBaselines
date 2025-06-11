@@ -695,48 +695,36 @@ def main():
         delete_queued_job(queue_dir, args.job_del)
         return
 
-    def register_jobs() -> list:
+    def register_invocation() -> str:
         """
-        Register one JSON per policy under queue_dir.
-        Returns a list of enqueued job IDs.
+        Register one JSON file per command invocation under queue_dir.
+        Returns the unique invocation ID as a string.
         """
         args_dict = vars(args)
-        enqueued_job_ids = []
-
         # Exclusive control using a lock file
         lock_path = os.path.join(queue_dir, "register.lock")
-        try:
-            with open(lock_path, "w") as lock_file:
-                fcntl.flock(lock_file, fcntl.LOCK_EX)
-
-                for policy in args.policies:
-                    # Combine timestamp and policy name to create a unique job ID
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-                    job_id = f"{timestamp}_{policy}"
-                    # Register job information as JSON
-                    job_info = {"job_id": job_id, "policy": policy}
-                    for key in COMMON_PARAM_NAMES:
-                        job_info[key] = args_dict.get(key)
-
-                    # Write as JSON file
-                    job_file_path = os.path.join(queue_dir, f"{job_id}.json")
-                    with open(job_file_path, "w", encoding="utf-8") as jf:
-                        json.dump(job_info, jf, ensure_ascii=False, indent=4)
-                    print(f"[{AutoEval.__name__}] Job registered: {job_id}")
-                    enqueued_job_ids.append(job_id)
-                    # Sleep briefly to avoid job ID collision
-                    time.sleep(0.001)
-
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
-        finally:
-            try:
-                os.remove(lock_path)
-            except FileNotFoundError:
-                pass
-            except OSError as e:
-                print(f"[{AutoEval.__name__}] Warning: failed to remove lock file ({e})")
-
-        return enqueued_job_ids
+        with open(lock_path, "w") as lock_file:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            # Unique ID per invocation
+            invocation_ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            invocation_id = f"{invocation_ts}"
+            # Save command arguments and policies together
+            invocation_info = {
+                "invocation_id": invocation_id,
+                "timestamp": invocation_ts,
+                "policies": args.policies,
+            }
+            for key in COMMON_PARAM_NAMES:
+                invocation_info[key] = args_dict.get(key)
+            # Write as a JSON file
+            inv_file = os.path.join(queue_dir, f"{invocation_id}.json")
+            with open(inv_file, "w", encoding="utf-8") as jf:
+                json.dump(invocation_info, jf, ensure_ascii=False, indent=4)
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        # Remove the lock file when no longer needed
+        os.remove(lock_path)
+        print(f"[{AutoEval.__name__}] Invocation registered: {invocation_id}")
+        return invocation_id
 
     def process_job(job_id: str):
         """
@@ -786,18 +774,49 @@ def main():
                 )
 
     def handle_all_jobs():
-        # Register all policies as jobs
-        enqueued_job_ids = register_jobs()
+        # Register a single invocation containing multiple policies
+        invocation_id = register_invocation()
 
-        # Display list of enqueued job IDs
-        print(f"\n[{AutoEval.__name__}] === Enqueued Job IDs ===")
-        for jid in enqueued_job_ids:
-            print(f"- {jid}")
+        # Display list of pending invocation files
+        inv_files = sorted(glob.glob(os.path.join(queue_dir, "*.json")))
+        print(f"\n[{AutoEval.__name__}] === Pending Invocations ===")
+        for f in inv_files:
+            print(f"- {os.path.basename(f)}")
         print()
 
-        # Process each job sequentially
-        for jid in enqueued_job_ids:
-            process_job(jid)
+        # Process each invocation sequentially
+        for inv_file in inv_files:
+            with open(inv_file, "r", encoding="utf-8") as jf:
+                inv_info = json.load(jf)
+            for policy in inv_info["policies"]:
+                job_id = f"{inv_info['invocation_id']}_{policy}"
+                print(f"\n[{AutoEval.__name__}] Execute job: {job_id}")
+                auto_eval = AutoEval(
+                    policy,
+                    inv_info["env"],
+                    inv_info["commit_id"],
+                    inv_info["repository_owner_name"],
+                    inv_info["target_dir"],
+                    inv_info["input_checkpoint_file"],
+                    inv_info["no_rollout"],
+                )
+                try:
+                    auto_eval.execute_job(
+                        inv_info["input_dataset_location"],
+                        inv_info["input_checkpoint_file"],
+                        inv_info["args_file_train"],
+                        inv_info["args_file_rollout"],
+                        inv_info["rollout_world_idx_list"],
+                        inv_info["seed"],
+                    )
+                    print(f"[{AutoEval.__name__}] Completed: {job_id}")
+                except Exception as e:
+                    print(f"[{AutoEval.__name__}] Error ({job_id}): {e}")
+                # The JSON file is deleted later in batch, not here
+
+            # After completing this invocation, delete its JSON file
+            os.remove(inv_file)
+            print(f"[{AutoEval.__name__}] Removed invocation file: {inv_file}")
 
     # Immediate execution mode (no schedule)
     if not args.daily_schedule_time:
