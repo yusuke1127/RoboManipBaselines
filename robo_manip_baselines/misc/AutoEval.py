@@ -619,7 +619,6 @@ def parse_argument():
         "--rollout_world_idx_list",
         type=int,
         nargs="*",
-        required=True,
         help="list of world indices",
     )
     parser.add_argument(
