@@ -546,19 +546,60 @@ def camel_to_snake(name):
 
 def parse_argument():
     """Parse and return the command-line arguments."""
+
+    # Simplified parser for job_stat and job_del with aliases
+    if (
+        "--job_stat" in sys.argv
+        or "--job_del" in sys.argv
+        or "--jstat" in sys.argv
+        or "--jdel" in sys.argv
+    ):
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            description="Show or delete job queue without requiring full arguments.",
+        )
+        parser.add_argument(
+            "--job_stat",
+            "--jstat",
+            dest="job_stat",
+            action="store_true",
+            help="show all currently enqueued job IDs",
+        )
+        parser.add_argument(
+            "--job_del",
+            "--jdel",
+            dest="job_del",
+            type=str,
+            help="delete previously enqueued job by job ID (filename without extension)",
+        )
+        parser.add_argument(
+            "--target_dir",
+            type=str,
+            required=False,
+            help="base directory used for queue files",
+        )
+        return parser.parse_args()
+
+    # Full parser for regular execution (including required positional arguments)
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This is a parser for the evaluation based on a specific commit.",
     )
+
+    parser.add_argument(
+        "--job_stat",
+        "--jstat",
+        dest="job_stat",
+        action="store_true",
+        help="show all currently enqueued job IDs",
+    )
     parser.add_argument(
         "--job_del",
+        "--jdel",
         dest="job_del",
         type=str,
         required=False,
         help="delete previously enqueued job by job ID (filename without extension)",
-    )
-    parser.add_argument(
-        "--job_stat", action="store_true", help="show all currently enqueued job IDs"
     )
     parser.add_argument(
         "policies",
@@ -637,6 +678,7 @@ def parse_argument():
     )
     parsed_args = parser.parse_args()
 
+    # Validate HH:MM time format
     if parsed_args.daily_schedule_time:
         if not re.fullmatch(
             r"(?:[01]\d|2[0-3]):[0-5]\d", parsed_args.daily_schedule_time
@@ -655,7 +697,7 @@ def show_queue_status(queue_dir):
     if not queued_files:
         print(f"[{AutoEval.__name__}] There are currently no jobs enqueued.")
     else:
-        print(f"[{AutoEval.__name__}] === Enqueued Job IDs ===")
+        print(f"=== [{AutoEval.__name__}] Enqueued Job IDs ===")
         for jf in sorted(queued_files):
             job_id = os.path.splitext(os.path.basename(jf))[0]
             print(f"- {job_id}")
@@ -774,7 +816,7 @@ def main():
 
     def handle_all_jobs():
         # Register a single invocation containing multiple policies
-        invocation_id = register_invocation()
+        _ = register_invocation()
 
         # Display list of pending invocation files
         inv_files = sorted(glob.glob(os.path.join(queue_dir, "*.json")))
