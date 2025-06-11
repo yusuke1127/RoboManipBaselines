@@ -784,17 +784,17 @@ def main():
         for inv_file in inv_files:
             with open(inv_file, "r", encoding="utf-8") as jf:
                 inv_info = json.load(jf)
-            policy = inv_info["policy"]
             job_id = inv_info["invocation_id"]
 
             print(f"\n[{AutoEval.__name__}] Execute job: {job_id}")
             auto_eval = AutoEval(
-                policy,
+                inv_info["policy"],
                 inv_info["env"],
                 inv_info["commit_id"],
                 inv_info["repository_owner_name"],
                 inv_info["target_dir"],
                 inv_info["input_checkpoint_file"],
+                inv_info["no_train"],
                 inv_info["no_rollout"],
             )
             try:
