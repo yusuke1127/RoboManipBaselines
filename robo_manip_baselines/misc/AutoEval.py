@@ -186,7 +186,7 @@ class AutoEval:
 
             return_code = process.wait()
             if return_code != 0:
-                raise subprocess.CalledProcessError(return_code, command)
+                raise subprocess.CalledProcessError(return_code, " ".join(command))
 
         return matched_results
 
