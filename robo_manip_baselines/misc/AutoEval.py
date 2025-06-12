@@ -574,6 +574,15 @@ def add_job_queue_arguments(parser):
         type=str,
         help="delete previously enqueued job by job ID (filename without extension)",
     )
+    parser.add_argument(
+        "--target_dir",
+        type=str,
+        required=False,
+        default=None,
+        help="base directory used throughout program for repository clone, "
+        "virtual environment, dataset, and result outputs; "
+        "if not specified (i.e. None), system temporary directory will be used as base",
+    )
 
 
 def parse_argument():
@@ -591,12 +600,6 @@ def parse_argument():
             description="show or delete job queue without requiring full arguments",
         )
         add_job_queue_arguments(parser)
-        parser.add_argument(
-            "--target_dir",
-            type=str,
-            required=False,
-            help="base directory used for queue files",
-        )
         return parser.parse_args()
 
     # Full parser for regular execution (including required positional arguments)
@@ -619,15 +622,6 @@ def parse_argument():
         help="environment",
     )
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
-    parser.add_argument(
-        "--target_dir",
-        type=str,
-        required=False,
-        default=None,
-        help="base directory used throughout program for repository clone, "
-        "virtual environment, dataset, and result outputs; "
-        "if not specified (i.e. None), system temporary directory will be used as base",
-    )
     parser.add_argument(
         "-u",
         "--repository_owner_name",
