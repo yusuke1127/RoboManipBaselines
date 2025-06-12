@@ -72,6 +72,13 @@ class AutoEval:
         self.no_train = no_train
         self.no_rollout = no_rollout
 
+        if target_dir is None:
+            print(f"[{self.__class__.__name__}] target_dir was {target_dir}.")
+            target_dir = tempfile.gettempdir()
+            print(
+                f"[{self.__class__.__name__}] Using default temporary directory: {target_dir}"
+            )
+
         # Resolve destination path for the repository
         self.repository_dir = self.resolve_repository_path(target_dir)
         self.input_checkpoint_file = input_checkpoint_file
@@ -581,7 +588,7 @@ def parse_argument():
     ):
         parser = argparse.ArgumentParser(
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            description="Show or delete job queue without requiring full arguments.",
+            description="show or delete job queue without requiring full arguments",
         )
         add_job_queue_arguments(parser)
         parser.add_argument(
@@ -618,7 +625,8 @@ def parse_argument():
         required=False,
         default=None,
         help="base directory used throughout program for repository clone, "
-        "virtual environment, dataset, and result outputs",
+        "virtual environment, dataset, and result outputs; "
+        "if not specified (i.e. None), system temporary directory will be used as base",
     )
     parser.add_argument(
         "-u",
