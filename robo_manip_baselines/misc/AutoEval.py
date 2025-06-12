@@ -312,13 +312,20 @@ class AutoEval:
 
     def get_dataset(self, input_dataset_location):
         if bool(urlparse(input_dataset_location).scheme):
+            # If the input is a URL, download the dataset to a fixed repo-local path.
+
+            # Set dataset dir under repo (must exist from setup).
             self.dataset_dir = os.path.join(
                 self.repository_dir, "robo_manip_baselines/dataset"
             )
+
+            # Validate dataset dir exists.
             if not os.path.isdir(self.dataset_dir):
                 raise FileNotFoundError(
                     f"expected dataset directory not found: {self.dataset_dir}"
                 )
+
+            # Download and unpack dataset to self.dataset_dir.
             self.download_dataset(input_dataset_location)
         elif os.path.isdir(input_dataset_location):
             self.dataset_dir = input_dataset_location
@@ -544,6 +551,24 @@ def camel_to_snake(name):
     return name.lower()
 
 
+def add_job_queue_arguments(parser):
+    """Add job queue-related arguments to the parser."""
+    parser.add_argument(
+        "--job_stat",
+        "--jstat",
+        dest="job_stat",
+        action="store_true",
+        help="show all currently enqueued job IDs",
+    )
+    parser.add_argument(
+        "--job_del",
+        "--jdel",
+        dest="job_del",
+        type=str,
+        help="delete previously enqueued job by job ID (filename without extension)",
+    )
+
+
 def parse_argument():
     """Parse and return the command-line arguments."""
 
@@ -558,20 +583,7 @@ def parse_argument():
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
             description="Show or delete job queue without requiring full arguments.",
         )
-        parser.add_argument(
-            "--job_stat",
-            "--jstat",
-            dest="job_stat",
-            action="store_true",
-            help="show all currently enqueued job IDs",
-        )
-        parser.add_argument(
-            "--job_del",
-            "--jdel",
-            dest="job_del",
-            type=str,
-            help="delete previously enqueued job by job ID (filename without extension)",
-        )
+        add_job_queue_arguments(parser)
         parser.add_argument(
             "--target_dir",
             type=str,
@@ -586,21 +598,7 @@ def parse_argument():
         description="This is a parser for the evaluation based on a specific commit.",
     )
 
-    parser.add_argument(
-        "--job_stat",
-        "--jstat",
-        dest="job_stat",
-        action="store_true",
-        help="show all currently enqueued job IDs",
-    )
-    parser.add_argument(
-        "--job_del",
-        "--jdel",
-        dest="job_del",
-        type=str,
-        required=False,
-        help="delete previously enqueued job by job ID (filename without extension)",
-    )
+    add_job_queue_arguments(parser)
     parser.add_argument(
         "policies",
         type=str,
