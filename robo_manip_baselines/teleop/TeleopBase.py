@@ -118,12 +118,11 @@ class EndTeleopPhase(PhaseBase):
             self.op.key == ord("s")
         ):
             self.op.save_data()
-            self.op.reset_flag = True
         elif self.op.key == ord("f"):
             print(
                 f"[{self.op.__class__.__name__}] Teleoperation has failed. Reset without saving."
             )
-            self.op.reset_flag = True
+        self.op.reset_flag = True
 
 
 class ReplayPhase(PhaseBase):
@@ -472,7 +471,7 @@ class TeleopBase(ABC):
         # Reset environment
         self.env.unwrapped.world_random_scale = self.args.world_random_scale
         self.data_manager.setup_env_world(world_idx)
-        self.env.reset()
+        self.env.reset(seed=self.args.seed)
         print(
             f"[{self.__class__.__name__}] Reset environment. demo_name: {self.demo_name}, world_idx: {self.data_manager.world_idx}, episode_idx: {self.data_manager.episode_idx}"
         )
