@@ -12,6 +12,7 @@ import matplotlib.pylab as plt
 import matplotlib.ticker as ticker
 import numpy as np
 import torch
+import yaml
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from torchvision.transforms import v2
 
@@ -91,16 +92,20 @@ class RolloutPhase(PhaseBase):
                     transition_flag = True
 
         if transition_flag:
-            if self.op.args.save_last_image:
-                self.op.save_rgb_image()
-
-            reward_status_str = "success" if self.op.reward > 0.0 else "failure"
+            success_str = "success" if self.op.reward > 0.0 else "failure"
             print(
                 # Do not change the following print description, as it will be used
                 # to automatically obtain the task success/failure result
-                f"Rollout result: {reward_status_str}",
+                f"Rollout result: {success_str}",
                 flush=True,
             )
+
+            self.op.result["success"].append(bool(self.op.reward > 0.0))
+            self.op.result["reward"].append(self.op.reward)
+            self.op.result["duration"].append(elapsed_duration)
+
+            if self.op.args.save_last_image:
+                self.op.save_rgb_image()
 
             return True
         else:
@@ -233,6 +238,13 @@ class RolloutBase(ABC):
         )
 
         parser.add_argument(
+            "--result_filename",
+            type=str,
+            default=None,
+            help="File path (*.yaml) to save rollout results (default: do not save)",
+        )
+
+        parser.add_argument(
             "--save_last_image",
             action="store_true",
             help="whether to save the observation image of the last frame",
@@ -334,6 +346,8 @@ class RolloutBase(ABC):
         self.episode_idx = 0
         self.datetime_now = datetime.datetime.now()
 
+        self.result = {key: [] for key in ("success", "reward", "duration")}
+
     def reset_variables(self):
         self.policy_action_list = np.empty((0, self.action_dim))
 
@@ -392,6 +406,13 @@ class RolloutBase(ABC):
                 self.quit_flag = True
             if self.quit_flag:
                 break
+
+        if self.args.result_filename is not None:
+            print(
+                f"[{self.__class__.__name__}] Save the rollout results: {self.args.result_filename}"
+            )
+            with open(self.args.result_filename, "w") as result_file:
+                yaml.dump(self.result, result_file)
 
         self.print_statistics()
 
@@ -515,13 +536,13 @@ class RolloutBase(ABC):
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         demo_name = remove_suffix(self.env.spec.name, "Env")
-        reward_status_str = "success" if self.reward > 0.0 else "failure"
+        success_str = "success" if self.reward > 0.0 else "failure"
         image_path = os.path.abspath(
             os.path.join(
                 self.args.output_image_dir,
                 (
                     f"Rollout{self.policy_name}_{demo_name}_world{self.world_idx:0>1}_"
-                    f"{reward_status_str}_{self.datetime_now:%Y%m%d_%H%M%S}.png"
+                    f"{success_str}_{self.datetime_now:%Y%m%d_%H%M%S}.png"
                 ),
             )
         )
