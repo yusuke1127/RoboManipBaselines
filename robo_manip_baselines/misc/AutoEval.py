@@ -88,7 +88,10 @@ class AutoEval:
         self.venv_python = os.path.join(venv_dir, "bin", "python")
         venv.create(venv_dir, with_pip=True)
         self.dataset_dir = None
-        self.lock_file_path = self.initialize_lock_file_path(target_dir)
+        self.lock_file_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "." + Path(__file__).resolve().stem + ".lock",
+        )
 
         self.result_datetime_dir = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
@@ -146,15 +149,6 @@ class AutoEval:
 
         # return normalized and validated repository path
         return final_repository_path
-
-    @classmethod
-    def initialize_lock_file_path(cls, target_dir):
-        """Initialize the lock file path."""
-        if target_dir:
-            lock_dir = target_dir
-        else:
-            lock_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(lock_dir, "." + Path(__file__).resolve().stem + ".lock")
 
     @classmethod
     def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
@@ -635,7 +629,7 @@ def parse_argument():
         "--input_dataset_location",
         type=str,
         dest="input_dataset_location",
-        help="specify URL of online storage or local directory",
+        help="specify URL of online storage or local directory that provides input dataset",
     )
     parser.add_argument(
         "-k",
