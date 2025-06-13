@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import torch
 
@@ -31,17 +30,10 @@ class DiffusionPolicy3dDataset(DatasetBase):
                 ):
                     self.chunk_info_list.append((episode_idx, start_time_idx))
 
-    def pre_convert_data(self, state, action, images, depthes):
-        state, action, images = super().pre_convert_data(state, action, images)
-        depthes = np.moveaxis(images, -1, -3)
-
-        return state, action, images, depthes
-
     def __len__(self):
         return len(self.chunk_info_list)
 
     def __getitem__(self, chunk_idx):
-        # TODO: Add pointcloud output.
         skip = self.model_meta_info["data"]["skip"]
         horizon = self.model_meta_info["data"]["horizon"]
         episode_idx, start_time_idx = self.chunk_info_list[chunk_idx]
@@ -73,19 +65,10 @@ class DiffusionPolicy3dDataset(DatasetBase):
                 axis=1,
             )
 
-            # Load images
-            images = np.stack(
+            # Load Pointclouds
+            pointclouds = np.stack(
                 [
-                    rmb_data[DataKey.get_rgb_image_key(camera_name)][::skip][time_idxes]
-                    for camera_name in self.model_meta_info["image"]["camera_names"]
-                ],
-                axis=0,
-            )
-
-            # Load Depthes
-            depthes = np.stack(
-                [
-                    rmb_data[DataKey.get_depth_image_key(camera_name)][::skip][
+                    rmb_data[DataKey.get_pointcloud_key(camera_name)][::skip][
                         time_idxes
                     ]
                     for camera_name in self.model_meta_info["image"]["camera_names"]
@@ -93,50 +76,25 @@ class DiffusionPolicy3dDataset(DatasetBase):
                 axis=0,
             )
 
-        # Resize images
-        K, T, H, W, C = images.shape
-        image_size = self.model_meta_info["data"]["image_size"]
-        images = np.array(
-            [cv2.resize(img, image_size) for img in images.reshape(-1, H, W, C)]
-        ).reshape(K, T, *image_size[::-1], C)
-
-        # Resize depthes
-        K, T, H, W = depthes.shape
-        image_size = self.model_meta_info["data"]["image_size"]
-        depthes = np.array(
-            [cv2.resize(dpth, image_size) for dpth in depthes.reshape(-1, H, W)]
-        ).reshape(K, T, *image_size[::-1])
+        # Set dummy images
+        images = np.zeros_like(pointclouds)
 
         # Pre-convert data
-        state, action, images, depthes = self.pre_convert_data(
-            state, action, images, depthes
-        )
+        state, action, _ = self.pre_convert_data(state, action, images)
+
         # Convert to tensor
         state_tensor = torch.tensor(state, dtype=torch.float32)
         action_tensor = torch.tensor(action, dtype=torch.float32)
-        images_tensor = torch.tensor(images, dtype=torch.uint8)
+        pointclouds_tensor = torch.tensor(pointclouds, dtype=torch.float32)
 
         # Augment data
-        state_tensor, action_tensor, images_tensor = self.augment_data(
-            state_tensor, action_tensor, images_tensor
+        state_tensor, action_tensor, _ = self.augment_data(
+            state_tensor, action_tensor, torch.tensor(images)
         )
-
-        # TODO: Convert image and depth to pointcloud
-        pointclouds = np.random.random((state.shape[0], 512, 3))  # dummy code
-        pointclouds_tensor = torch.tensor(pointclouds, dtype=torch.float32)
 
         # Convert to data structure of policy input and output
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
             data["obs"]["state"] = state_tensor
-        data["obs"]["point_cloud"] = pointclouds_tensor
-
+        data["obs"]["point_cloud"] = pointclouds_tensor[0]
         return data
-
-    def augment_data(self, state, action, images):
-        state, action, images = super().augment_data(state, action, images)
-
-        # Adjust to a range from -1 to 1 to match the original implementation
-        images = images * 2.0 - 1.0
-
-        return state, action, images

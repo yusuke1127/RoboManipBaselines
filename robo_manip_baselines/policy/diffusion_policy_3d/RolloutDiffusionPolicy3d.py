@@ -1,8 +1,9 @@
 import cv2
 import matplotlib.pylab as plt
 import numpy as np
+import pytorch3d.ops as torch3d_ops
 import torch
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 
 from diffusion_policy_3d.policy.dp3 import DP3
 from robo_manip_baselines.common import (
@@ -14,6 +15,22 @@ from robo_manip_baselines.common import (
 
 
 class RolloutDiffusionPolicy3d(RolloutBase):
+    def set_additional_args(self, parser):
+        parser.add_argument(
+            "--min_bound",
+            type=float,
+            nargs=3,
+            default=[-3, -3, -3],
+            help="Min bounding box for cropping pointcloud before downsampling.",
+        )
+        parser.add_argument(
+            "--max_bound",
+            type=float,
+            nargs=3,
+            default=[3, 3, 3],
+            help="Max bounding box for cropping pointcloud before downsampling.",
+        )
+
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()
@@ -26,7 +43,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         )
 
         # Construct policy
-        noise_scheduler = DDPMScheduler(
+        noise_scheduler = DDIMScheduler(
             **self.model_meta_info["policy"]["noise_scheduler_args"]
         )
         self.policy = DP3(
@@ -57,8 +74,8 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         self.state_buf = None
         self.pointclouds_buf = None
         self.policy_action_buf = None
-        self.min_bound = self.model_meta_info["data"]["min_bound"]
-        self.max_bound = self.model_meta_info["data"]["max_bound"]
+        self.min_bound = self.args.min_bound
+        self.max_bound = self.args.max_bound
         self.num_points = self.model_meta_info["data"]["num_points"]
 
     def infer_policy(self):
@@ -112,7 +129,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         for camera_name in self.camera_names:
             image = self.info["rgb_images"][camera_name]
             depth = self.info["depth_images"][camera_name]
-            fovy = self.info["fovy"][camera_name]
+            fovy = self.env.unwrapped.get_camera_fovy(camera_name)
 
             image = cv2.resize(image, self.model_meta_info["data"]["image_size"])
             depth = cv2.resize(depth, self.model_meta_info["data"]["image_size"])
@@ -120,18 +137,17 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             image = np.moveaxis(image, -1, -3)
             image = torch.tensor(image, dtype=torch.uint8)
             image = self.image_transforms(image)
-            # Adjust to a range from -1 to 1 to match the original implementation
-            image = image * 2.0 - 1.0
 
             depth = torch.tensor(depth, dtype=torch.uint16)
             depth = self.image_transforms(depth)
 
-            # TODO: Convert to pointcloud
-            # dummy pointcloud
             pointcloud = self.farthest_point_sampling(
                 self.crop_points(
-                    convert_depth_image_to_point_cloud(
-                        depth, fovy, image, far_clip=3.0
+                    np.concat(
+                        convert_depth_image_to_point_cloud(
+                            depth.numpy(), fovy, image.numpy(), far_clip=3.0
+                        ),
+                        axis=-1,
                     ),
                     self.min_bound,
                     self.max_bound,
@@ -189,19 +205,10 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             pointcloud = pointcloud[mask]
         return pointcloud
 
-    def farthest_point_sampling(self, pointcloud: np.ndarray, num_points: int):
-        # DownSampling pointclouds.
-        N, D = pointcloud.shape[:2]
-        xyz = pointcloud[:, :, :3]
-        centroids = np.zeros((num_points,))
-        distance = np.ones((N,)) * 1e10
-        farthest = np.random.randint(0, N)
-        for i in range(num_points):
-            centroids[i] = farthest
-            centroid = xyz[farthest, :]
-            dist = np.sum((xyz - centroid) ** 2, -1)
-            mask = dist < distance
-            distance[mask] = dist[mask]
-            farthest = np.argmax(distance, -1)
-        pc = pointcloud[centroids.astype(np.int32)]
-        return pc
+    def farthest_point_sampling(self, pointcloud: np.ndarray, num_points: int = 512):
+        # Downsample point cloud with FPS.
+        points = torch.from_numpy(pointcloud).unsqueeze(0)
+        n_points = torch.tensor([num_points])
+        _, sampled_indices = torch3d_ops.sample_farthest_points(points, K=n_points)
+        pointcloud = pointcloud[sampled_indices.squeeze(0).numpy()]
+        return pointcloud

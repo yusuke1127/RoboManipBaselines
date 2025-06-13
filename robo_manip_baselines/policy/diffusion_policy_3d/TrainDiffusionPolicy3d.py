@@ -2,7 +2,7 @@ import argparse
 import copy
 
 import torch
-from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
@@ -26,8 +26,8 @@ class TrainDiffusionPolicy3d(TrainBase):
 
         parser.set_defaults(norm_type="limits")
 
-        parser.set_defaults(batch_size=64)
-        parser.set_defaults(num_epochs=2000)
+        parser.set_defaults(batch_size=128)
+        parser.set_defaults(num_epochs=3000)
         parser.set_defaults(lr=1e-4)
 
         parser.add_argument(
@@ -85,20 +85,12 @@ class TrainDiffusionPolicy3d(TrainBase):
             default=[288, 216],
             help="Image size (width, height) to be cropped after resize. In the case of multiple image inputs, it is assumed that all images share the same size.",
         )
-
         parser.add_argument(
-            "--min_bound",
+            "--encoder_output_dim",
             type=int,
-            nargs=3,
-            default=[-1, -1, -1],
-            help="Min bounding box for cropping pointcloud before downsampling.",
-        )
-        parser.add_argument(
-            "--max_bound",
-            type=int,
-            nargs=3,
-            default=[1, 1, 1],
-            help="Max bounding box for cropping pointcloud before downsampling.",
+            nargs=1,
+            default=64,
+            help="number of output dimensions of encoder in policy.",
         )
 
     def setup_model_meta_info(self):
@@ -111,8 +103,6 @@ class TrainDiffusionPolicy3d(TrainBase):
         self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
         self.model_meta_info["data"]["num_points"] = self.args.num_points
         self.model_meta_info["data"]["n_point_dim"] = 6 if self.args.use_pc_color else 3
-        self.model_meta_info["data"]["min_bound"] = self.args.min_bound
-        self.model_meta_info["data"]["max_bound"] = self.args.max_bound
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
@@ -149,9 +139,9 @@ class TrainDiffusionPolicy3d(TrainBase):
         pointcloud_encoder_conf = OmegaConf.create(
             {
                 "in_channels": self.model_meta_info["data"]["n_point_dim"],
-                "out_channels": 256,
-                "use_layernorm": False,
-                "final_norm": "none",
+                "out_channels": self.args.encoder_output_dim,
+                "use_layernorm": True,
+                "final_norm": "layernorm",
                 "normal_channel": False,
             }
         )
@@ -169,6 +159,7 @@ class TrainDiffusionPolicy3d(TrainBase):
             "n_groups": 8,
             "pointcloud_encoder_cfg": pointcloud_encoder_conf,
             "use_pc_color": self.args.use_pc_color,
+            "encoder_output_dim": self.args.encoder_output_dim,
         }
         self.model_meta_info["policy"]["noise_scheduler_args"] = {
             "beta_end": 0.02,
@@ -176,12 +167,13 @@ class TrainDiffusionPolicy3d(TrainBase):
             "beta_start": 0.0001,
             "clip_sample": True,
             "num_train_timesteps": 100,
-            "prediction_type": "epsilon",
-            "variance_type": "fixed_small",
+            "set_alpha_to_one": True,
+            "prediction_type": "sample",
+            "steps_offset": 0,
         }
 
         # Construct policy
-        noise_scheduler = DDPMScheduler(
+        noise_scheduler = DDIMScheduler(
             **self.model_meta_info["policy"]["noise_scheduler_args"]
         )
         self.policy = DP3(
