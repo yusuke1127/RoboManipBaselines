@@ -625,8 +625,18 @@ def parse_argument():
         required=False,
         help="specify checkpoint file to use",
     )
-    parser.add_argument("--args_file_train", type=str, required=False)
-    parser.add_argument("--args_file_rollout", type=str, required=False)
+    parser.add_argument(
+        "--args_file_train",
+        type=str,
+        required=False,
+        help="specify argument file for training parameters; used to configure training process with detailed options",
+    )
+    parser.add_argument(
+        "--args_file_rollout",
+        type=str,
+        required=False,
+        help="specify argument file for rollout parameters; used to configure rollout process with detailed options",
+    )
     parser.add_argument(
         "--no_train",
         action="store_true",
