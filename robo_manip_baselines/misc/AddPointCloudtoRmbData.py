@@ -106,7 +106,7 @@ class AddPointCloudtoRmbData:
             # Load image
             images = np.stack(
                 [
-                    rmb[DataKey.get_rgb_image_key(camera_name)]
+                    rmb[DataKey.get_rgb_image_key(camera_name)][:]
                     for camera_name in camera_names
                 ],
                 axis=0,
@@ -114,7 +114,7 @@ class AddPointCloudtoRmbData:
             # Load depth
             depthes = np.stack(
                 [
-                    rmb[DataKey.get_depth_image_key(camera_name)]
+                    rmb[DataKey.get_depth_image_key(camera_name)][:]
                     for camera_name in camera_names
                 ],
                 axis=0,
@@ -207,6 +207,13 @@ class AddPointCloudtoRmbData:
                 )
                 tqdm.write(f"[{self.__class__.__name__}] Add pointcloud to {rmb_path}")
                 for k in pcs.keys():
+                    if k in f.keys() and self.overwrite:
+                        del f[k]
+                    elif k in f.keys():
+                        tqdm.write(
+                            f"[{self.__class__.__name__}] pointcloud already exists in {hdf5_path}. skipping."
+                        )
+                        continue
                     f[k] = pcs[k]
 
 
