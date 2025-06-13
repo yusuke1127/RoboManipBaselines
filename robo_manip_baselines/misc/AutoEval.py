@@ -101,41 +101,29 @@ class AutoEval:
 
     @classmethod
     def resolve_repository_path(cls, target_dir):
-        """Resolve a suitable repository path under the given or temporary directory."""
+        """Resolve a suitable repository path under the given directory."""
+
+        # explicitly assert precondition that target_dir is not None
+        assert target_dir is not None, f"[{cls.__name__}] target_dir must not be None"
 
         # normalize input path by removing trailing separator if provided
-        normalized_path = target_dir.rstrip(os.sep) if target_dir is not None else None
+        normalized_path = target_dir.rstrip(os.sep)
 
-        # determine final_repository_path: either use normalized_path if it matches pattern, else create new temp dir
-        final_repository_path = None
-        should_create_new_tempdir = True
-        if normalized_path is not None:
-            if os.path.basename(
-                normalized_path
-            ) == cls.REPOSITORY_NAME and re.fullmatch(
-                rf"^{re.escape(cls.__name__)}_\d{{8}}_\d{{6}}_.+$",
-                os.path.basename(os.path.dirname(normalized_path)),
-            ):
-                final_repository_path = normalized_path
-                should_create_new_tempdir = False
+        # if path already has expected structure, use it as-is
+        if os.path.basename(normalized_path) == cls.REPOSITORY_NAME and re.fullmatch(
+            rf"^{re.escape(cls.__name__)}_\d{{8}}_\d{{6}}_.+$",
+            os.path.basename(os.path.dirname(normalized_path)),
+        ):
+            return normalized_path
 
-        if should_create_new_tempdir:
-            # generate timestamped prefix and create temporary directory
-            datetime_now = datetime.datetime.now()
-            prefix = f"Rmb{cls.__name__}_{datetime_now:%Y%m%d_%H%M%S}_"
-            temp_dir = tempfile.mkdtemp(prefix=prefix, dir=target_dir)
-            print(f"[{cls.__name__}] Temporary directory created: {temp_dir}")
+        # otherwise, create new timestamped temporary directory
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        prefix = f"Rmb{cls.__name__}_{timestamp}_"
+        temp_dir = tempfile.mkdtemp(prefix=prefix, dir=normalized_path)
+        print(f"[{cls.__name__}] Temporary directory created: {temp_dir}")
+        final_repository_path = os.path.join(temp_dir, cls.REPOSITORY_NAME)
 
-            # append repository name and return full path
-            final_repository_path = os.path.join(temp_dir, cls.REPOSITORY_NAME)
-
-        # explicitly raise an error if final_repository_path is still unset
-        if final_repository_path is None:
-            raise RuntimeError(
-                f"[{cls.__name__}] Failed to resolve repository path from target_dir={target_dir!r}"
-            )
-
-        # extract base directory name and check if it is a file path
+        # reject paths that appear to be files (i.e., contain an extension)
         basename = os.path.basename(final_repository_path)
         _, ext = os.path.splitext(basename)
         if ext:
@@ -147,7 +135,6 @@ class AutoEval:
             parent_dir
         ), f"[{cls.__name__}] Parent directory does not exist: {parent_dir}"
 
-        # return normalized and validated repository path
         return final_repository_path
 
     @classmethod
@@ -713,13 +700,10 @@ def main():
     args = parse_argument()
 
     # Determine base directory for job queue
-    if args.target_dir:
-        base_for_queue = args.target_dir
-    else:
-        base_for_queue = os.path.dirname(os.path.abspath(__file__))
-
-    script_name = Path(__file__).resolve().stem
-    queue_dir = os.path.join(base_for_queue, f".sys_queue_{script_name}")
+    queue_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        f".sys_queue_{Path(__file__).resolve().stem}",
+    )
     os.makedirs(queue_dir, exist_ok=True)
 
     if args.job_stat:
