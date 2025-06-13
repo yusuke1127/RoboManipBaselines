@@ -555,15 +555,6 @@ def add_job_queue_arguments(parser):
         type=str,
         help="delete previously enqueued job by job ID (filename without extension)",
     )
-    parser.add_argument(
-        "--target_dir",
-        type=str,
-        required=False,
-        default=None,
-        help="base directory used throughout program for repository clone, "
-        "virtual environment, dataset, and result outputs; "
-        "if not specified (i.e. None), system temporary directory will be used as base",
-    )
 
 
 def parse_argument():
@@ -609,6 +600,15 @@ def parse_argument():
         type=str,
         default="isri-aist",
         help="github repository owner name (user or organization)",
+    )
+    parser.add_argument(
+        "--target_dir",
+        type=str,
+        required=False,
+        default=None,
+        help="base directory used throughout program for repository clone, "
+        "virtual environment, dataset, and result outputs; "
+        "if not specified (i.e. None), system temporary directory will be used as base",
     )
     parser.add_argument(
         "-d",
