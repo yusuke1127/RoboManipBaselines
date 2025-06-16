@@ -75,14 +75,14 @@ class TrainDiffusionPolicy3d(TrainBase):
             "--image_size",
             type=int,
             nargs=2,
-            default=[320, 240],
+            default=[84, 84],
             help="Image size (width, height) to be resized before crop. In the case of multiple image inputs, it is assumed that all images share the same size.",
         )
         parser.add_argument(
             "--image_crop_size",
             type=int,
             nargs=2,
-            default=[288, 216],
+            default=[80, 80],
             help="Image size (width, height) to be cropped after resize. In the case of multiple image inputs, it is assumed that all images share the same size.",
         )
         parser.add_argument(
@@ -150,7 +150,7 @@ class TrainDiffusionPolicy3d(TrainBase):
             "horizon": self.args.horizon,
             "n_action_steps": self.args.n_action_steps,
             "n_obs_steps": self.args.n_obs_steps,
-            "num_inference_steps": 100,
+            "num_inference_steps": 10,
             "obs_as_global_cond": True,
             "crop_shape": self.args.image_crop_size[::-1],  # (height, width)
             "diffusion_step_embed_dim": 128,

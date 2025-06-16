@@ -31,14 +31,14 @@ def parse_argument():
         "--min_bound",
         type=float,
         nargs=3,
-        default=[-3, -3, -3],
+        default=[-0.4, -0.4, -0.4],
         help="Min bounding box for cropping pointcloud before downsampling.",
     )
     parser.add_argument(
         "--max_bound",
         type=float,
         nargs=3,
-        default=[3, 3, 3],
+        default=[1, 1, 1],
         help="Max bounding box for cropping pointcloud before downsampling.",
     )
     parser.add_argument(
@@ -51,7 +51,7 @@ def parse_argument():
         "--image_size",
         type=int,
         nargs=2,
-        default=[320, 240],
+        default=[84, 84],
         help="Image size (width, height) to be resized before crop. In the case of multiple image inputs, it is assumed that all images share the same size.",
     )
 
@@ -146,9 +146,7 @@ class AddPointCloudtoRmbData:
             pointcloud = []
             for i_t, d_t in zip(image, depth):
                 pc_t = np.concat(
-                    convert_depth_image_to_point_cloud(
-                        d_t[::10, ::10], fovy, i_t[::10, ::10]
-                    ),
+                    convert_depth_image_to_point_cloud(d_t, fovy, i_t),
                     axis=1,
                 )
                 pc_t = crop_pointcloud(pc_t, min_bound, max_bound)
