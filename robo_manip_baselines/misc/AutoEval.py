@@ -28,7 +28,7 @@ COMMON_PARAM_NAMES = [
     "no_rollout",
     "check_apt_packages",
     "upgrade_pip_setuptools",
-    "rollout_world_idx_list",
+    "world_idx_list",
     "seed",
 ]
 JOB_INFO_KEYS = [
@@ -359,7 +359,7 @@ class AutoEval:
     def rollout(
         self,
         args_file_rollout,
-        rollout_world_idx_list,
+        world_idx_list,
         input_checkpoint_file,
     ):
         """Execute the rollout using the provided configuration and duration."""
@@ -379,45 +379,42 @@ class AutoEval:
             raise FileNotFoundError(
                 f"checkpoint file not found: {input_checkpoint_file}"
             )
-        for world_idx in rollout_world_idx_list or [None]:
-            command = [
-                self.venv_python,
-                os.path.join(
-                    self.repository_dir, "robo_manip_baselines/bin/Rollout.py"
-                ),
+        command = [
+            self.venv_python,
+            os.path.join(self.repository_dir, "robo_manip_baselines/bin/Rollout.py"),
+            self.policy,
+            self.env,
+            "--checkpoint",
+            input_checkpoint_file,
+            "--auto_exit",
+            "--no_plot",
+            "--no_render",
+            "--save_last_image",
+            "--output_image_dir",
+            os.path.join(
+                self.repository_dir,
+                "robo_manip_baselines/checkpoint_dir/",
                 self.policy,
                 self.env,
-                "--checkpoint",
-                input_checkpoint_file,
-                "--auto_exit",
-                "--no_plot",
-                "--no_render",
-                "--save_last_image",
-                "--output_image_dir",
-                os.path.join(
-                    self.repository_dir,
-                    "robo_manip_baselines/checkpoint_dir/",
-                    self.policy,
-                    self.env,
-                ),
-            ]
-            if world_idx is not None:
-                command.extend(["--world_idx", f"{world_idx}"])
-            if args_file_rollout:
-                command.append("@" + args_file_rollout)
+            ),
+        ]
+        if world_idx_list:
+            command.extend(["--world_idx_list", f"{world_idx_list}"])
+        if args_file_rollout:
+            command.append("@" + args_file_rollout)
 
-            reward_statuses = self.exec_command(
-                command, stdout_line_match_pattern=ROLLOUT_RESULT_PRINT_PATTERN
-            )
-            assert (
-                len(reward_statuses) == 1
-            ), f"[{self.__class__.__name__}] {len(reward_statuses)=}"
-            assert reward_statuses[0].group(1) in (
-                "success",
-                "failure",
-            ), f"[{self.__class__.__name__}] {reward_statuses[0].group(1)=}"
+        reward_statuses = self.exec_command(
+            command, stdout_line_match_pattern=ROLLOUT_RESULT_PRINT_PATTERN
+        )
+        assert (
+            len(reward_statuses) == 1
+        ), f"[{self.__class__.__name__}] {len(reward_statuses)=}"
+        assert reward_statuses[0].group(1) in (
+            "success",
+            "failure",
+        ), f"[{self.__class__.__name__}] {reward_statuses[0].group(1)=}"
 
-            task_success_list.append(int(reward_statuses[0].group(1) == "success"))
+        task_success_list.append(int(reward_statuses[0].group(1) == "success"))
 
         return task_success_list
 
@@ -463,7 +460,7 @@ class AutoEval:
         args_file_rollout,
         check_apt_packages,
         upgrade_pip_setuptools,
-        rollout_world_idx_list,
+        world_idx_list,
         seed=None,
     ):
         """
@@ -522,7 +519,7 @@ class AutoEval:
                 if not self.no_rollout:
                     task_success_list = self.rollout(
                         args_file_rollout,
-                        rollout_world_idx_list,
+                        world_idx_list,
                         input_checkpoint_file,
                     )
                     self.save_result(task_success_list)
@@ -678,10 +675,10 @@ def parse_argument():
         help="Upgrade pip and setuptools before execution",
     )
     parser.add_argument(
-        "--rollout_world_idx_list",
+        "--world_idx_list",
         type=int,
         nargs="*",
-        help="list of world indices",
+        help="list of world indexes",
     )
     parser.add_argument(
         "--seed",
@@ -823,7 +820,7 @@ def main():
                     inv_info["args_file_rollout"],
                     inv_info["check_apt_packages"],
                     inv_info["upgrade_pip_setuptools"],
-                    inv_info["rollout_world_idx_list"],
+                    inv_info["world_idx_list"],
                     inv_info["seed"],
                 )
                 print(f"[{AutoEval.__name__}] Completed: {job_id}")
