@@ -26,6 +26,7 @@ COMMON_PARAM_NAMES = [
     "args_file_rollout",
     "no_train",
     "no_rollout",
+    "check_apt_packages",
     "rollout_world_idx_list",
     "seed",
 ]
@@ -192,7 +193,8 @@ class AutoEval:
                 cwd=self.repository_dir,
             )
 
-    def check_apt_packages_installed(self, package_names):
+    @classmethod
+    def check_apt_packages_installed(cls, package_names):
         """Check if required APT packages are installed."""
         for pkg in package_names:
             dpkg_query_result = subprocess.run(
@@ -206,6 +208,7 @@ class AutoEval:
                 or b"install ok installed" not in dpkg_query_result.stdout
             ):
                 raise AssertionError("APT package not installed: " + pkg)
+        print(f"[{cls.__name__}] All required APT packages are installed.")
 
     def install_common(self):
         """Install common dependencies required for the environment."""
@@ -457,6 +460,7 @@ class AutoEval:
         input_checkpoint_file,
         args_file_train,
         args_file_rollout,
+        check_apt_packages,
         rollout_world_idx_list,
         seed=None,
     ):
@@ -482,7 +486,8 @@ class AutoEval:
                 venv.create(
                     os.path.join(self.venv_python, "../../../venv/"), with_pip=True
                 )
-                self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
+                if check_apt_packages:
+                    self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
 
                 # Install common dependencies and policy-specific dependencies
                 self.install_common()
@@ -648,6 +653,11 @@ def parse_argument():
         help="disable rollout step if set",
     )
     parser.add_argument(
+        "--check_apt_packages",
+        action="store_true",
+        help="check and install required APT packages before proceeding",
+    )
+    parser.add_argument(
         "--rollout_world_idx_list",
         type=int,
         nargs="*",
@@ -791,6 +801,7 @@ def main():
                     inv_info["input_checkpoint_file"],
                     inv_info["args_file_train"],
                     inv_info["args_file_rollout"],
+                    inv_info["check_apt_packages"],
                     inv_info["rollout_world_idx_list"],
                     inv_info["seed"],
                 )
