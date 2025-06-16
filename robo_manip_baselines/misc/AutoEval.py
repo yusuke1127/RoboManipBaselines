@@ -27,6 +27,7 @@ COMMON_PARAM_NAMES = [
     "no_train",
     "no_rollout",
     "check_apt_packages",
+    "upgrade_pip_setuptools",
     "rollout_world_idx_list",
     "seed",
 ]
@@ -461,6 +462,7 @@ class AutoEval:
         args_file_train,
         args_file_rollout,
         check_apt_packages,
+        upgrade_pip_setuptools,
         rollout_world_idx_list,
         seed=None,
     ):
@@ -488,6 +490,19 @@ class AutoEval:
                 )
                 if check_apt_packages:
                     self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
+                if upgrade_pip_setuptools:
+                    self.exec_command(
+                        [
+                            self.venv_python,
+                            "-m",
+                            "pip",
+                            "install",
+                            "--upgrade",
+                            "pip",
+                            "setuptools",
+                            "wheel",
+                        ]
+                    )
 
                 # Install common dependencies and policy-specific dependencies
                 self.install_common()
@@ -658,6 +673,11 @@ def parse_argument():
         help="check and install required APT packages before proceeding",
     )
     parser.add_argument(
+        "--upgrade_pip_setuptools",
+        action="store_true",
+        help="Upgrade pip and setuptools before execution",
+    )
+    parser.add_argument(
         "--rollout_world_idx_list",
         type=int,
         nargs="*",
@@ -802,6 +822,7 @@ def main():
                     inv_info["args_file_train"],
                     inv_info["args_file_rollout"],
                     inv_info["check_apt_packages"],
+                    inv_info["upgrade_pip_setuptools"],
                     inv_info["rollout_world_idx_list"],
                     inv_info["seed"],
                 )
