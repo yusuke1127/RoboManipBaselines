@@ -68,10 +68,13 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             squeeze=False,
             constrained_layout=True,
         )
-        fig_ax[1][0] = [
-            fig_ax[0].add_subplot(211, projection="3d")
-            for c_idx in range(1, len(self.camera_names) + 1)
-        ]
+
+        for c_idx in range(len(self.camera_names)):
+            fig_ax[1][0][c_idx].remove()
+            fig_ax[1][0][c_idx] = fig_ax[0].add_subplot(
+                2, len(self.camera_names), c_idx + 1, projection="3d"
+            )
+
         self.pointcloud_scatter_list = [None] * len(self.camera_names)
         super().setup_plot(fig_ax)
 
@@ -96,7 +99,6 @@ class RolloutDiffusionPolicy3d(RolloutBase):
                 input_data["state"] = self.get_state()
             if len(self.camera_names) > 0:
                 pc = self.get_pointclouds()
-                self.plot_pointcloud = pc
                 input_data["point_cloud"] = pc[0]
             action = self.policy.predict_action(input_data)["action"][0]
             self.policy_action_buf = list(
@@ -139,14 +141,18 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         image = self.info["rgb_images"][camera_name]
         depth = self.info["depth_images"][camera_name]
         fovy = self.env.unwrapped.get_camera_fovy(camera_name)
-        image = cv2.resize(image, self.model_meta_info["data"]["image_size"])
-        depth = cv2.resize(depth, self.model_meta_info["data"]["image_size"])
+        # Resize image
+        _, _, C = image.shape
+        image_size = self.model_meta_info["data"]["image_size"]
+        image = np.array(cv2.resize(image, image_size)).reshape(*image_size[::-1], C)
 
-        image = np.moveaxis(image, -1, -3)
-        image = torch.tensor(image, dtype=torch.uint8)
+        # Resize depth
+        depth = np.array(cv2.resize(depth, image_size)).reshape(*image_size[::-1])
+
+        image = torch.tensor(image, dtype=torch.float32)
         image = self.image_transforms(image)
 
-        depth = torch.tensor(depth, dtype=torch.uint16)
+        depth = torch.tensor(depth, dtype=torch.float32)
         depth = self.image_transforms(depth)
 
         pointcloud = self.farthest_point_sampling(
@@ -193,7 +199,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
 
     def plot_pointclouds(self, axes):
         for camera_idx, camera_name in enumerate(self.camera_names):
-            pointcloud = self.plot_pointcloud[camera_idx]
+            pointcloud = self._get_pointcloud(camera_name)
             point_xyz = pointcloud[:, :3]
             if (
                 self.model_meta_info["policy"]["args"]["use_pc_color"]
@@ -226,6 +232,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             else:
                 self.pointcloud_scatter_list[camera_idx] = None
 
+            axes[camera_idx].clear()
             axes[camera_idx].axis("off")
             axes[camera_idx].set_box_aspect(np.ptp(point_xyz, axis=0))
             self.pointcloud_scatter_list[camera_idx] = axes[camera_idx].scatter(
