@@ -91,6 +91,13 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         self.max_bound = self.args.max_bound
         self.num_points = self.model_meta_info["data"]["num_points"]
 
+    def reset_variables(self):
+        self.state_buf = None
+        self.pointclouds_buf = None
+        self.policy_action_buf = None
+
+        return super().reset_variables()
+
     def infer_policy(self):
         # Infer
         if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
@@ -209,26 +216,13 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             else:
                 point_rgb = None
             if self.pointcloud_scatter_list[camera_idx] is None:
-
-                def get_min_max(v_min, v_max):
-                    return (
-                        0.75 * v_min + 0.25 * v_max,
-                        0.25 * v_min + 0.75 * v_max,
-                    )
-
                 axes[camera_idx] = self.fig.add_subplot(
                     axes[camera_idx], projection="3d"
                 )
                 axes[camera_idx].view_init(elev=-90, azim=-90)
-                axes[camera_idx].set_xlim(
-                    *get_min_max(point_xyz[:, 0].min(), point_xyz[:, 0].max())
-                )
-                axes[camera_idx].set_ylim(
-                    *get_min_max(point_xyz[:, 1].min(), point_xyz[:, 1].max())
-                )
-                axes[camera_idx].set_zlim(
-                    *get_min_max(point_xyz[:, 2].min(), point_xyz[:, 2].max())
-                )
+                axes[camera_idx].set_xlim(point_xyz[:, 0].min(), point_xyz[:, 0].max())
+                axes[camera_idx].set_ylim(point_xyz[:, 1].min(), point_xyz[:, 1].max())
+                axes[camera_idx].set_zlim(point_xyz[:, 2].min(), point_xyz[:, 2].max())
             else:
                 self.pointcloud_scatter_list[camera_idx] = None
 
