@@ -10,7 +10,7 @@
 - [`robo_manip_baselines/envs/assets/mujoco/envs/ur5e/env_ur5e_cable.xml`](../robo_manip_baselines/envs/assets/mujoco/envs/ur5e/env_ur5e_cable.xml)  
   Create a MuJoCo simulation model (XML file). You can base it on other existing environment files.
 
-- [robo_manip_baselines/envs/mujoco/__init__.py](../robo_manip_baselines/envs/mujoco/__init__.py)  
+- [`robo_manip_baselines/envs/mujoco/__init__.py`](../robo_manip_baselines/envs/mujoco/__init__.py)  
   Make the environment importable by adding the following line:
   ```python
   from .ur5e.MujocoUR5eCableEnv import MujocoUR5eCableEnv
