@@ -61,6 +61,7 @@ Explore diverse manipulation environments:
 
 - 📚 [Environment Catalog](./doc/environment_catalog.md) – Overview of all task environments  
 - 🔧 [Env Setup](./robo_manip_baselines/envs) – Installation guides per environment
+- ✏️ [How to add a new environment](./doc/add_new_env.md) – Guide for adding a custom environment
 
 ---
 
