@@ -8,34 +8,45 @@ import re
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import venv
 from pathlib import Path
 from urllib.parse import urlparse
 
 import schedule
+import yaml
 
-COMMON_PARAM_NAMES = [
+JSON_STATIC_METADATA_KEYS = [
+    "invocation_id",
+    "timestamp",
+    "policy",
+]
+JOB_BASE_PARAM_KEYS = [
     "env",
     "commit_id",
     "repository_owner_name",
     "target_dir",
+    "input_checkpoint_file",
+    "no_train",
+    "no_rollout",
+]
+AUTOEVAL_INIT_PARAM_KEYS = ["policy"] + JOB_BASE_PARAM_KEYS
+AUTOEVAL_EXECUTE_PARAM_KEYS = [
     "input_dataset_location",
     "input_checkpoint_file",
     "args_file_train",
     "args_file_rollout",
-    "no_train",
-    "no_rollout",
     "check_apt_packages",
     "upgrade_pip_setuptools",
     "world_idx_list",
+    "result_filename",
     "seed",
 ]
-JOB_INFO_KEYS = [
-    "job_id",
-    "policy",
-] + COMMON_PARAM_NAMES
-ROLLOUT_RESULT_PRINT_PATTERN = re.compile(r"Rollout result: (success|failure)")
+JOB_ALL_PARAM_KEYS = list(
+    dict.fromkeys(JOB_BASE_PARAM_KEYS + AUTOEVAL_EXECUTE_PARAM_KEYS)
+)
+JSON_INVOCATION_REGISTER_KEYS = JSON_STATIC_METADATA_KEYS + JOB_ALL_PARAM_KEYS
 
 
 class AutoEval:
@@ -140,7 +151,7 @@ class AutoEval:
         return final_repository_path
 
     @classmethod
-    def exec_command(cls, command, cwd=None, stdout_line_match_pattern=None):
+    def exec_command(cls, command, cwd=None):
         """Execute a shell command, optionally in the specified working directory,
         and return lines from standard output that match the given regex pattern."""
         print(
@@ -148,8 +159,6 @@ class AutoEval:
             f"Executing command: {' '.join(command)}",
             flush=True,
         )
-
-        matched_results = []
 
         with subprocess.Popen(
             command,
@@ -162,16 +171,10 @@ class AutoEval:
         ) as process:
             for stdout_line in process.stdout:
                 print(stdout_line, end="", flush=True)
-                if stdout_line_match_pattern:
-                    match = stdout_line_match_pattern.match(stdout_line)
-                    if match:
-                        matched_results.append(match)
 
             return_code = process.wait()
             if return_code != 0:
                 raise subprocess.CalledProcessError(return_code, " ".join(command))
-
-        return matched_results
 
     def git_clone(self):
         """Clone the target Git repository into a temporary directory."""
@@ -360,11 +363,10 @@ class AutoEval:
         self,
         args_file_rollout,
         world_idx_list,
+        result_filename,
         input_checkpoint_file,
     ):
         """Execute the rollout using the provided configuration and duration."""
-
-        task_success_list = []
         if self.input_checkpoint_file:
             input_checkpoint_file = self.input_checkpoint_file
         else:
@@ -399,24 +401,38 @@ class AutoEval:
             ),
         ]
         if world_idx_list:
-            command.extend(["--world_idx_list", f"{world_idx_list}"])
+            command.append("--world_idx_list")
+            command.extend(map(str, world_idx_list))
+        if result_filename:
+            actual_result_filename = (
+                result_filename.replace("<REPOSITORY_DIR>", self.repository_dir)
+                .replace("<POLICY>", self.policy)
+                .replace("<ENV>", self.env)
+                .replace(
+                    "<TIMESTAMP>", datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                )
+            )
+            command.extend(["--result_filename", f"{actual_result_filename}"])
         if args_file_rollout:
             command.append("@" + args_file_rollout)
 
-        reward_statuses = self.exec_command(
-            command, stdout_line_match_pattern=ROLLOUT_RESULT_PRINT_PATTERN
-        )
-        assert (
-            len(reward_statuses) == 1
-        ), f"[{self.__class__.__name__}] {len(reward_statuses)=}"
-        assert reward_statuses[0].group(1) in (
-            "success",
-            "failure",
-        ), f"[{self.__class__.__name__}] {reward_statuses[0].group(1)=}"
+        self.exec_command(command)
 
-        task_success_list.append(int(reward_statuses[0].group(1) == "success"))
+        if not result_filename:
+            print(
+                f"[{self.__class__.__name__}] Notice: Result loading was skipped as no path was provided via 'result_filename'."
+            )
+            return []
 
-        return task_success_list
+        assert os.path.isfile(
+            actual_result_filename
+        ), f"Result file not found: {actual_result_filename}"
+
+        with open(actual_result_filename, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        if "success" not in data:
+            raise KeyError(f"'success' field is missing in {actual_result_filename}")
+        return list(map(int, data["success"]))
 
     def save_result(self, task_success_list):
         """Save task_success_list."""
@@ -461,6 +477,7 @@ class AutoEval:
         check_apt_packages,
         upgrade_pip_setuptools,
         world_idx_list,
+        result_filename,
         seed=None,
     ):
         """
@@ -477,62 +494,75 @@ class AutoEval:
             fcntl.flock(lock_file, fcntl.LOCK_EX)
             print(f"[{self.__class__.__name__}] Lock acquired. Starting processing...")
 
-            try:
-                # Clone the Git repository and switch to the specified commit
-                self.git_clone()
+            # Clone the Git repository and switch to the specified commit
+            self.git_clone()
 
-                # Create virtual environment and check APT packages
-                venv.create(
-                    os.path.join(self.venv_python, "../../../venv/"), with_pip=True
+            # Create virtual environment and check APT packages
+            venv.create(os.path.join(self.venv_python, "../../../venv/"), with_pip=True)
+            if check_apt_packages:
+                self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
+            if upgrade_pip_setuptools:
+                self.exec_command(
+                    [
+                        self.venv_python,
+                        "-m",
+                        "pip",
+                        "install",
+                        "--upgrade",
+                        "pip",
+                        "setuptools",
+                        "wheel",
+                    ]
                 )
-                if check_apt_packages:
-                    self.check_apt_packages_installed(self.APT_REQUIRED_PACKAGE_NAMES)
-                if upgrade_pip_setuptools:
-                    self.exec_command(
-                        [
-                            self.venv_python,
-                            "-m",
-                            "pip",
-                            "install",
-                            "--upgrade",
-                            "pip",
-                            "setuptools",
-                            "wheel",
-                        ]
+
+            # Install common dependencies and policy-specific dependencies
+            self.install_common()
+            self.install_each_policy()
+
+            # Training phase
+            if not self.no_train:
+                self.get_dataset(input_dataset_location)
+                self.train(args_file_train, seed)
+            else:
+                print(
+                    f"[{self.__class__.__name__}] "
+                    "Dataset download and training disabled due to settings."
+                )
+
+            # Rollout & save results
+            if not self.no_rollout:
+                task_success_list = self.rollout(
+                    args_file_rollout,
+                    world_idx_list,
+                    result_filename,
+                    input_checkpoint_file,
+                )
+                self.save_result(task_success_list)
+            else:
+                print(
+                    f"[{self.__class__.__name__}] "
+                    "Rollout execution disabled due to current settings."
+                )
+
+        local_vars = locals()
+        print(
+            f"[{self.__class__.__name__}] Processing completed: "
+            + textwrap.shorten(
+                ", ".join(
+                    (
+                        f"{key}={os.path.basename(os.path.normpath(local_vars[key]))!r}"
+                        if isinstance(local_vars[key], str)
+                        and os.path.basename(os.path.normpath(local_vars[key]))
+                        != local_vars[key]
+                        else f"{key}={local_vars[key]!r}"
                     )
-
-                # Install common dependencies and policy-specific dependencies
-                self.install_common()
-                self.install_each_policy()
-
-                # Training phase
-                if not self.no_train:
-                    self.get_dataset(input_dataset_location)
-                    self.train(args_file_train, seed)
-                else:
-                    print(
-                        f"[{self.__class__.__name__}] "
-                        "Dataset download and training disabled due to settings."
-                    )
-
-                # Rollout & save results
-                if not self.no_rollout:
-                    task_success_list = self.rollout(
-                        args_file_rollout,
-                        world_idx_list,
-                        input_checkpoint_file,
-                    )
-                    self.save_result(task_success_list)
-                else:
-                    print(
-                        f"[{self.__class__.__name__}] "
-                        "Rollout execution disabled due to current settings."
-                    )
-
-                print(f"[{self.__class__.__name__}] Processing completed.")
-
-            finally:
-                print(f"[{self.__class__.__name__}] Releasing lock.")
+                    for key in AUTOEVAL_EXECUTE_PARAM_KEYS
+                    if key in local_vars
+                ),
+                width=1000,
+                placeholder="…",
+            )
+        )
         try:
             os.remove(self.lock_file_path)
             print(
@@ -605,11 +635,7 @@ def parse_argument():
         choices=["Mlp", "Sarnn", "Act", "DiffusionPolicy", "MtAct"],
         help="policies",
     )
-    parser.add_argument(
-        "env",
-        type=str,
-        help="environment",
-    )
+    parser.add_argument("env", type=str, help="environment")
     parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
     parser.add_argument(
         "-u",
@@ -672,13 +698,19 @@ def parse_argument():
     parser.add_argument(
         "--upgrade_pip_setuptools",
         action="store_true",
-        help="Upgrade pip and setuptools before execution",
+        help="upgrade pip and setuptools before execution",
     )
     parser.add_argument(
         "--world_idx_list",
         type=int,
         nargs="*",
         help="list of world indexes",
+    )
+    parser.add_argument(
+        "--result_filename",
+        type=str,
+        default="<REPOSITORY_DIR>/robo_manip_baselines/misc/result_<POLICY>_<ENV>_<TIMESTAMP>.yaml",
+        help="file path (*.yaml) to save rollout results, specify 'none' or '-' to disable saving",
     )
     parser.add_argument(
         "--seed",
@@ -705,6 +737,13 @@ def parse_argument():
                 f"Invalid time format for --daily_schedule_time: "
                 f"'{parsed_args.daily_schedule_time}'. Expected HH:MM (00-23,00-59)."
             )
+
+    # Handle result_filename being "none" or "-"
+    if parsed_args.result_filename.lower() in ("none", "-"):
+        print(
+            f"[{AutoEval.__name__}] Notice: '--result_filename' is set to '{parsed_args.result_filename}', disabling result saving."
+        )
+        parsed_args.result_filename = None
 
     return parsed_args
 
@@ -755,7 +794,7 @@ def main():
         """Register a JSON file per policy in queue_dir and return a list of invocation IDs."""
         # Exclusive control using a lock file
         lock_path = os.path.join(queue_dir, "register.lock")
-        with open(lock_path, "w") as lock_file:
+        with open(lock_path, "w", encoding="utf-8") as lock_file:
             fcntl.flock(lock_file, fcntl.LOCK_EX)
             # Generate a timestamp string common to all policies in this invocation
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -768,8 +807,17 @@ def main():
                     "invocation_id": invocation_id,
                     "timestamp": ts,
                     "policy": policy,
-                    **{k: getattr(args, k) for k in COMMON_PARAM_NAMES},
+                    **{k: getattr(args, k) for k in JOB_ALL_PARAM_KEYS},
                 }
+
+                # Check if keys match
+                missing = set(JSON_INVOCATION_REGISTER_KEYS) - set(info.keys())
+                extra = set(info.keys()) - set(JSON_INVOCATION_REGISTER_KEYS)
+                if missing or extra:
+                    raise RuntimeError(
+                        f"JSON keys mismatch: missing={missing}, extra={extra}"
+                    )
+
                 # Persist invocation details as a JSON file named by invocation ID
                 fn = os.path.join(queue_dir, f"{invocation_id}.json")
                 with open(fn, "w", encoding="utf-8") as jf:
@@ -785,6 +833,12 @@ def main():
         return created
 
     def handle_all_jobs():
+        """
+        Execute all jobs in the queue sequentially and
+        delete each corresponding JSON file upon completion.
+        """
+        has_error = False
+
         # Register a single invocation containing multiple policies
         _ = register_invocation()
 
@@ -802,39 +856,27 @@ def main():
             job_id = inv_info["invocation_id"]
 
             print(f"\n[{AutoEval.__name__}] Execute job: {job_id}")
-            auto_eval = AutoEval(
-                inv_info["policy"],
-                inv_info["env"],
-                inv_info["commit_id"],
-                inv_info["repository_owner_name"],
-                inv_info["target_dir"],
-                inv_info["input_checkpoint_file"],
-                inv_info["no_train"],
-                inv_info["no_rollout"],
-            )
+            auto_eval = AutoEval(*(inv_info[k] for k in AUTOEVAL_INIT_PARAM_KEYS))
             try:
                 auto_eval.execute_job(
-                    inv_info["input_dataset_location"],
-                    inv_info["input_checkpoint_file"],
-                    inv_info["args_file_train"],
-                    inv_info["args_file_rollout"],
-                    inv_info["check_apt_packages"],
-                    inv_info["upgrade_pip_setuptools"],
-                    inv_info["world_idx_list"],
-                    inv_info["seed"],
+                    *(inv_info[k] for k in AUTOEVAL_EXECUTE_PARAM_KEYS)
                 )
-                print(f"[{AutoEval.__name__}] Completed: {job_id}")
-            except Exception as e:
-                print(f"[{AutoEval.__name__}] Error ({job_id}): {e}")
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+                has_error = True
 
             # After completing this invocation, delete its JSON file
             os.remove(inv_file)
             print(f"[{AutoEval.__name__}] Removed invocation file: {inv_file}")
+        print(
+            f"[{AutoEval.__name__}] Completed job: {job_id}: {'Error' if has_error else 'Success'}"
+        )
 
     # Immediate execution mode (no schedule)
     if not args.daily_schedule_time:
         handle_all_jobs()
-        print(f"[{AutoEval.__name__}] Completed one-time run. Exiting.")
         return
 
     # Scheduling mode
