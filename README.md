@@ -45,6 +45,7 @@ We provide several powerful policy architectures for manipulation tasks:
 
 - 📂 [Dataset List](./doc/dataset_list.md): Pre-collected expert demonstration datasets  
 - 🧠 [Learned Parameters](./doc/learned_parameters.md): Trained model checkpoints and configs
+- 📄 [Data Format](./doc/rmb_data_format.md): Description of the custom RMB data format used in RoboManipBaselines
 
 ---
 
