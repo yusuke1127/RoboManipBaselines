@@ -76,6 +76,21 @@ $ pip install -e .
 > ```
 > replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv_directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
 
+### [3D Diffusion policy](../robo_manip_baselines/policy/diffusion_policy_3d)
+Install dependent libraries including [diffusion policy_3d](https://github.com/YanjieZe/3D-Diffusion-Policy):
+```console
+$ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
+
+# Go to the top directory of this repository
+$ pip install -e .[diffusion-policy]
+
+# Go to the top directory of this repository
+$ cd third_party/diffusion_policy
+$ pip install -e .
+$ cd third_party/pytorch3d_simplified
+$ pip install -e .
+```
+
 ## Installation of each teleoperation interface
 Complete [the common installation](#common-installation) first.
 
