@@ -871,7 +871,7 @@ def main():
             os.remove(inv_file)
             print(f"[{AutoEval.__name__}] Removed invocation file: {inv_file}")
         print(
-            f"[{AutoEval.__name__}] Completed job: {job_id}: {'Error' if has_error else 'Success'}"
+            f"[{AutoEval.__name__}] Completed job: {job_id}: {'Error' if has_error else 'OK'}"
         )
 
     # Immediate execution mode (no schedule)
