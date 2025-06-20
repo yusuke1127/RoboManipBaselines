@@ -79,15 +79,13 @@ $ pip install -e .
 ### [3D Diffusion policy](../robo_manip_baselines/policy/diffusion_policy_3d)
 Install dependent libraries including [diffusion policy_3d](https://github.com/YanjieZe/3D-Diffusion-Policy):
 ```console
-$ sudo apt install -y libosmesa6-dev libgl1-mesa-glx libglfw3 patchelf
+# Go to the top directory of this repository
+$ pip install -e .[diffusion-policy-3d]
 
 # Go to the top directory of this repository
-$ pip install -e .[diffusion-policy]
-
-# Go to the top directory of this repository
-$ cd third_party/diffusion_policy
+$ cd third_party/3D-Diffusion-Policy/3D-Diffusion-Policy
 $ pip install -e .
-$ cd third_party/pytorch3d_simplified
+$ cd ../third_party/pytorch3d_simplified
 $ pip install -e .
 ```
 
