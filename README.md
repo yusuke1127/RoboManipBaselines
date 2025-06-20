@@ -34,9 +34,10 @@ Follow our step-by-step [Installation Guide](./doc/install.md) to get set up smo
 We provide several powerful policy architectures for manipulation tasks:
 
 - 🔹 **[MLP](./robo_manip_baselines/policy/mlp)** – Simple feedforward policy  
-- 🔹 **[SARNN](./robo_manip_baselines/policy/sarnn)** – Sequence-aware RNN policy  
+- 🔹 **[SARNN](./robo_manip_baselines/policy/sarnn)** – Sequence-aware RNN-based policy  
 - 🔹 **[ACT](./robo_manip_baselines/policy/act)** – Transformer-based imitation policy  
-- 🔹 **[DiffusionPolicy](./robo_manip_baselines/policy/diffusion_policy)** – Diffusion-based behavior cloning  
+- 🔹 **[MT-ACT](./robo_manip_baselines/policy/mt_act)** – Multi-task Transformer-based imitation policy  
+- 🔹 **[DiffusionPolicy](./robo_manip_baselines/policy/diffusion_policy)** – Diffusion-based behavior cloning policy  
 
 ---
 
@@ -44,6 +45,7 @@ We provide several powerful policy architectures for manipulation tasks:
 
 - 📂 [Dataset List](./doc/dataset_list.md): Pre-collected expert demonstration datasets  
 - 🧠 [Learned Parameters](./doc/learned_parameters.md): Trained model checkpoints and configs
+- 📄 [Data Format](./doc/rmb_data_format.md): Description of the custom RMB data format used in RoboManipBaselines
 
 ---
 
@@ -60,6 +62,7 @@ Explore diverse manipulation environments:
 
 - 📚 [Environment Catalog](./doc/environment_catalog.md) – Overview of all task environments  
 - 🔧 [Env Setup](./robo_manip_baselines/envs) – Installation guides per environment
+- ✏️ [How to Add a New Environment](./doc/how_to_add_env.md) – Guide for adding a custom environment
 
 ---
 
