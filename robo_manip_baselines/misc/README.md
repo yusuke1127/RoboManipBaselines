@@ -36,12 +36,12 @@ $ python ./RefineRmbData.py <path_to_data> --task_desc "<new_description>" [--ov
 ### Visualize camera images
 Display the web camera image for recording the experiments.
 ```console
-$ python ./misc/DisplayCameraImage.py --camera_name Webcam --resize_width 800 --win_xy 1000 400
+$ python ./DisplayCameraImage.py --camera_name Webcam --resize_width 800 --win_xy 1000 400
 ```
 
 Display the cropped camera image. This is useful for image cropping policies such as SARNN.
 ```console
-$ python ./misc/DisplayCameraImage.py --camera_name RealSense --crop_size 280 280
+$ python ./DisplayCameraImage.py --camera_name RealSense --crop_size 280 280
 ```
 
 A camera can also be specified by `--camera_id` instead of `--camera_name`.
