@@ -25,6 +25,13 @@ Note that when converting images to mp4 files, lossy compression is applied to c
 $ python ./CompareRmbData.py <rmb_file1> <rmb_file2>
 ```
 
+### Refine demonstration data
+Update the task_desc attribute in RMB format files. It accepts a path to a file or directory and automatically searches for relevant files. If task_desc exists and --overwrite is not specified, the value is not changed.
+
+```console
+$ python ./RefineRmbData.py <path_to_data> --task_desc "<new_description>" [--overwrite]
+```
+
 ## Video utilities
 ### Tile rollout videos
 The input is a video consisting of a sequence of multiple rollouts, and the output is a tiled video of each rollout.
