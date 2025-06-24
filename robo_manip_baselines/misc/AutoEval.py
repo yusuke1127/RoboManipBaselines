@@ -636,7 +636,14 @@ def parse_argument():
         help="policies",
     )
     parser.add_argument("env", type=str, help="environment")
-    parser.add_argument("-c", "--commit_id", type=str, required=False, default=None)
+    parser.add_argument(
+        "-c",
+        "--commit_id",
+        type=str,
+        required=False,
+        default=None,
+        help="git commit id to evaluate; uses latest commit if omitted",
+    )
     parser.add_argument(
         "-u",
         "--repository_owner_name",
