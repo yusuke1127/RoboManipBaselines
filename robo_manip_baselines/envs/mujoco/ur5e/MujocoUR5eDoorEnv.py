@@ -49,8 +49,11 @@ class MujocoUR5eDoorEnv(MujocoUR5eEnvBase):
             ]
         )  # [m]
 
-    def _get_success(self):
-        return self.data.joint("door").qpos[0] < np.deg2rad(-60.0)
+    def _get_reward(self):
+        if self.data.joint("door").qpos[0] < np.deg2rad(-60.0):
+            return 1.0
+        else:
+            return 0.0
 
     def modify_world(self, world_idx=None, cumulative_idx=None):
         if world_idx is None:
