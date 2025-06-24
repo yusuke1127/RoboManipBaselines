@@ -797,10 +797,10 @@ def main():
         with open(lock_path, "w", encoding="utf-8") as lock_file:
             fcntl.flock(lock_file, fcntl.LOCK_EX)
             # Generate a timestamp string common to all policies in this invocation
-            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             created = []
             for policy in args.policies:
                 # Construct unique invocation ID by combining timestamp and policy
+                ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
                 invocation_id = f"{ts}_{policy}"
                 # Aggregate invocation details including common parameters and the policy
                 info = {
@@ -880,11 +880,14 @@ def main():
         return
 
     # Scheduling mode
-    schedule.every().day.at(args.daily_schedule_time).do(handle_all_jobs)
-    print(
-        f"[{AutoEval.__name__}] Scheduled daily run at {args.daily_schedule_time}. Waiting...",
-        flush=True,
-    )
+    scheduled_msg = f"[{AutoEval.__name__}] Scheduled daily run at {args.daily_schedule_time}. Waiting..."
+
+    def scheduled_job():
+        handle_all_jobs()
+        print(scheduled_msg, flush=True)
+
+    schedule.every().day.at(args.daily_schedule_time).do(scheduled_job)
+    print(scheduled_msg, flush=True)
 
     try:
         while True:
