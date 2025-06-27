@@ -60,26 +60,23 @@ By default, the video separation times are automatically determined by detecting
 ```
 
 ## Execution utilities
-Tools to manage and run automatic evaluation, training and rollout jobs.
+A tool that manages jobs which automatically perform training, rollout, and evaluation.
 
 ### Run immediate job
-
-Run one evaluation immediately and exit (no schedule).
+Run one evaluation job immediately and exit (no schedule).
 
 ```console
 $ python ./AutoEval.py <policy> <env>
 ```
 
 ### Schedule daily run
-
-Schedule an evaluation to execute every day at the specified time.
+Schedule an evaluation job to execute every day at the specified time.
 
 ```console
 $ python ./AutoEval.py <policy> <env> --daily_schedule_time HH:MM
 ```
 
 ### Show queued jobs
-
 Display all enqueued evaluation job IDs.
 
 ```console
@@ -87,7 +84,6 @@ $ python ./AutoEval.py --job_stat
 ```
 
 ### Delete queued job
-
 Remove a job from the queue by its ID (filename without extension).
 
 ```console
@@ -95,7 +91,6 @@ $ python ./AutoEval.py --job_del <job_id>
 ```
 
 ### Command-line syntax reference
-
 Complete invocation syntax and all options for `AutoEval.py`. To view it at runtime, run `python AutoEval.py -h`.
 
 ```console
@@ -111,6 +106,6 @@ $ python ./AutoEval.py [-h] [--job_stat] [--job_del JOB_DEL] [-c COMMIT_ID] [-u 
 > • Automatically clones the repo, trains the specified policy on the given environment, performs rollout, and writes `task_success_list.txt` under `misc/result/<POLICY>/<ENV>/`.  
 > • Use `--input_dataset_location` with a URL (download) or local path.  
 > • Always uses `policy_last.ckpt` for checkpoint.  
-> • Omit `--seed` to use the called script’s built-in default; specify `--seed -1` to generate a time-based seed.  
+> • Omit `--seed` to use the called script's built-in default; specify `--seed -1` to generate a time-based random seed.
 > • Omit `--commit_id` to use the latest origin/master.  
 > • Pass `--world_idx_list` for multiple rollout worlds.  
