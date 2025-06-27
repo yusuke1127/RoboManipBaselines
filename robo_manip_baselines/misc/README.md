@@ -90,6 +90,21 @@ Remove a job from the queue by its ID (filename without extension).
 $ python ./AutoEval.py --job_del <job_id>
 ```
 
+### Additional arguments via file
+When you need to pass extra arguments to `Train.py` or `Rollout.py`, write them into a text file and supply it with `--args_file_train` or `--args_file_rollout`.
+For example, create a file named `train_args.txt` with the following content:
+
+```text
+--num_epochs
+50000
+```
+
+Then invoke:
+
+```console
+$ python ./AutoEval.py <policy> <env> --args_file_train train_args.txt
+```
+
 ### Command-line syntax reference
 Complete invocation syntax and all options for `AutoEval.py`. To view it at runtime, run `python AutoEval.py -h`.
 
