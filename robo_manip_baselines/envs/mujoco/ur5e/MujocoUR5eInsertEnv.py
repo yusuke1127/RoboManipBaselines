@@ -46,7 +46,7 @@ class MujocoUR5eInsertEnv(MujocoUR5eEnvBase):
         peg_pos = self.data.body("peg").xpos.copy()
         hole_pos = self.data.body("hole").xpos.copy()
 
-        xy_thre = 0.01  # [m]
+        xy_thre = 0.015  # [m]
         z_thre = hole_pos[2] + 0.05  # [m]
         if (np.max(np.abs(peg_pos[:2] - hole_pos[:2])) < xy_thre) and (
             peg_pos[2] < z_thre
