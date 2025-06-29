@@ -40,13 +40,26 @@ def parse_argument():
         default=None,
         help="List of rgb image size (width, height) to be cropped before resize. Specify a 2-dimensional array if all images have the same size, or an array of <number-of-images> * 2 dimensions if the size differs for each individual image.",
     )
+    parser.add_argument(
+        "--use_prepared_pointcloud",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="view camera_pointcloud instead of generation",
+    )
     return parser.parse_args()
 
 
 class VisualizeData:
     def __init__(
-        self, teleop_filename, skip, output_mp4_filename, mp4_codec, rgb_crop_size_list
+        self,
+        teleop_filename,
+        skip,
+        output_mp4_filename,
+        mp4_codec,
+        rgb_crop_size_list,
+        show_pregenerated_pointcloud,
     ):
+        self.show_pregenerated_pointcloud = show_pregenerated_pointcloud
         print(f"[{self.__class__.__name__}] {self.data_setup.__name__} ...")
         self.data_setup(teleop_filename, skip, rgb_crop_size_list)
 
@@ -239,21 +252,30 @@ class VisualizeData:
         depth_key,
         rgb_image,
         depth_image,
+        time_idx=None,
     ):
-        if f"{depth_key}_fovy" not in self.data_manager.meta_data.keys():
-            if self.ax[ax_idx, 2] in self.fig.axes:
-                self.ax[ax_idx, 2].remove()
-            return
-        point_cloud_skip = 10
-        small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
-        small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
-        fovy = self.data_manager.get_meta_data(f"{depth_key}_fovy")
-        xyz_array, rgb_array = convert_depth_image_to_point_cloud(
-            small_depth_image,
-            fovy=fovy,
-            rgb_image=small_rgb_image,
-            far_clip=3.0,  # [m]
-        )
+        if self.show_pregenerated_pointcloud and time_idx is not None:
+            camera_name = DataKey.get_camera_name(depth_key)
+            xyzrgb = self.data_manager.get_data_seq(
+                DataKey.get_pointcloud_key(camera_name)
+            )
+            xyz_array = xyzrgb[time_idx, :, :3]
+            rgb_array = xyzrgb[time_idx, :, 3:]
+        else:
+            if f"{depth_key}_fovy" not in self.data_manager.meta_data.keys():
+                if self.ax[ax_idx, 2] in self.fig.axes:
+                    self.ax[ax_idx, 2].remove()
+                return
+            point_cloud_skip = 10
+            small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
+            small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
+            fovy = self.data_manager.get_meta_data(f"{depth_key}_fovy")
+            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
+                small_depth_image,
+                fovy=fovy,
+                rgb_image=small_rgb_image,
+                far_clip=3.0,  # [m]
+            )
         if not xyz_array.size:
             return
         if scatter_list[ax_idx - 1] is None:
@@ -374,6 +396,7 @@ class VisualizeData:
                     depth_key,
                     rgb_image,
                     depth_image,
+                    time_idx if self.show_pregenerated_pointcloud else None,
                 )
 
             plt.draw()
@@ -421,5 +444,6 @@ if __name__ == "__main__":
         args.output_mp4_filename,
         args.mp4_codec,
         args.rgb_crop_size_list,
+        args.use_prepared_pointcloud,
     )
     viz.plot()

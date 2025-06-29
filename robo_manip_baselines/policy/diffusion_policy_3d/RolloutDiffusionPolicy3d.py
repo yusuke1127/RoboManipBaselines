@@ -1,0 +1,272 @@
+import cv2
+import matplotlib.pylab as plt
+import numpy as np
+import pytorch3d.ops as torch3d_ops
+import torch
+from diffusers.schedulers.scheduling_ddim import DDIMScheduler
+
+from diffusion_policy_3d.policy.dp3 import DP3
+from robo_manip_baselines.common import (
+    RolloutBase,
+    convert_depth_image_to_point_cloud,
+    denormalize_data,
+    normalize_data,
+)
+
+
+class RolloutDiffusionPolicy3d(RolloutBase):
+    def set_additional_args(self, parser):
+        parser.add_argument(
+            "--min_bound",
+            type=float,
+            nargs=3,
+            default=[-0.4, -0.4, -0.4],
+            help="Min bounding box for cropping pointcloud before downsampling.",
+        )
+        parser.add_argument(
+            "--max_bound",
+            type=float,
+            nargs=3,
+            default=[1, 1, 1],
+            help="Max bounding box for cropping pointcloud before downsampling.",
+        )
+        parser.add_argument(
+            "--plot_colored_pointcloud",
+            action="store_true",
+            help="Force Ploting colored pointclouds",
+        )
+
+    def setup_policy(self):
+        # Print policy information
+        self.print_policy_info()
+        print(f"  - use ema: {self.model_meta_info['policy']['use_ema']}")
+        print(
+            f"  - horizon: {self.model_meta_info['data']['horizon']}, obs steps: {self.model_meta_info['data']['n_obs_steps']}, action steps: {self.model_meta_info['data']['n_action_steps']}"
+        )
+        print(
+            f"  - image size: {self.model_meta_info['data']['image_size']}, image crop size: {self.model_meta_info['data']['image_crop_size']}"
+        )
+
+        # Construct policy
+        noise_scheduler = DDIMScheduler(
+            **self.model_meta_info["policy"]["noise_scheduler_args"]
+        )
+        self.policy = DP3(
+            noise_scheduler=noise_scheduler,
+            **self.model_meta_info["policy"]["args"],
+        )
+
+        # Load checkpoint
+        self.load_ckpt()
+
+    def setup_plot(self):
+        fig_ax = plt.subplots(
+            2,
+            len(self.camera_names),
+            figsize=(13.5, 6.0),
+            dpi=60,
+            squeeze=False,
+            constrained_layout=True,
+        )
+
+        for c_idx in range(len(self.camera_names)):
+            fig_ax[1][0][c_idx].remove()
+            fig_ax[1][0][c_idx] = fig_ax[0].add_subplot(
+                2, len(self.camera_names), c_idx + 1, projection="3d"
+            )
+
+        self.pointcloud_scatter_list = [None] * len(self.camera_names)
+        super().setup_plot(fig_ax)
+
+    def setup_variables(self):
+        super().setup_variables()
+
+        self.pointcloud_shape = self.model_meta_info["policy"]["args"]["shape_meta"][
+            "obs"
+        ]["point_cloud"]["shape"]
+        self.state_buf = None
+        self.pointclouds_buf = None
+        self.policy_action_buf = None
+        self.min_bound = self.args.min_bound
+        self.max_bound = self.args.max_bound
+        self.num_points = self.model_meta_info["data"]["num_points"]
+
+    def reset_variables(self):
+        self.state_buf = None
+        self.pointclouds_buf = None
+        self.policy_action_buf = None
+
+        return super().reset_variables()
+
+    def infer_policy(self):
+        # Infer
+        if self.policy_action_buf is None or len(self.policy_action_buf) == 0:
+            input_data = {}
+            if len(self.state_keys) > 0:
+                input_data["state"] = self.get_state()
+            if len(self.camera_names) > 0:
+                pc = self.get_pointclouds()
+                input_data["point_cloud"] = pc[0]
+            action = self.policy.predict_action(input_data)["action"][0]
+            self.policy_action_buf = list(
+                action.cpu().detach().numpy().astype(np.float64)
+            )
+
+        # Store action
+        self.policy_action = denormalize_data(
+            self.policy_action_buf.pop(0), self.model_meta_info["action"]
+        )
+        self.policy_action_list = np.concatenate(
+            [self.policy_action_list, self.policy_action[np.newaxis]]
+        )
+
+    def get_state(self):
+        # Get latest value
+        state = np.concatenate(
+            [
+                self.motion_manager.get_data(state_key, self.obs)
+                for state_key in self.state_keys
+            ]
+        )
+        state = normalize_data(state, self.model_meta_info["state"])
+        state = torch.tensor(state, dtype=torch.float32)
+
+        # Store and return
+        if self.state_buf is None:
+            self.state_buf = [
+                state for _ in range(self.model_meta_info["data"]["n_obs_steps"])
+            ]
+        else:
+            self.state_buf.pop(0)
+            self.state_buf.append(state)
+
+        state = torch.stack(self.state_buf, dim=0)[torch.newaxis].to(self.device)
+
+        return state
+
+    def _get_pointcloud(self, camera_name):
+        image = self.info["rgb_images"][camera_name]
+        depth = self.info["depth_images"][camera_name]
+        fovy = self.env.unwrapped.get_camera_fovy(camera_name)
+        # Resize image
+        _, _, C = image.shape
+        image_size = self.model_meta_info["data"]["image_size"]
+        image = np.array(cv2.resize(image, image_size)).reshape(*image_size[::-1], C)
+
+        # Resize depth
+        depth = np.array(cv2.resize(depth, image_size)).reshape(*image_size[::-1])
+
+        image = torch.tensor(image, dtype=torch.float32)
+        image = self.image_transforms(image)
+
+        depth = torch.tensor(depth, dtype=torch.float32)
+        depth = self.image_transforms(depth)
+
+        pointcloud = self.farthest_point_sampling(
+            self.crop_points(
+                np.concat(
+                    convert_depth_image_to_point_cloud(
+                        depth.numpy(), fovy, image.numpy()
+                    ),
+                    axis=-1,
+                ),
+                self.min_bound,
+                self.max_bound,
+            ),
+            num_points=self.num_points,
+        )
+        return pointcloud
+
+    def get_pointclouds(self):
+        # Get latest value
+        pointclouds = [
+            torch.tensor(self._get_pointcloud(camera_name), dtype=torch.float32)
+            for camera_name in self.camera_names
+        ]
+
+        # Store and return
+        if self.pointclouds_buf is None:
+            self.pointclouds_buf = [
+                [pointcloud for _ in range(self.model_meta_info["data"]["n_obs_steps"])]
+                for pointcloud in pointclouds
+            ]
+        else:
+            for single_pointclouds_buf, pointcloud in zip(
+                self.pointclouds_buf, pointclouds
+            ):
+                single_pointclouds_buf.pop(0)
+                single_pointclouds_buf.append(pointcloud)
+
+        pointclouds = [
+            torch.stack(single_pointclouds_buf, dim=0)[torch.newaxis].to(self.device)
+            for single_pointclouds_buf in self.pointclouds_buf
+        ]
+
+        return pointclouds
+
+    def plot_pointclouds(self, axes):
+        for camera_idx, camera_name in enumerate(self.camera_names):
+            pointcloud = self._get_pointcloud(camera_name)
+            point_xyz = pointcloud[:, :3]
+            if (
+                self.model_meta_info["policy"]["args"]["use_pc_color"]
+                or self.args.plot_colored_pointcloud
+            ):
+                point_rgb = pointcloud[:, 3:]
+            else:
+                point_rgb = None
+            if self.pointcloud_scatter_list[camera_idx] is None:
+                axes[camera_idx] = self.fig.add_subplot(
+                    axes[camera_idx], projection="3d"
+                )
+                axes[camera_idx].view_init(elev=-90, azim=-90)
+                axes[camera_idx].set_xlim(point_xyz[:, 0].min(), point_xyz[:, 0].max())
+                axes[camera_idx].set_ylim(point_xyz[:, 1].min(), point_xyz[:, 1].max())
+                axes[camera_idx].set_zlim(point_xyz[:, 2].min(), point_xyz[:, 2].max())
+            else:
+                self.pointcloud_scatter_list[camera_idx] = None
+
+            axes[camera_idx].clear()
+            axes[camera_idx].axis("off")
+            axes[camera_idx].set_box_aspect(np.ptp(point_xyz, axis=0))
+            self.pointcloud_scatter_list[camera_idx] = axes[camera_idx].scatter(
+                point_xyz[:, 0], point_xyz[:, 1], point_xyz[:, 2], c=point_rgb
+            )
+            axes[camera_idx].set_title(camera_name, fontsize=20)
+
+    def draw_plot(self):
+        # Clear plot
+        for _ax in np.ravel(self.ax):
+            _ax.cla()
+            _ax.axis("off")
+
+        # Plot pointclouds
+        self.plot_pointclouds(self.ax[0, 0 : len(self.camera_names)])
+
+        # Plot action
+        self.plot_action(self.ax[1, 0])
+
+        # Finalize plot
+        self.canvas.draw()
+        cv2.imshow(
+            self.policy_name,
+            cv2.cvtColor(np.asarray(self.canvas.buffer_rgba()), cv2.COLOR_RGB2BGR),
+        )
+
+    def crop_points(self, pointcloud: np.ndarray, min_bound=None, max_bound=None):
+        # Crop pointcloud before downsampling.
+        if min_bound is not None:
+            mask = np.all(pointcloud[:, :3] > min_bound, axis=1)
+            pointcloud = pointcloud[mask]
+        if max_bound is not None:
+            mask = np.all(pointcloud[:, :3] < max_bound, axis=1)
+            pointcloud = pointcloud[mask]
+        return pointcloud
+
+    def farthest_point_sampling(self, pointcloud: np.ndarray, num_points: int = 512):
+        # Downsample point cloud with FPS.
+        points = torch.from_numpy(pointcloud).unsqueeze(0)
+        n_points = torch.tensor([num_points])
+        _, sampled_indices = torch3d_ops.sample_farthest_points(points, K=n_points)
+        pointcloud = pointcloud[sampled_indices.squeeze(0).numpy()]
+        return pointcloud
