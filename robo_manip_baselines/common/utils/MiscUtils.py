@@ -18,7 +18,7 @@ def remove_suffix(s, suffix):
 
 
 def camel_to_snake(name):
-    """Converts camelCase or PascalCase to snake_case (also converts the first letter to lowercase)"""
+    """Converts camelCase or PascalCase to snake_case (also converts the first letter to lowercase)."""
     name = re.sub(
         r"([a-z0-9])([A-Z])", r"\1_\2", name
     )  # Insert '_' between a lowercase/number and an uppercase letter

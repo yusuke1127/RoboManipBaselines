@@ -25,10 +25,9 @@ def parse_argument():
 
 class RefineRmbData:
     def __init__(self, path, task_desc, overwrite=False):
-        self.path = path.rstrip("/")
         self.task_desc_new = task_desc
         self.overwrite = overwrite
-        self.hdf5_paths = self.resolve_hdf5_path(self.path)
+        self.hdf5_paths = self.resolve_hdf5_path(path.rstrip("/"))
 
     def resolve_hdf5_path(self, path):
         hdf5_list = []

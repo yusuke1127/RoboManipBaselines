@@ -76,8 +76,8 @@ $ pip install -e .
 > ```
 > replace all `opencv-python>=3.` with `opencv-python>=3.0` in `<venv_directory>/lib/python3.8/site-packages/gym-0.21.0-py3.8.egg-info/requires.txt`.
 
-### [3D Diffusion policy](../robo_manip_baselines/policy/diffusion_policy_3d)
-Install dependent libraries including [diffusion policy_3d](https://github.com/YanjieZe/3D-Diffusion-Policy):
+### [3D diffusion policy](../robo_manip_baselines/policy/diffusion_policy_3d)
+Install dependent libraries including [3D diffusion policy](https://github.com/YanjieZe/3D-Diffusion-Policy):
 ```console
 # Go to the top directory of this repository
 $ pip install -e .[diffusion-policy-3d]

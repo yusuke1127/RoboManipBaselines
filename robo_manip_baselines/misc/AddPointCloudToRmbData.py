@@ -38,7 +38,7 @@ def parse_argument():
         "--max_bound",
         type=float,
         nargs=3,
-        default=[1, 1, 1],
+        default=[1.0, 1.0, 1.0],
         help="Max bounding box for cropping pointcloud before downsampling.",
     )
     parser.add_argument(
@@ -59,27 +59,25 @@ def parse_argument():
 
 
 def farthest_point_sampling(pointcloud: np.ndarray, num_points: int = 512):
-    # Downsample point cloud with FPS.
+    # Downsample point cloud with farthest point sampling (FPS)
     points = torch.from_numpy(pointcloud).unsqueeze(0)
-    n_points = torch.tensor([num_points])
-    _, sampled_indices = torch3d_ops.sample_farthest_points(points, K=n_points)
+    num_points = torch.tensor([num_points])
+    _, sampled_indices = torch3d_ops.sample_farthest_points(points, K=num_points)
     pointcloud = pointcloud[sampled_indices.squeeze(0).numpy()]
     return pointcloud
 
 
 def crop_pointcloud(pointcloud: np.ndarray, min_bound=None, max_bound=None):
-    pc_xyz = pointcloud[:, :3]
     if min_bound is not None:
-        mask = np.all(pc_xyz > min_bound, axis=1)
+        mask = np.all(pointcloud[:, :3] > min_bound, axis=1)
         pointcloud = pointcloud[mask]
-        pc_xyz = pc_xyz[mask]
     if max_bound is not None:
-        mask = np.all(pc_xyz < max_bound, axis=1)
+        mask = np.all(pointcloud[:, :3] < max_bound, axis=1)
         pointcloud = pointcloud[mask]
     return pointcloud
 
 
-class AddPointCloudtoRmbData:
+class AddPointCloudToRmbData:
     def __init__(
         self,
         path,
@@ -93,7 +91,7 @@ class AddPointCloudtoRmbData:
         self.overwrite = overwrite
         self.min_bound = min_bound
         self.max_bound = max_bound
-        self.n_points = num_points
+        self.num_points = num_points
         self.image_size = image_size
         self.hdf5_paths, self.rmb_paths = self.resolve_hdf5_and_rmb_path(self.path)
 
@@ -201,7 +199,7 @@ class AddPointCloudtoRmbData:
                     continue
 
                 pcs = self.get_pointcloud(
-                    rmb_path, self.min_bound, self.max_bound, self.n_points
+                    rmb_path, self.min_bound, self.max_bound, self.num_points
                 )
                 tqdm.write(f"[{self.__class__.__name__}] Add pointcloud to {rmb_path}")
                 for k in pcs.keys():
@@ -216,5 +214,5 @@ class AddPointCloudtoRmbData:
 
 
 if __name__ == "__main__":
-    refine = AddPointCloudtoRmbData(**vars(parse_argument()))
+    refine = AddPointCloudToRmbData(**vars(parse_argument()))
     refine.run()

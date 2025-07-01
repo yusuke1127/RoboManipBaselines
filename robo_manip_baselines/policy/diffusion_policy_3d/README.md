@@ -8,11 +8,11 @@ Collect demonstration data by [teleoperation](../../teleop).
 
 > [!NOTE]
 > This policy requires pointclouds instead of images.
-> Use `misc/AddPointCloudtoRmbData.py` to add pointclouds to collected data.
+> Use `misc/AddPointCloudToRmbData.py` to add pointclouds to collected data.
 > ```console
 > # Go to the top directory of this repository
 > $ cd robo_manip_baselines
-> $ python ./misc/AddPointCloudtoRmbData.py ./dataset/<dataset_name>
+> $ python ./misc/AddPointCloudToRmbData.py ./dataset/<dataset_name>
 > ```
 
 ## Model training
