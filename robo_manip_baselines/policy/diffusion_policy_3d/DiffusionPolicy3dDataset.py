@@ -10,7 +10,7 @@ from robo_manip_baselines.common import (
 
 
 class DiffusionPolicy3dDataset(DatasetBase):
-    """Dataset to train 3d diffusion policy."""
+    """Dataset to train 3D diffusion policy."""
 
     def setup_variables(self):
         # Set chunk_info_list
@@ -65,36 +65,28 @@ class DiffusionPolicy3dDataset(DatasetBase):
                 axis=1,
             )
 
-            # Load Pointclouds
-            pointclouds = np.stack(
-                [
-                    rmb_data[DataKey.get_pointcloud_key(camera_name)][::skip][
-                        time_idxes
-                    ]
-                    for camera_name in self.model_meta_info["image"]["camera_names"]
-                ],
-                axis=0,
-            )
-
-        # Set dummy images
-        images = np.zeros_like(pointclouds)
+            # Load pointcloud
+            camera_name = self.model_meta_info["image"]["camera_names"][0]
+            pointcloud = rmb_data[DataKey.get_pointcloud_key(camera_name)][::skip][
+                time_idxes
+            ]
 
         # Pre-convert data
-        state, action, _ = self.pre_convert_data(state, action, images)
+        state, action, _ = self.pre_convert_data(state, action, None)
 
         # Convert to tensor
         state_tensor = torch.tensor(state, dtype=torch.float32)
         action_tensor = torch.tensor(action, dtype=torch.float32)
-        pointclouds_tensor = torch.tensor(pointclouds, dtype=torch.float32)
+        pointcloud_tensor = torch.tensor(pointcloud, dtype=torch.float32)
 
         # Augment data
         state_tensor, action_tensor, _ = self.augment_data(
-            state_tensor, action_tensor, torch.tensor(images)
+            state_tensor, action_tensor, None
         )
 
         # Convert to data structure of policy input and output
         data = {"obs": {}, "action": action_tensor}
         if len(self.model_meta_info["state"]["keys"]) > 0:
             data["obs"]["state"] = state_tensor
-        data["obs"]["point_cloud"] = pointclouds_tensor[0]
+        data["obs"]["point_cloud"] = pointcloud_tensor
         return data

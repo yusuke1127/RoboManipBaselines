@@ -280,10 +280,13 @@ class VisualizeData:
         if self.scatter_list[ax_idx - 1] is None:
 
             def get_min_max(v_min, v_max):
-                return (
-                    0.75 * v_min + 0.25 * v_max,
-                    0.25 * v_min + 0.75 * v_max,
-                )
+                if self.display_stored_pointcloud:
+                    return (v_min, v_max)
+                else:
+                    return (
+                        0.75 * v_min + 0.25 * v_max,
+                        0.25 * v_min + 0.75 * v_max,
+                    )
 
             self.ax[ax_idx, 2].view_init(elev=-90, azim=-90)
             self.ax[ax_idx, 2].set_xlim(
