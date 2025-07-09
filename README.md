@@ -38,6 +38,7 @@ We provide several powerful policy architectures for manipulation tasks:
 - 🔹 **[ACT](./robo_manip_baselines/policy/act)** – Transformer-based imitation policy  
 - 🔹 **[MT-ACT](./robo_manip_baselines/policy/mt_act)** – Multi-task Transformer-based imitation policy  
 - 🔹 **[DiffusionPolicy](./robo_manip_baselines/policy/diffusion_policy)** – Diffusion-based behavior cloning policy  
+- 🔹 **[3D DiffusionPolicy](./robo_manip_baselines/policy/diffusion_policy_3d)** – Diffusion-based policy using 3D point cloud observations
 
 ---
 

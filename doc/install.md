@@ -89,6 +89,12 @@ $ cd ../third_party/pytorch3d_simplified
 $ pip install -e .
 ```
 
+> [!NOTE]
+> If you encounter a CUDA-related error during the final `pip install -e .` step, please run the command with the following environment variable:
+> ```
+> $ PYTORCH3D_FORCE_NO_CUDA=1 pip install -e .
+> ```
+
 ## Installation of each teleoperation interface
 Complete [the common installation](#common-installation) first.
 

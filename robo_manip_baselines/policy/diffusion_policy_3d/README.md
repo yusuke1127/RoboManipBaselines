@@ -6,14 +6,14 @@ See [here](../../../doc/install.md#3D-Diffusion-policy) for installation.
 ## Dataset preparation
 Collect demonstration data by [teleoperation](../../teleop).
 
-> [!NOTE]
-> This policy requires pointclouds instead of images.
-> Use `misc/AddPointCloudToRmbData.py` to add pointclouds to collected data.
-> ```console
-> # Go to the top directory of this repository
-> $ cd robo_manip_baselines
-> $ python ./misc/AddPointCloudToRmbData.py ./dataset/<dataset_name>
-> ```
+## Data preprocessing
+Generate and store point clouds from RGB and depth images:
+```console
+# Go to the top directory of this repository
+$ cd robo_manip_baselines
+$ python ./misc/AddPointCloudToRmbData.py ./dataset/<dataset_name> --min_bound <x, y, z> --max_bound <x, y, z>
+```
+You can specify the bounding box for cropping using the `--min_bound` and `--max_bound` options. If these arguments are omitted, the default values for MujocoUR5eCable will be applied.
 
 ## Model training
 Train a model:
@@ -34,10 +34,10 @@ $ python ./bin/Rollout.py DiffusionPolicy3d MujocoUR5eCable --checkpoint ./check
 ## Technical Details
 For more information on the technical details, please see the following paper:
 ```bib
-@inproceedings{Ze2024DP3,
-	title={3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations},
-	author={Yanjie Ze and Gu Zhang and Kangning Zhang and Chenyuan Hu and Muhan Wang and Huazhe Xu},
-	booktitle={Proceedings of Robotics: Science and Systems (RSS)},
-	year={2024}
+@inproceedings{3DDiffusionPolicy_RSS2024,
+  author = {Yanjie Ze and Gu Zhang and Kangning Zhang and Chenyuan Hu and Muhan Wang and Huazhe Xu},
+  title = {3D Diffusion Policy: Generalizable Visuomotor Policy Learning via Simple 3D Representations},
+  booktitle = {Proceedings of Robotics: Science and Systems},
+  year = {2024}
 }
 ```
