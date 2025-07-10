@@ -23,6 +23,16 @@ $ cd robo_manip_baselines
 $ python ./bin/Train.py DiffusionPolicy3d --dataset_dir ./dataset/<dataset_name> --checkpoint_dir ./checkpoint/DiffusionPolicy3d/<checkpoint_name>
 ```
 
+> [!NOTE]
+> If you encounter the following error,
+> ```console
+> ImportError: cannot import name 'cached_download' from 'huggingface_hub'
+> ```
+> downgrade `huggingface_hub` by the following command.
+> ```console
+> $ pip install huggingface_hub==0.21.4
+> ```
+
 ## Policy rollout
 Run a trained policy:
 ```console

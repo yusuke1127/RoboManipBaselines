@@ -41,10 +41,9 @@ class RefineRmbData:
                     task_desc_orig = task_desc_orig.decode("utf-8")
 
                 if task_desc_orig and not self.overwrite:
-                    print(
+                    raise ValueError(
                         f"[{self.__class__.__name__}] task_desc already exists and is non-empty: {task_desc_orig} (use --overwrite to replace)"
                     )
-                    return
 
                 print(
                     f'Set task_desc from "{task_desc_orig}" to "{self.task_desc_new}"'

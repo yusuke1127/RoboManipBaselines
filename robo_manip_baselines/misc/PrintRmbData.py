@@ -57,7 +57,7 @@ class PrintRmbData:
                     print("  Data:")
                     for k in rmb_data.keys():
                         v = rmb_data[k]
-                        print(f"    - {k}: {v.shape}")
+                        print(f"    - {k}: {v.shape}, [{v.dtype}]")
             except (OSError, IOError, ValueError) as e:
                 print(f"[Error] Failed to load {rmb_path}: {e}")
 

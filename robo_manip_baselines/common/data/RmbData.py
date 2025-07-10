@@ -80,7 +80,7 @@ class RmbData:
         def dtype(self):
             return np.float32
 
-    def __init__(self, path, mode="r", enable_cache=False):
+    def __init__(self, path, enable_cache=False, mode="r"):
         self.path = path
         self.mode = mode
         self.enable_cache = enable_cache

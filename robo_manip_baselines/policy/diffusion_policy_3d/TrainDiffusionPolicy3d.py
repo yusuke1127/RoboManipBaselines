@@ -1,16 +1,25 @@
 import argparse
 import copy
+import os
+import sys
 
+import numpy as np
 import torch
 from diffusers.schedulers.scheduling_ddim import DDIMScheduler
 from omegaconf import OmegaConf
 from tqdm import tqdm
 
+sys.path.append(
+    os.path.join(
+        os.path.dirname(__file__),
+        "../../../third_party/3D-Diffusion-Policy/3D-Diffusion-Policy",
+    )
+)
 from diffusion_policy_3d.common.pytorch_util import dict_apply, optimizer_to
 from diffusion_policy_3d.model.common.lr_scheduler import get_scheduler
 from diffusion_policy_3d.model.diffusion.ema_model import EMAModel
 from diffusion_policy_3d.policy.dp3 import DP3
-from robo_manip_baselines.common import TrainBase
+from robo_manip_baselines.common import DataKey, RmbData, TrainBase, find_rmb_files
 
 from .DiffusionPolicy3dDataset import DiffusionPolicy3dDataset
 
@@ -22,6 +31,10 @@ class TrainDiffusionPolicy3d(TrainBase):
         super().setup_args()
 
     def set_additional_args(self, parser):
+        for action in parser._actions:
+            if action.dest == "camera_names":
+                action.nargs = 1
+
         parser.set_defaults(enable_rmb_cache=True)
 
         parser.set_defaults(norm_type="limits")
@@ -42,67 +55,88 @@ class TrainDiffusionPolicy3d(TrainBase):
         )
 
         parser.add_argument(
-            "--use_pc_color",
-            action=argparse.BooleanOptionalAction,
-            default=False,
-            help="Enable or disable color information of pointcloud",
-        )
-
-        parser.add_argument(
             "--horizon", type=int, default=16, help="prediction horizon"
         )
         parser.add_argument(
             "--n_obs_steps",
             type=int,
             default=2,
-            help="number of steps in observation to input in the policy",
+            help="number of steps in the observation sequence to input in the policy",
         )
         parser.add_argument(
             "--n_action_steps",
             type=int,
             default=8,
-            help="number of steps in the action to output from the policy",
+            help="number of steps in the action sequence to output from the policy",
         )
 
         parser.add_argument(
-            "--num_points",
-            type=int,
-            default=512,
-            help="number of points in one pointcloud.",
+            "--use_pc_color",
+            action="store_true",
+            help="Whether to use color information of point cloud",
         )
 
-        parser.add_argument(
-            "--image_size",
-            type=int,
-            nargs=2,
-            default=[84, 84],
-            help="Image size (width, height) to be resized before crop. In the case of multiple image inputs, it is assumed that all images share the same size.",
-        )
-        parser.add_argument(
-            "--image_crop_size",
-            type=int,
-            nargs=2,
-            default=[80, 80],
-            help="Image size (width, height) to be cropped after resize. In the case of multiple image inputs, it is assumed that all images share the same size.",
-        )
         parser.add_argument(
             "--encoder_output_dim",
             type=int,
             nargs=1,
             default=64,
-            help="number of output dimensions of encoder in policy.",
+            help="output dimensions of encoder in policy",
         )
 
     def setup_model_meta_info(self):
         super().setup_model_meta_info()
 
-        self.model_meta_info["data"]["image_size"] = self.args.image_size
-        self.model_meta_info["data"]["image_crop_size"] = self.args.image_crop_size
+        # Retrieve point cloud information
+        rmb_path_list = find_rmb_files(self.args.dataset_dir)
+        pc_key = DataKey.get_pointcloud_key(self.args.camera_names[0])
+        num_points = None
+        image_size = None
+        min_bound = None
+        max_bound = None
+        for rmb_path in rmb_path_list:
+            with RmbData(rmb_path) as rmb_data:
+                num_points_new = rmb_data[pc_key].shape[1]
+                if num_points is None:
+                    num_points = num_points_new
+                elif num_points != num_points_new:
+                    raise ValueError(
+                        f"[{self.__class__.__name__}] num_points is inconsistent in dataset: {num_points} != {num_points_new}"
+                    )
+
+                image_size_new = rmb_data.attrs[pc_key + "_image_size"]
+                if image_size is None:
+                    image_size = image_size_new
+                elif not np.array_equal(image_size, image_size_new):
+                    raise ValueError(
+                        f"[{self.__class__.__name__}] image_size is inconsistent in dataset: {image_size} != {image_size_new}"
+                    )
+
+                min_bound_new = rmb_data.attrs[pc_key + "_min_bound"]
+                if min_bound is None:
+                    min_bound = min_bound_new
+                elif not np.allclose(min_bound, min_bound_new):
+                    raise ValueError(
+                        f"[{self.__class__.__name__}] min_bound is inconsistent in dataset: {min_bound} != {min_bound_new}"
+                    )
+
+                max_bound_new = rmb_data.attrs[pc_key + "_max_bound"]
+                if max_bound is None:
+                    max_bound = max_bound_new
+                elif not np.allclose(max_bound, max_bound_new):
+                    raise ValueError(
+                        f"[{self.__class__.__name__}] max_bound is inconsistent in dataset: {max_bound} != {max_bound_new}"
+                    )
+
         self.model_meta_info["data"]["horizon"] = self.args.horizon
         self.model_meta_info["data"]["n_obs_steps"] = self.args.n_obs_steps
         self.model_meta_info["data"]["n_action_steps"] = self.args.n_action_steps
-        self.model_meta_info["data"]["num_points"] = self.args.num_points
+        self.model_meta_info["data"]["use_pc_color"] = self.args.use_pc_color
+        self.model_meta_info["data"]["num_points"] = num_points
         self.model_meta_info["data"]["n_point_dim"] = 6 if self.args.use_pc_color else 3
+        self.model_meta_info["data"]["image_size"] = image_size
+        self.model_meta_info["data"]["min_bound"] = min_bound
+        self.model_meta_info["data"]["max_bound"] = max_bound
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
@@ -119,7 +153,7 @@ class TrainDiffusionPolicy3d(TrainBase):
         # Set policy args
         shape_meta = OmegaConf.create(
             {
-                "obs": {"point_cloud": {}},
+                "obs": {},
                 "action": {"shape": [len(self.model_meta_info["action"]["example"])]},
             }
         )
@@ -152,7 +186,6 @@ class TrainDiffusionPolicy3d(TrainBase):
             "n_obs_steps": self.args.n_obs_steps,
             "num_inference_steps": 10,
             "obs_as_global_cond": True,
-            "crop_shape": self.args.image_crop_size[::-1],  # (height, width)
             "diffusion_step_embed_dim": 128,
             "down_dims": [512, 1024, 2048],
             "kernel_size": 5,
@@ -220,8 +253,9 @@ class TrainDiffusionPolicy3d(TrainBase):
         print(
             f"  - horizon: {self.args.horizon}, obs steps: {self.args.n_obs_steps}, action steps: {self.args.n_action_steps}"
         )
+        data_info = self.model_meta_info["data"]
         print(
-            f"  - image size: {self.args.image_size}, image crop size: {self.args.image_crop_size}"
+            f"  - with color: {self.args.use_pc_color}, num points: {data_info['num_points']}, image size: {data_info['image_size']}, min bound: {data_info['min_bound']}, max bound: {data_info['max_bound']}"
         )
 
     def train_loop(self):

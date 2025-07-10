@@ -40,3 +40,4 @@ from .utils.DataUtils import (
 from .utils.EnvUtils import get_env_names
 from .utils.FileUtils import find_rmb_files
 from .utils.MiscUtils import remove_prefix, remove_suffix, camel_to_snake
+# Since ./utils/Vision3dUtils.py requires importing pytorch3d, it should be imported separately only when needed and is not imported here.

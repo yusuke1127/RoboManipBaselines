@@ -2,8 +2,6 @@ import argparse
 
 import cv2
 import numpy as np
-import pytorch3d.ops as torch3d_ops
-import torch
 from tqdm import tqdm
 
 from robo_manip_baselines.common import (
@@ -11,6 +9,10 @@ from robo_manip_baselines.common import (
     RmbData,
     convert_depth_image_to_point_cloud,
     find_rmb_files,
+)
+from robo_manip_baselines.common.utils.Vision3dUtils import (
+    crop_pointcloud_bb,
+    downsample_pointcloud_fps,
 )
 
 
@@ -29,21 +31,21 @@ def parse_argument():
         type=int,
         nargs=2,
         default=[84, 84],
-        help="Image size (width, height) to be resized before crop",
+        help="image size (width, height) to be resized",
     )
     parser.add_argument(
         "--min_bound",
         type=float,
         nargs=3,
         default=[-0.4, -0.4, -0.4],
-        help="min bounds of the bounding box before downsampling",
+        help="min bounds of the bounding box for cropping",
     )
     parser.add_argument(
         "--max_bound",
         type=float,
         nargs=3,
         default=[1.0, 1.0, 1.0],
-        help="max bounds of the bounding box before downsampling",
+        help="max bounds of the bounding box for cropping",
     )
     parser.add_argument(
         "--num_points",
@@ -58,27 +60,6 @@ def parse_argument():
     )
 
     return parser.parse_args()
-
-
-def crop_pointcloud(pointcloud: np.ndarray, min_bound=None, max_bound=None):
-    if min_bound is not None:
-        mask = np.all(pointcloud[:, :3] > min_bound, axis=1)
-        pointcloud = pointcloud[mask]
-    if max_bound is not None:
-        mask = np.all(pointcloud[:, :3] < max_bound, axis=1)
-        pointcloud = pointcloud[mask]
-    return pointcloud
-
-
-def farthest_point_sampling(pointcloud: np.ndarray, num_points: int = 512):
-    # Downsample point cloud with farthest point sampling (FPS)
-    pointcloud_tensor = torch.from_numpy(pointcloud).unsqueeze(0)
-    num_points_tensor = torch.tensor([num_points])
-    _, sampled_indices = torch3d_ops.sample_farthest_points(
-        pointcloud_tensor, K=num_points_tensor
-    )
-    pointcloud = pointcloud[sampled_indices.squeeze(0).numpy()]
-    return pointcloud
 
 
 class AddPointCloudToRmbData:
@@ -106,19 +87,22 @@ class AddPointCloudToRmbData:
         for rmb_path in tqdm(rmb_path_list):
             tqdm.write(f"[{self.__class__.__name__}] Open {rmb_path}")
             with RmbData(rmb_path, mode="r+") as rmb_data:
-                pc_dict = self.get_pc_dict(rmb_data)
-                for pc_key in pc_dict.keys():
+                pointclouds = self.get_pointclouds(rmb_data)
+                for pc_key in pointclouds.keys():
                     if pc_key in rmb_data.keys():
                         if self.overwrite:
                             del rmb_data.h5file[pc_key]
                         else:
-                            tqdm.write(
+                            raise ValueError(
                                 f"[{self.__class__.__name__}] Pointcloud already exists: {rmb_path} (use --overwrite to replace)"
                             )
-                            return
-                    rmb_data.h5file[pc_key] = pc_dict[pc_key]
 
-    def get_pc_dict(self, rmb_data):
+                    rmb_data.h5file[pc_key] = pointclouds[pc_key]
+                    rmb_data.attrs[pc_key + "_image_size"] = self.image_size
+                    rmb_data.attrs[pc_key + "_min_bound"] = self.min_bound
+                    rmb_data.attrs[pc_key + "_max_bound"] = self.max_bound
+
+    def get_pointclouds(self, rmb_data):
         # Load images
         camera_names = rmb_data.attrs["camera_names"]
         rgb_image_list = np.stack(
@@ -157,28 +141,31 @@ class AddPointCloudToRmbData:
         ).reshape(K, T, *self.image_size[::-1])
 
         # Generate pointclouds
-        pc_dict = {}
+        pointclouds = {}
         for rgb_image, depth_image, fovy, camera_name in zip(
             rgb_image_list, depth_image_list, fovy_list, camera_names
         ):
             pointcloud = []
             for single_rgb_image, single_depth_image in zip(rgb_image, depth_image):
+                # Convert to pointcloud
                 single_pointcloud = np.concat(
                     convert_depth_image_to_point_cloud(
                         single_depth_image, fovy, single_rgb_image
                     ),
                     axis=1,
                 )
-                single_pointcloud = crop_pointcloud(
+                # Crop and downsample pointcloud
+                single_pointcloud = crop_pointcloud_bb(
                     single_pointcloud, self.min_bound, self.max_bound
                 )
-                single_pointcloud = farthest_point_sampling(
+                single_pointcloud = downsample_pointcloud_fps(
                     single_pointcloud, self.num_points
                 )
                 pointcloud.append(single_pointcloud.tolist())
-            pc_dict[camera_name + "_pointcloud"] = pointcloud
+            pc_key = DataKey.get_pointcloud_key(camera_name)
+            pointclouds[pc_key] = pointcloud
 
-        return pc_dict
+        return pointclouds
 
 
 if __name__ == "__main__":
