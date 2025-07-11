@@ -150,6 +150,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             pointcloud,
             self.model_meta_info["data"]["num_points"],
         )
+        pointcloud = normalize_data(pointcloud, self.model_meta_info["pointcloud"])
         pointcloud = torch.tensor(pointcloud, dtype=torch.float32)
 
         # Store and return

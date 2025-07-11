@@ -140,6 +140,21 @@ class TrainDiffusionPolicy3d(TrainBase):
 
         self.model_meta_info["policy"]["use_ema"] = self.args.use_ema
 
+    def set_data_stats(self, all_filenames):
+        super().set_data_stats(all_filenames)
+
+        # Load dataset
+        pc_key = DataKey.get_pointcloud_key(self.args.camera_names[0])
+        all_pointcloud = []
+        for filename in all_filenames:
+            with RmbData(filename) as rmb_data:
+                # Load pointcloud
+                pointcloud = rmb_data[pc_key][:: self.args.skip]
+                all_pointcloud.append(pointcloud.reshape(-1, pointcloud.shape[-1]))
+        all_pointcloud = np.concatenate(all_pointcloud, dtype=np.float64)
+
+        self.model_meta_info["pointcloud"] = self.calc_stats_from_seq(all_pointcloud)
+
     def get_extra_norm_config(self):
         if self.args.norm_type == "limits":
             return {

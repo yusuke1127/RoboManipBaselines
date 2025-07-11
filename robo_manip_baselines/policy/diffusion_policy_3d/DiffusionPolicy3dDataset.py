@@ -6,6 +6,7 @@ from robo_manip_baselines.common import (
     DatasetBase,
     RmbData,
     get_skipped_data_seq,
+    normalize_data,
 )
 
 
@@ -72,7 +73,7 @@ class DiffusionPolicy3dDataset(DatasetBase):
             ]
 
         # Pre-convert data
-        state, action, _ = self.pre_convert_data(state, action, None)
+        state, action, pointcloud = self.pre_convert_data(state, action, pointcloud)
 
         # Convert to tensor
         state_tensor = torch.tensor(state, dtype=torch.float32)
@@ -90,3 +91,11 @@ class DiffusionPolicy3dDataset(DatasetBase):
             data["obs"]["state"] = state_tensor
         data["obs"]["point_cloud"] = pointcloud_tensor
         return data
+
+    def pre_convert_data(self, state, action, pointcloud):
+        """Pre-convert data. Arguments must be numpy arrays (not torch tensors)."""
+        state = normalize_data(state, self.model_meta_info["state"])
+        action = normalize_data(action, self.model_meta_info["action"])
+        pointcloud = normalize_data(pointcloud, self.model_meta_info["pointcloud"])
+
+        return state, action, pointcloud
