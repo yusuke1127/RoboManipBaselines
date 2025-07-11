@@ -77,6 +77,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         self.pointcloud_buf = None
         self.policy_action_buf = None
 
+        self.pointcloud_plot = None
         self.pointcloud_scatter = None
 
     def infer_policy(self):
@@ -150,6 +151,7 @@ class RolloutDiffusionPolicy3d(RolloutBase):
             pointcloud,
             self.model_meta_info["data"]["num_points"],
         )
+        self.pointcloud_plot = pointcloud.copy()
         pointcloud = normalize_data(pointcloud, self.model_meta_info["pointcloud"])
         pointcloud = torch.tensor(pointcloud, dtype=torch.float32)
 
@@ -169,13 +171,12 @@ class RolloutDiffusionPolicy3d(RolloutBase):
         return pointcloud
 
     def plot_pointcloud(self, ax):
-        pointcloud = self.pointcloud_buf[-1].numpy()
-        xyz_array = pointcloud[:, :3]
+        xyz_array = self.pointcloud_plot[:, :3]
         if (
             self.model_meta_info["data"]["use_pc_color"]
             or self.args.plot_colored_pointcloud
         ):
-            rgb_array = pointcloud[:, 3:]
+            rgb_array = self.pointcloud_plot[:, 3:]
         else:
             rgb_array = "steelblue"
 
