@@ -223,16 +223,44 @@ class TeleopBase(ABC):
         ]
         self.phase_manager = PhaseManager(phase_order)
 
-        # Setup plot of point cloud
+        # Setup plot
         if self.args.plot_pointcloud:
             plt.rcParams["keymap.quit"] = ["q", "escape"]
             fig, self.ax_3d = plt.subplots(
                 len(self.env.unwrapped.camera_names),
                 1,
                 subplot_kw=dict(projection="3d"),
+                constrained_layout=True,
             )
             fig.tight_layout()
             self.pointcloud_scatter_list = [None] * len(self.env.unwrapped.camera_names)
+
+        if self.args.plot_tactile:
+            if "Mujoco" not in self.env.unwrapped.__class__.__name__:
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] The tactile plots are only valid in the MuJoCo environment. "
+                    f"env: {self.env.unwrapped.__class__.__name__}"
+                )
+
+            import mujoco
+
+            self.tactile_name_list = []
+            for sensor_id in range(self.env.unwrapped.model.nsensor):
+                sensor = self.env.unwrapped.model.sensor(sensor_id)
+                if ("tactile" in sensor.name) and (
+                    sensor.type == mujoco.mjtSensor.mjSENS_PLUGIN
+                ):
+                    self.tactile_name_list.append(sensor.name)
+
+            if len(self.tactile_name_list) > 0:
+                plt.rcParams["keymap.quit"] = ["q", "escape"]
+                fig, self.ax_tactile = plt.subplots(
+                    len(self.tactile_name_list), 1, constrained_layout=True
+                )
+            else:
+                raise RuntimeError(
+                    f"[{self.__class__.__name__}] The plot_tactile option was specified but no tactile sensor was found."
+                )
 
         # Setup input device
         if self.args.input_device_config is None:
@@ -290,6 +318,11 @@ class TeleopBase(ABC):
 
         parser.add_argument(
             "--plot_pointcloud", action="store_true", help="whether to plot point cloud"
+        )
+        parser.add_argument(
+            "--plot_tactile",
+            action="store_true",
+            help="whether to plot tactile sensor measurements",
         )
 
         parser.add_argument(
@@ -383,6 +416,9 @@ class TeleopBase(ABC):
 
             if self.args.plot_pointcloud:
                 self.draw_pointcloud()
+
+            if self.args.plot_tactile:
+                self.draw_tactile()
 
             self.phase_manager.post_update()
 
@@ -566,7 +602,9 @@ class TeleopBase(ABC):
 
     def draw_pointcloud(self):
         far_clip_list = (3.0, 3.0, 0.8)  # [m]
-        for camera_idx, camera_name in enumerate(self.env.unwrapped.camera_names):
+        for camera_idx, (camera_name, ax) in enumerate(
+            zip(self.env.unwrapped.camera_names, self.ax_3d)
+        ):
             pointcloud_skip = 10
             small_depth_image = self.info["depth_images"][camera_name][
                 ::pointcloud_skip, ::pointcloud_skip
@@ -591,23 +629,42 @@ class TeleopBase(ABC):
                         0.25 * v_min + 0.75 * v_max,
                     )
 
-                self.ax_3d[camera_idx].view_init(elev=-90, azim=-90)
-                self.ax_3d[camera_idx].set_xlim(
-                    *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
-                )
-                self.ax_3d[camera_idx].set_ylim(
-                    *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
-                )
-                self.ax_3d[camera_idx].set_zlim(
-                    *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
-                )
+                ax.view_init(elev=-90, azim=-90)
+                ax.set_xlim(*get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max()))
+                ax.set_ylim(*get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max()))
+                ax.set_zlim(*get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max()))
             else:
                 self.pointcloud_scatter_list[camera_idx].remove()
-            self.ax_3d[camera_idx].axis("off")
-            self.ax_3d[camera_idx].set_box_aspect(np.ptp(xyz_array, axis=0))
-            self.pointcloud_scatter_list[camera_idx] = self.ax_3d[camera_idx].scatter(
+            ax.axis("off")
+            ax.set_box_aspect(np.ptp(xyz_array, axis=0))
+            self.pointcloud_scatter_list[camera_idx] = ax.scatter(
                 xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
             )
+        plt.draw()
+        plt.pause(0.001)
+
+    def draw_tactile(self, vmin=-50.0, vmax=50.0):
+        import mujoco
+
+        for tactile_name, ax in zip(self.tactile_name_list, self.ax_tactile):
+            ax.clear()
+            tactile_id = mujoco.mj_name2id(
+                self.env.unwrapped.model, mujoco.mjtObj.mjOBJ_SENSOR, tactile_name
+            )
+            tactile_adr = self.env.unwrapped.model.sensor_adr[tactile_id]
+            tactile_dim = int(self.env.unwrapped.model.sensor_dim[tactile_id] / 7)
+            tactile_data = self.env.unwrapped.data.sensordata[
+                tactile_adr : tactile_adr + tactile_dim
+            ].reshape((5, 8))
+            ax.axis("off")
+            ax.imshow(
+                np.clip(tactile_data, vmin, vmax),
+                cmap="coolwarm",
+                interpolation="none",
+                vmin=vmin,
+                vmax=vmax,
+            )
+            ax.set_title(tactile_name)
         plt.draw()
         plt.pause(0.001)
 
