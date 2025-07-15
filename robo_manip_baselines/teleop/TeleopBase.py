@@ -226,12 +226,12 @@ class TeleopBase(ABC):
         # Setup 3D plot
         if self.args.enable_3d_plot:
             plt.rcParams["keymap.quit"] = ["q", "escape"]
-            self.fig, self.ax = plt.subplots(
+            fig, self.ax_3d = plt.subplots(
                 len(self.env.unwrapped.camera_names),
                 1,
                 subplot_kw=dict(projection="3d"),
             )
-            self.fig.tight_layout()
+            fig.tight_layout()
             self.point_cloud_scatter_list = [None] * len(
                 self.env.unwrapped.camera_names
             )
@@ -593,21 +593,21 @@ class TeleopBase(ABC):
                         0.25 * v_min + 0.75 * v_max,
                     )
 
-                self.ax[camera_idx].view_init(elev=-90, azim=-90)
-                self.ax[camera_idx].set_xlim(
+                self.ax_3d[camera_idx].view_init(elev=-90, azim=-90)
+                self.ax_3d[camera_idx].set_xlim(
                     *get_min_max(xyz_array[:, 0].min(), xyz_array[:, 0].max())
                 )
-                self.ax[camera_idx].set_ylim(
+                self.ax_3d[camera_idx].set_ylim(
                     *get_min_max(xyz_array[:, 1].min(), xyz_array[:, 1].max())
                 )
-                self.ax[camera_idx].set_zlim(
+                self.ax_3d[camera_idx].set_zlim(
                     *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
                 )
             else:
                 self.point_cloud_scatter_list[camera_idx].remove()
-            self.ax[camera_idx].axis("off")
-            self.ax[camera_idx].set_box_aspect(np.ptp(xyz_array, axis=0))
-            self.point_cloud_scatter_list[camera_idx] = self.ax[camera_idx].scatter(
+            self.ax_3d[camera_idx].axis("off")
+            self.ax_3d[camera_idx].set_box_aspect(np.ptp(xyz_array, axis=0))
+            self.point_cloud_scatter_list[camera_idx] = self.ax_3d[camera_idx].scatter(
                 xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
             )
         plt.draw()
