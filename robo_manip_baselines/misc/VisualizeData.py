@@ -10,7 +10,7 @@ from tqdm import tqdm
 from robo_manip_baselines.common import (
     DataKey,
     DataManager,
-    convert_depth_image_to_point_cloud,
+    convert_depth_image_to_pointcloud,
     crop_and_resize,
 )
 
@@ -245,7 +245,7 @@ class VisualizeData:
         self.ax[ax_idx, 1].imshow(depth_image[::depth_image_skip, ::depth_image_skip])
         return depth_image
 
-    def handle_point_cloud(
+    def handle_pointcloud(
         self,
         sensor_idx,
         time_idx,
@@ -265,11 +265,11 @@ class VisualizeData:
                 if self.ax[ax_idx, 2] in self.fig.axes:
                     self.ax[ax_idx, 2].remove()
                 return
-            point_cloud_skip = 10
-            small_depth_image = depth_image[::point_cloud_skip, ::point_cloud_skip]
-            small_rgb_image = rgb_image[::point_cloud_skip, ::point_cloud_skip]
+            pointcloud_skip = 10
+            small_depth_image = depth_image[::pointcloud_skip, ::pointcloud_skip]
+            small_rgb_image = rgb_image[::pointcloud_skip, ::pointcloud_skip]
             fovy = self.data_manager.get_meta_data(f"{depth_key}_fovy")
-            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
+            xyz_array, rgb_array = convert_depth_image_to_pointcloud(
                 small_depth_image,
                 fovy=fovy,
                 rgb_image=small_rgb_image,
@@ -391,7 +391,7 @@ class VisualizeData:
 
                 depth_image = self.handle_depth_image(sensor_idx, time_idx, depth_key)
 
-                self.handle_point_cloud(
+                self.handle_pointcloud(
                     sensor_idx,
                     time_idx,
                     sensor_name,

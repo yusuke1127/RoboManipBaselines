@@ -17,7 +17,7 @@ from robo_manip_baselines.common import (
     PhaseBase,
     PhaseManager,
     convert_depth_image_to_color_image,
-    convert_depth_image_to_point_cloud,
+    convert_depth_image_to_pointcloud,
     find_rmb_files,
     remove_suffix,
     set_random_seed,
@@ -223,8 +223,8 @@ class TeleopBase(ABC):
         ]
         self.phase_manager = PhaseManager(phase_order)
 
-        # Setup 3D plot
-        if self.args.enable_3d_plot:
+        # Setup plot of point cloud
+        if self.args.plot_pointcloud:
             plt.rcParams["keymap.quit"] = ["q", "escape"]
             fig, self.ax_3d = plt.subplots(
                 len(self.env.unwrapped.camera_names),
@@ -232,9 +232,7 @@ class TeleopBase(ABC):
                 subplot_kw=dict(projection="3d"),
             )
             fig.tight_layout()
-            self.point_cloud_scatter_list = [None] * len(
-                self.env.unwrapped.camera_names
-            )
+            self.pointcloud_scatter_list = [None] * len(self.env.unwrapped.camera_names)
 
         # Setup input device
         if self.args.input_device_config is None:
@@ -291,7 +289,7 @@ class TeleopBase(ABC):
         )
 
         parser.add_argument(
-            "--enable_3d_plot", action="store_true", help="whether to enable 3d plot"
+            "--plot_pointcloud", action="store_true", help="whether to plot point cloud"
         )
 
         parser.add_argument(
@@ -383,8 +381,8 @@ class TeleopBase(ABC):
 
             self.draw_image()
 
-            if self.args.enable_3d_plot:
-                self.draw_point_cloud()
+            if self.args.plot_pointcloud:
+                self.draw_pointcloud()
 
             self.phase_manager.post_update()
 
@@ -566,26 +564,26 @@ class TeleopBase(ABC):
         )
         cv2.imshow("image", cv2.cvtColor(window_image, cv2.COLOR_RGB2BGR))
 
-    def draw_point_cloud(self):
+    def draw_pointcloud(self):
         far_clip_list = (3.0, 3.0, 0.8)  # [m]
         for camera_idx, camera_name in enumerate(self.env.unwrapped.camera_names):
-            point_cloud_skip = 10
+            pointcloud_skip = 10
             small_depth_image = self.info["depth_images"][camera_name][
-                ::point_cloud_skip, ::point_cloud_skip
+                ::pointcloud_skip, ::pointcloud_skip
             ]
             small_rgb_image = self.info["rgb_images"][camera_name][
-                ::point_cloud_skip, ::point_cloud_skip
+                ::pointcloud_skip, ::pointcloud_skip
             ]
             fovy = self.data_manager.get_meta_data(
                 DataKey.get_depth_image_key(camera_name) + "_fovy"
             )
-            xyz_array, rgb_array = convert_depth_image_to_point_cloud(
+            xyz_array, rgb_array = convert_depth_image_to_pointcloud(
                 small_depth_image,
                 fovy=fovy,
                 rgb_image=small_rgb_image,
                 far_clip=far_clip_list[camera_idx],
             )
-            if self.point_cloud_scatter_list[camera_idx] is None:
+            if self.pointcloud_scatter_list[camera_idx] is None:
 
                 def get_min_max(v_min, v_max):
                     return (
@@ -604,10 +602,10 @@ class TeleopBase(ABC):
                     *get_min_max(xyz_array[:, 2].min(), xyz_array[:, 2].max())
                 )
             else:
-                self.point_cloud_scatter_list[camera_idx].remove()
+                self.pointcloud_scatter_list[camera_idx].remove()
             self.ax_3d[camera_idx].axis("off")
             self.ax_3d[camera_idx].set_box_aspect(np.ptp(xyz_array, axis=0))
-            self.point_cloud_scatter_list[camera_idx] = self.ax_3d[camera_idx].scatter(
+            self.pointcloud_scatter_list[camera_idx] = self.ax_3d[camera_idx].scatter(
                 xyz_array[:, 0], xyz_array[:, 1], xyz_array[:, 2], c=rgb_array
             )
         plt.draw()
