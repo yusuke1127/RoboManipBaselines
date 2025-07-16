@@ -646,19 +646,31 @@ class TeleopBase(ABC):
     def draw_tactile(self, vmin=-50.0, vmax=50.0):
         import mujoco
 
+        model = self.env.unwrapped.model
+        data = self.env.unwrapped.data
         for tactile_name, ax in zip(self.tactile_name_list, self.ax_tactile):
-            ax.clear()
+            # Get tactile data
             tactile_id = mujoco.mj_name2id(
-                self.env.unwrapped.model, mujoco.mjtObj.mjOBJ_SENSOR, tactile_name
+                model, mujoco.mjtObj.mjOBJ_SENSOR, tactile_name
             )
-            tactile_adr = self.env.unwrapped.model.sensor_adr[tactile_id]
-            tactile_dim = int(self.env.unwrapped.model.sensor_dim[tactile_id] / 7)
-            tactile_data = self.env.unwrapped.data.sensordata[
-                tactile_adr : tactile_adr + tactile_dim
-            ].reshape((5, 8))
+            tactile_adr = model.sensor_adr[tactile_id]
+            tactile_dim = int(model.sensor_dim[tactile_id] / 7)
+            tactile_data = data.sensordata[tactile_adr : tactile_adr + tactile_dim]
+
+            # Get tactile shape
+            plugin_id = model.sensor_plugin[tactile_id]
+            if plugin_id < 0:
+                raise ValueError(
+                    f"[{self.__class__.__name__}] Tactile sensor {tactile_name} is not plugin-based."
+                )
+            plugin_attr = model.plugin_attr[model.plugin_attradr[plugin_id] :].tobytes()
+            tactile_shape = tuple(map(int, plugin_attr.split(b"\x00", 1)[0].split()))
+
+            # Draw
+            ax.clear()
             ax.axis("off")
             ax.imshow(
-                np.clip(tactile_data, vmin, vmax),
+                np.clip(tactile_data.reshape(tactile_shape), vmin, vmax),
                 cmap="coolwarm",
                 interpolation="none",
                 vmin=vmin,
