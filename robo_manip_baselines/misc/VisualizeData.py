@@ -94,9 +94,15 @@ class VisualizeData:
 
         print(f"{cls_str} retrieve sensor metadata ...")
         camera_names = self.data_manager.get_meta_data("camera_names").tolist()
-        rgb_tactile_names = self.data_manager.get_meta_data(
-            "rgb_tactile_names"
-        ).tolist()
+        try:
+            rgb_tactile_names = self.data_manager.get_meta_data(
+                "rgb_tactile_names"
+            ).tolist()
+        except KeyError:
+            # To ensure backward compatibility
+            rgb_tactile_names = self.data_manager.get_meta_data(
+                "tactile_names"
+            ).tolist()
         self.camera_names = camera_names + rgb_tactile_names
 
         if rgb_crop_size_list is None:
