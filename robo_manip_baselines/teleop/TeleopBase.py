@@ -238,28 +238,21 @@ class TeleopBase(ABC):
         if self.args.plot_tactile:
             if "Mujoco" not in self.env.unwrapped.__class__.__name__:
                 raise RuntimeError(
-                    f"[{self.__class__.__name__}] The tactile plots are only valid in the MuJoCo environment. "
+                    f"[{self.__class__.__name__}] The '--plot_tactile' option is only valid in the MuJoCo environment. "
                     f"env: {self.env.unwrapped.__class__.__name__}"
                 )
 
-            import mujoco
-
-            self.tactile_name_list = []
-            for sensor_id in range(self.env.unwrapped.model.nsensor):
-                sensor = self.env.unwrapped.model.sensor(sensor_id)
-                if ("tactile" in sensor.name) and (
-                    sensor.type == mujoco.mjtSensor.mjSENS_PLUGIN
-                ):
-                    self.tactile_name_list.append(sensor.name)
-
-            if len(self.tactile_name_list) > 0:
+            if len(self.env.unwrapped.intensity_tactile_names) > 0:
                 plt.rcParams["keymap.quit"] = ["q", "escape"]
                 fig, self.ax_tactile = plt.subplots(
-                    len(self.tactile_name_list), 1, constrained_layout=True
+                    len(self.env.unwrapped.intensity_tactile_names),
+                    1,
+                    constrained_layout=True,
                 )
             else:
                 raise RuntimeError(
-                    f"[{self.__class__.__name__}] The plot_tactile option was specified but no tactile sensor was found."
+                    f"[{self.__class__.__name__}] The '--plot_tactile' option was specified "
+                    "but no tactile sensor with intensity output was found."
                 )
 
         # Setup input device
@@ -644,33 +637,12 @@ class TeleopBase(ABC):
         plt.pause(0.001)
 
     def draw_tactile(self, vmin=-50.0, vmax=50.0):
-        import mujoco
-
-        model = self.env.unwrapped.model
-        data = self.env.unwrapped.data
-        for tactile_name, ax in zip(self.tactile_name_list, self.ax_tactile):
-            # Get tactile data
-            tactile_id = mujoco.mj_name2id(
-                model, mujoco.mjtObj.mjOBJ_SENSOR, tactile_name
-            )
-            tactile_adr = model.sensor_adr[tactile_id]
-            tactile_dim = int(model.sensor_dim[tactile_id] / 7)
-            tactile_data = data.sensordata[tactile_adr : tactile_adr + tactile_dim]
-
-            # Get tactile shape
-            plugin_id = model.sensor_plugin[tactile_id]
-            if plugin_id < 0:
-                raise ValueError(
-                    f"[{self.__class__.__name__}] Tactile sensor {tactile_name} is not plugin-based."
-                )
-            plugin_attr = model.plugin_attr[model.plugin_attradr[plugin_id] :].tobytes()
-            tactile_shape = tuple(map(int, plugin_attr.split(b"\x00", 1)[0].split()))
-
-            # Draw
+        for tactile_name, ax in zip(self.info["intensity_tactile"], self.ax_tactile):
+            tactile_data = self.info["intensity_tactile"][tactile_name]
             ax.clear()
             ax.axis("off")
             ax.imshow(
-                np.clip(tactile_data.reshape(tactile_shape), vmin, vmax),
+                np.clip(tactile_data, vmin, vmax),
                 cmap="coolwarm",
                 interpolation="none",
                 vmin=vmin,
