@@ -92,14 +92,12 @@ class VisualizeData:
         print(f"{cls_str} load teleop data from file ...")
         self.data_manager.load_data(teleop_filename)
 
-        print(f"{cls_str} retrieve 'camera_names' metadata ...")
+        print(f"{cls_str} retrieve sensor metadata ...")
         camera_names = self.data_manager.get_meta_data("camera_names").tolist()
-
-        print(f"{cls_str} retrieve 'tactile_names' metadata ...")
-        tactile_names = self.data_manager.get_meta_data("tactile_names").tolist()
-
-        print(f"{cls_str} combine metadata lists ...")
-        self.sensor_names = camera_names + tactile_names
+        rgb_tactile_names = self.data_manager.get_meta_data(
+            "rgb_tactile_names"
+        ).tolist()
+        self.camera_names = camera_names + rgb_tactile_names
 
         if rgb_crop_size_list is None:
             self.rgb_crop_size_list = None
@@ -107,9 +105,9 @@ class VisualizeData:
             # Set rgb image size list
             def refine_size_list(size_list):
                 if len(size_list) == 2:
-                    return [tuple(size_list)] * len(self.sensor_names)
+                    return [tuple(size_list)] * len(self.camera_names)
                 else:
-                    assert len(size_list) == len(self.sensor_names) * 2
+                    assert len(size_list) == len(self.camera_names) * 2
                     return [
                         (size_list[i], size_list[i + 1])
                         for i in range(0, len(size_list), 2)
@@ -121,13 +119,13 @@ class VisualizeData:
         plt.rcParams["keymap.quit"] = ["q", "escape"]
         self.frames = []
         self.fig, self.ax = plt.subplots(
-            len(self.sensor_names) + 1, 4, figsize=(16.0, 12.0), constrained_layout=True
+            len(self.camera_names) + 1, 4, figsize=(16.0, 12.0), constrained_layout=True
         )
-        for ax_idx in range(1, len(self.sensor_names) + 1):
+        for ax_idx in range(1, len(self.camera_names) + 1):
             self.ax[ax_idx, 2].remove()
             self.ax[ax_idx, 3].remove()
             self.ax[ax_idx, 2] = self.fig.add_subplot(
-                len(self.sensor_names) + 1, 4, 4 * (ax_idx + 1) - 1, projection="3d"
+                len(self.camera_names) + 1, 4, 4 * (ax_idx + 1) - 1, projection="3d"
             )
         self.break_flag = False
 
@@ -171,10 +169,10 @@ class VisualizeData:
         self.ax[0, 2].set_xlim(*time_range)
         self.ax[0, 3].set_title("eef wrench", fontsize=12)
         self.ax[0, 3].set_xlim(*time_range)
-        for ax_idx, sensor_name in enumerate(self.sensor_names, start=1):
-            self.ax[ax_idx, 0].set_title(f"{sensor_name} rgb", fontsize=12)
-            self.ax[ax_idx, 1].set_title(f"{sensor_name} depth", fontsize=12)
-            self.ax[ax_idx, 2].set_title(f"{sensor_name} point cloud", fontsize=12)
+        for ax_idx, camera_name in enumerate(self.camera_names, start=1):
+            self.ax[ax_idx, 0].set_title(f"{camera_name} rgb", fontsize=12)
+            self.ax[ax_idx, 1].set_title(f"{camera_name} depth", fontsize=12)
+            self.ax[ax_idx, 2].set_title(f"{camera_name} point cloud", fontsize=12)
 
         joint_pos = np.concatenate(
             [
@@ -217,24 +215,24 @@ class VisualizeData:
             DataKey.MEASURED_EEF_WRENCH,
         ]
         self.data_list = {key: [] for key in key_list}
-        self.scatter_list = [None] * len(self.sensor_names)
+        self.scatter_list = [None] * len(self.camera_names)
 
-    def handle_rgb_image(self, sensor_idx, time_idx, rgb_key):
-        ax_idx = sensor_idx + 1
+    def handle_rgb_image(self, camera_idx, time_idx, rgb_key):
+        ax_idx = camera_idx + 1
         self.ax[ax_idx, 0].axis("off")
         rgb_image = self.data_manager.get_single_data(rgb_key, time_idx)
         if self.rgb_crop_size_list is None:
             rgb_image_to_show = rgb_image
         else:
             rgb_image_to_show = crop_and_resize(
-                rgb_image[np.newaxis], crop_size=self.rgb_crop_size_list[sensor_idx]
+                rgb_image[np.newaxis], crop_size=self.rgb_crop_size_list[camera_idx]
             )[0]
         rgb_image_skip = 4
         self.ax[ax_idx, 0].imshow(rgb_image_to_show[::rgb_image_skip, ::rgb_image_skip])
         return rgb_image
 
-    def handle_depth_image(self, sensor_idx, time_idx, depth_key):
-        ax_idx = sensor_idx + 1
+    def handle_depth_image(self, camera_idx, time_idx, depth_key):
+        ax_idx = camera_idx + 1
         if depth_key not in self.data_manager.all_data_seq.keys():
             if self.ax[ax_idx, 1] in self.fig.axes:
                 self.ax[ax_idx, 1].remove()
@@ -247,20 +245,20 @@ class VisualizeData:
 
     def handle_pointcloud(
         self,
-        sensor_idx,
+        camera_idx,
         time_idx,
-        sensor_name,
+        camera_name,
         rgb_image,
         depth_image,
     ):
-        ax_idx = sensor_idx + 1
+        ax_idx = camera_idx + 1
         if self.display_stored_pointcloud:
-            pointcloud_key = DataKey.get_pointcloud_key(sensor_name)
+            pointcloud_key = DataKey.get_pointcloud_key(camera_name)
             xyzrgb_array = self.data_manager.get_data_seq(pointcloud_key)
             xyz_array = xyzrgb_array[time_idx, :, :3]
             rgb_array = xyzrgb_array[time_idx, :, 3:]
         else:
-            depth_key = DataKey.get_depth_image_key(sensor_name)
+            depth_key = DataKey.get_depth_image_key(camera_name)
             if f"{depth_key}_fovy" not in self.data_manager.meta_data.keys():
                 if self.ax[ax_idx, 2] in self.fig.axes:
                     self.ax[ax_idx, 2].remove()
@@ -383,18 +381,18 @@ class VisualizeData:
                     time_list, np.array(self.data_list[DataKey.MEASURED_EEF_WRENCH])
                 )
 
-            for sensor_idx, sensor_name in enumerate(self.sensor_names):
-                rgb_key = DataKey.get_rgb_image_key(sensor_name)
-                depth_key = DataKey.get_depth_image_key(sensor_name)
+            for camera_idx, camera_name in enumerate(self.camera_names):
+                rgb_key = DataKey.get_rgb_image_key(camera_name)
+                depth_key = DataKey.get_depth_image_key(camera_name)
 
-                rgb_image = self.handle_rgb_image(sensor_idx, time_idx, rgb_key)
+                rgb_image = self.handle_rgb_image(camera_idx, time_idx, rgb_key)
 
-                depth_image = self.handle_depth_image(sensor_idx, time_idx, depth_key)
+                depth_image = self.handle_depth_image(camera_idx, time_idx, depth_key)
 
                 self.handle_pointcloud(
-                    sensor_idx,
+                    camera_idx,
                     time_idx,
-                    sensor_name,
+                    camera_name,
                     rgb_image,
                     depth_image,
                 )

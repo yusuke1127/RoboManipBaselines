@@ -538,10 +538,10 @@ class TeleopBase(ABC):
                 DataKey.get_depth_image_key(camera_name),
                 self.info["depth_images"][camera_name],
             )
-        for tactile_name in self.env.unwrapped.tactile_names:
+        for rgb_tactile_name in self.env.unwrapped.rgb_tactile_names:
             self.data_manager.append_single_data(
-                DataKey.get_rgb_image_key(tactile_name),
-                self.info["rgb_images"][tactile_name],
+                DataKey.get_rgb_image_key(rgb_tactile_name),
+                self.info["rgb_images"][rgb_tactile_name],
             )
 
     def draw_image(self):
@@ -569,7 +569,7 @@ class TeleopBase(ABC):
         rgb_images = []
         depth_images = []
         for camera_name in (
-            self.env.unwrapped.camera_names + self.env.unwrapped.tactile_names
+            self.env.unwrapped.camera_names + self.env.unwrapped.rgb_tactile_names
         ):
             rgb_image = self.info["rgb_images"][camera_name]
             image_ratio = rgb_image.shape[1] / rgb_image.shape[0]
@@ -579,7 +579,7 @@ class TeleopBase(ABC):
                 int(resized_image_width / image_ratio),
             )
             rgb_images.append(cv2.resize(rgb_image, resized_image_size))
-            if camera_name in self.env.unwrapped.tactile_names:
+            if camera_name in self.env.unwrapped.rgb_tactile_names:
                 depth_images.append(
                     np.full(resized_image_size[::-1] + (3,), 255, dtype=np.uint8)
                 )
