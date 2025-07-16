@@ -537,6 +537,14 @@ class TeleopBase(ABC):
                 self.info["rgb_images"][rgb_tactile_name],
             )
 
+        # Add tactile
+        if "intensity_tactile" in self.info:
+            for intensity_tactile_name in self.info["intensity_tactile"]:
+                self.data_manager.append_single_data(
+                    intensity_tactile_name,
+                    self.info["intensity_tactile"][intensity_tactile_name].copy(),
+                )
+
     def draw_image(self):
         def get_text_func(phase):
             text = remove_suffix(phase.name, "Phase")
