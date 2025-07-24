@@ -49,8 +49,9 @@ for joints_hdf5data in joints_hdf5rawlist:
             if emb_idxlist[i] > emb_idxlist[i + 1]:
                 emb_idxlist[i + 1] = emb_idxlist[i]
         
-        embedding = np.empty((len(emb_idxlist), embeddings_list["right_robot"].shape[1]))
-        for i in range(len(embedding)):
-            embedding[i] = embeddings_list["right_robot"][emb_idxlist[i]]
+        data_type = h5.string_dtype(encoding='utf-8')
+        embedding_sentence = np.empty((len(emb_idxlist)), dtype=data_type)
+        for i in range(len(embedding_sentence)):
+            embedding_sentence[i] = ACTION_SENTENCES["right_robot"][emb_idxlist[i]]
         
-        f.create_dataset("tasks", data=embedding)
+        f.create_dataset("tasks", data=embedding_sentence, dtype=data_type)
