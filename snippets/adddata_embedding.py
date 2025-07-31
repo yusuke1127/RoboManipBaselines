@@ -43,7 +43,7 @@ for joints_hdf5data in joints_hdf5rawlist:
                 emb_idxlist[i] = 1
             if f["measured_joint_pos_rel"][i, 0] < -0.004:
                 emb_idxlist[i] = 2
-            if f["measured_gripper_joint_pos"][i] < 150:
+            if f["measured_gripper_joint_pos"][i] < 170:
                 emb_idxlist[i] = 3
         for i in range(len(emb_idxlist) - 1):
             if emb_idxlist[i] > emb_idxlist[i + 1]:

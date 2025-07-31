@@ -2,6 +2,7 @@ import torch
 from eipl.utils import LossScheduler
 from torchvision.transforms import v2
 from tqdm import tqdm
+import numpy as np
 
 from robo_manip_baselines.common import DataKey, TrainBase
 
@@ -79,6 +80,12 @@ class TrainActionembSarnn(TrainBase):
             default=0.1,
             help="Scale of attention loss",
         )
+        parser.add_argument(
+            "--actionemb_loss_scale",
+            type=float,
+            default=0.01,
+            help="Scale of actionemb loss",
+        )
 
         parser.add_argument(
             "--image_crop_size_list",
@@ -121,6 +128,8 @@ class TrainActionembSarnn(TrainBase):
     def setup_policy(self):
         # Set policy args
         self.model_meta_info["policy"]["args"] = {
+            "act_inter_sizes": self.args.act_inter_sizes,
+            "act_emb_sizes": self.args.act_emb_sizes,
             "image_size_list": self.args.image_size_list,
             "num_attentions": self.args.num_attentions,
             "lstm_hidden_dim": self.args.lstm_hidden_dim,
@@ -233,12 +242,12 @@ class TrainActionembSarnn(TrainBase):
         self,
         state_seq,  # (batch_size, episode_len, state_dim)
         image_seq_list,  # (num_images, batch_size, episode_len, 3, width, height)
-        # actionemb_seq, 
+        actionemb_seq, 
         mask_seq,  # (batch_size, episode_len)
     ):
         state_seq = state_seq.cuda()
         image_seq_list = [image_seq.cuda() for image_seq in image_seq_list]
-        # actionemb_seq = actionemb_seq.cuda()
+        actionemb_seq = actionemb_seq.cuda()
         mask_seq = mask_seq.cuda()
 
         # Augment data
@@ -255,23 +264,27 @@ class TrainActionembSarnn(TrainBase):
 
         # Forward policy along the time sequence
         num_images = len(image_seq_list)
-        lstm_state = None
+        classify_lstm_state = None
+        predict_lstm_state = None
         predicted_state_seq = []
         predicted_image_seq_list = [[] for _ in range(num_images)]
         attention_seq_list = [[] for _ in range(num_images)]
         predicted_attention_seq_list = [[] for _ in range(num_images)]
+        predicted_actionemb_seq = []
         for time_idx in range(len(state_seq[0]) - 1):
             (
                 predicted_state,
                 predicted_image_list,
                 attention_list,
                 predicted_attention_list,
-                # actionemb ...
-                lstm_state,
+                predicted_actionemb, 
+                classify_lstm_output,
+                predict_lstm_output,
             ) = self.policy(
                 aug_state_seq[:, time_idx],
                 [aug_image_seq[:, time_idx] for aug_image_seq in aug_image_seq_list],
-                lstm_state,
+                classify_lstm_state,
+                predict_lstm_state,
             )
             predicted_state_seq.append(predicted_state)
             for image_idx in range(num_images):
@@ -282,6 +295,7 @@ class TrainActionembSarnn(TrainBase):
                 predicted_attention_seq_list[image_idx].append(
                     predicted_attention_list[image_idx]
                 )
+            predicted_actionemb_seq.append(predicted_actionemb)
 
         # Permute the dimensions so that the batch size is at the top
         predicted_state_seq = torch.permute(
@@ -300,21 +314,24 @@ class TrainActionembSarnn(TrainBase):
                 torch.stack(predicted_attention_seq_list[image_idx]),
                 (1, 0, 2, 3),
             )  # (batch_size, episode_len, num_attentions, 2)
+        predicted_actionemb_seq = torch.permute(
+            torch.stack(predicted_actionemb_seq), (1, 0, 2),
+        )
 
         # Calculate loss
-        criterion = torch.nn.MSELoss(reduction="none")
+        criterion_mse = torch.nn.MSELoss(reduction="none")
+        criterion_csl = torch.nn.CrossEntropyLoss(reduction="None")
 
-        state_loss = torch.mean(criterion(predicted_state_seq, state_seq[:, 1:]), dim=2)
+        state_loss = torch.mean(criterion_mse(predicted_state_seq, state_seq[:, 1:]), dim=2)
         state_loss = torch.sum(state_loss * mask_seq[:, 1:]) / torch.sum(
             mask_seq[:, 1:]
         )
-        # actionemb ...
 
         image_loss_list = []
         attention_loss_list = []
         for image_idx in range(num_images):
             image_loss = torch.mean(
-                criterion(
+                criterion_mse(
                     predicted_image_seq_list[image_idx],
                     image_seq_list[image_idx][:, 1:],
                 ),
@@ -326,7 +343,7 @@ class TrainActionembSarnn(TrainBase):
             image_loss_list.append(image_loss)
 
             attention_loss = torch.mean(
-                criterion(
+                criterion_mse(
                     predicted_attention_seq_list[image_idx][:, :-1],
                     attention_seq_list[image_idx][:, 1:],
                 ),
@@ -336,13 +353,31 @@ class TrainActionembSarnn(TrainBase):
                 mask_seq[:, 1:-1]
             )
             attention_loss_list.append(attention_loss)
+        
+        actionemb_csl_init_temp = 0.07
+        actionemb_csl_log_temp = torch.nn.Parameter(
+            torch.ones([]) * np.log(1.0 / actionemb_csl_init_temp)
+        )
+        actionemb_seq = torch.tensor(actionemb_seq)
+        predicted_actionemb_seq = torch.tensor(predicted_actionemb_seq)
+        logits = actionemb_csl_log_temp.exp() * actionemb_seq[:, 1:] @ predicted_actionemb_seq.swapaxes(-2, -1)
+        logit_size = logits.size()
+        arange = torch.arange(logit_size[-1]).long().cuda()
+        for _ in range(actionemb_seq[:, 1:].ndim):
+            arange = arange[None]
+        arange = torch.tile(arange, logit_size[:-2] + (1,))
+        
+        actionemb_loss = torch.mean(criterion_csl(predicted_actionemb_seq, actionemb_seq[:, 1:]), dim=2)
+        actionemb_loss = torch.sum(actionemb_loss * mask_seq[:, 1:]) / torch.sum(
+            mask_seq[:, 1:]
+        )
 
         loss = (
             state_loss
             + self.args.image_loss_scale * torch.sum(torch.stack(image_loss_list))
             + self.attention_loss_scheduler(self.args.attention_loss_scale)
             * torch.sum(torch.stack(attention_loss_list))
-            # + actionemb_loss  
+            + actionemb_loss * self.args.actionemb_loss_scale
         )
 
         return loss

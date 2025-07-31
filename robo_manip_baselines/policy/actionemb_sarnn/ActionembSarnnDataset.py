@@ -11,6 +11,8 @@ from robo_manip_baselines.common import (
     normalize_data,
 )
 
+from sentence_transformers import SentenceTransformer
+
 
 class ActionembSarnnDataset(DatasetBase):
     """Dataset to train SARNN policy."""
@@ -40,11 +42,11 @@ class ActionembSarnnDataset(DatasetBase):
                 for camera_name in self.model_meta_info["image"]["camera_names"]
             ]
 
-            # Load actionemb
-            # key = self.model_meta_info["tasks"]["key"]
-            # actionemb = np.array(
-            #     get_skipped_data_seq(rmb_data[key][:], key, skip)
-            # )
+            # Load actionemb  (change sentence -> embedding?)
+            key = self.model_meta_info["tasks"]["key"]
+            actionemb_sentences = np.array(
+                get_skipped_data_seq(rmb_data[key][:], key, skip)
+            )
 
         # Crop and resize images
         image_crop_size_list = self.model_meta_info["data"]["image_crop_size_list"]
@@ -59,8 +61,12 @@ class ActionembSarnnDataset(DatasetBase):
         # Add padding
         state = self.pad_last_element(state)
         image_list = [self.pad_last_element(image) for image in image_list]
+        actionemb_sentences = self.pad_last_element(actionemb_sentences)
 
         # actionemb
+        sentence_encode_model = SentenceTransformer('sentence-transformers/use-cmlm-multilingual')
+        sentence_encode_model.eval()
+        actionemb_list = [sentence_encode_model.encode(sentence) for sentence in actionemb_sentences]
 
         # Setup mask
         mask = np.concatenate(
@@ -75,7 +81,7 @@ class ActionembSarnnDataset(DatasetBase):
         image_tensor_list = [
             torch.tensor(image, dtype=torch.uint8) for image in image_list
         ]
-        # actionemb_tensor = ...
+        actionemb_tensor = torch.tensor(actionemb_list, dtype=torch.float32)
         mask_tensor = torch.tensor(mask, dtype=torch.float32)
 
         # Since these data are used for both input and output when the policy reconstructs the data,
@@ -88,7 +94,7 @@ class ActionembSarnnDataset(DatasetBase):
         return (
             state_tensor,  # (max_episode_len, state_dim)
             image_tensor_list,  # (num_images, max_episode_len, width, height, 3)
-            # actionemb_tensor
+            actionemb_tensor, # (max_episode_len, actionemb_dim)
             mask_tensor,  # (max_episode_len)
         )
 

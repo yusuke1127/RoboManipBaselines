@@ -1,6 +1,9 @@
 from collections.abc import Iterable
+from collections import OrderedDict
+from typing import Dict, Optional, Tuple, Union
 
 import torch
+from torch import Tensor
 import torch.nn as nn
 from eipl.layer import InverseSpatialSoftmax, SpatialSoftmax
 
@@ -16,6 +19,8 @@ class ActionembSarnnPolicy(nn.Module):
         self,
         state_dim,
         num_images,
+        act_inter_sizes: Union[int, Dict[str, int]],
+        act_emb_sizes: Union[int, Dict[str, int]],
         image_size_list,
         num_attentions,
         lstm_hidden_dim,
@@ -74,13 +79,39 @@ class ActionembSarnnPolicy(nn.Module):
             for _ in range(num_images)
         )
 
-        self.lstm = nn.LSTMCell(
+        # Action Classifier
+        self.classify_lstm = nn.LSTMCell(
             state_dim + num_images * self.num_attentions * 2, lstm_hidden_dim
         )
 
+        if isinstance(act_inter_sizes, int):
+            act_inter_sizes = {"action_0": act_inter_sizes}
+        if isinstance(act_emb_sizes, int):
+            act_emb_sizes = {"action_0": act_emb_sizes}
+        
+        self.action_inter = nn.ModuleDict()
+        self.action_gate = nn.ModuleDict()
+        self.action_embedding = nn.ModuleDict()
+
+        total_act_size = 0
+        for key in act_inter_sizes.keys():
+            inter_size = act_inter_sizes[key]
+            emb_size = act_emb_sizes[key]
+            self.action_inter[key] = nn.Linear(lstm_hidden_dim, inter_size)
+            self.action_gate[key] = nn.Linear(lstm_hidden_dim, 1)
+            self.action_embedding[key] = nn.Linear(
+                inter_size, emb_size, bias=False
+            )
+            total_act_size += inter_size
+
+        self.predict_lstm = nn.LSTMCell(
+            state_dim + num_images * self.num_attentions * 2 + total_act_size, lstm_hidden_dim
+        )
+
+        # Joint Decoder
         self.state_decoder = nn.Sequential(
             nn.Linear(lstm_hidden_dim, state_dim),
-            # activation,
+            activation,
         )
 
         self.attention_decoder_list = nn.ModuleList(
@@ -113,8 +144,6 @@ class ActionembSarnnPolicy(nn.Module):
             for _ in range(num_images)
         )
 
-        # actionemb_encoder_list
-
         # Initialize weights
         self.apply(self._initialize_weights)
 
@@ -132,7 +161,7 @@ class ActionembSarnnPolicy(nn.Module):
             nn.init.xavier_uniform_(m.weight)
             nn.init.zeros_(m.bias)
 
-    def forward(self, state, image_list, lstm_state=None):
+    def forward(self, state, image_list, classify_state=None, predict_state=None):
         assert len(image_list) == len(self.image_encoder_list)
 
         # Encode images
@@ -147,17 +176,38 @@ class ActionembSarnnPolicy(nn.Module):
             attention_list.append(attention)
 
         # Forward LSTM <- concat with actionemb lstm
-        lstm_input = torch.cat([state, *attention_list], dim=-1)
-        # actionemb_output = ...
-        lstm_output = self.lstm(lstm_input, lstm_state)
+        classify_lstm_input = torch.cat([state, *attention_list], dim=-1)
+        classify_lstm_output = self.classify_lstm(classify_lstm_input, classify_state)
+        
+        # action classification
+        pred_rec_in: OrderedDict[str, Tensor] = OrderedDict(
+            attention=attention_list,
+            vector=state,
+        )
+        predicted_actionemb: OrderedDict[str, Tensor] = OrderedDict()
+        for key in self.action_inter.keys():
+            fc = self.action_inter[key]
+            gate = self.action_gate[key]
+            proj = self.action_embedding[key]
+
+            inter = fc(classify_lstm_output[0])
+            g = gate(classify_lstm_output[0])
+            pred_rec_in[key] = inter * g
+
+            embed = proj(inter)
+            embed = embed / torch.norm(embed, dim=-1, keepdim=True)
+            predicted_actionemb[key] = embed
+
+        predict_lstm_input = torch.cat([classify_lstm_output, tuple(pred_rec_in.values())], dim=-1)
+        predicted_lstm_output = self.predict_lstm(predict_lstm_input, predict_state)
 
         # Decode state
-        predicted_state = self.state_decoder(lstm_output[0])
+        predicted_state = self.state_decoder(predicted_lstm_output[0])
 
         # Decode attentions
         predicted_attention_list = []
         for attention_decoder in self.attention_decoder_list:
-            predicted_attention = attention_decoder(lstm_output[0]).reshape(
+            predicted_attention = attention_decoder(predicted_lstm_output[0]).reshape(
                 -1, self.num_attentions, 2
             )
             predicted_attention_list.append(predicted_attention)
@@ -185,6 +235,7 @@ class ActionembSarnnPolicy(nn.Module):
             predicted_image_list,  # (num_images, batch_size, 3, width, height)
             attention_list,  # (num_images, batch_size, num_attentions, 2)
             predicted_attention_list,  # (num_images, batch_size, num_attentions, 2)
-            # actionemb_output, 
-            lstm_output,
+            predicted_actionemb, 
+            classify_lstm_output,
+            predicted_lstm_output,
         )
