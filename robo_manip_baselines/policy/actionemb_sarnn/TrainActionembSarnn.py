@@ -88,6 +88,18 @@ class TrainActionembSarnn(TrainBase):
         )
 
         parser.add_argument(
+            "--act_inter_sizes",
+            type=int,
+            default=32,
+            help="Dimension of classify LSTM output",
+        )
+        parser.add_argument(
+            "--act_emb_sizes",
+            type=int,
+            default=768, # for Universal Sentence Encoder
+            help="Dimension of predicted embedding"
+        )
+        parser.add_argument(
             "--image_crop_size_list",
             type=int,
             nargs="+",
@@ -122,7 +134,7 @@ class TrainActionembSarnn(TrainBase):
         )
         self.model_meta_info["data"]["image_size_list"] = self.args.image_size_list
         self.model_meta_info["tasks"] = {
-            "key": "task"
+            "key": "tasks"
         }
 
     def setup_policy(self):
@@ -295,7 +307,7 @@ class TrainActionembSarnn(TrainBase):
                 predicted_attention_seq_list[image_idx].append(
                     predicted_attention_list[image_idx]
                 )
-            predicted_actionemb_seq.append(predicted_actionemb)
+            predicted_actionemb_seq.append(predicted_actionemb['action_0'][:])
 
         # Permute the dimensions so that the batch size is at the top
         predicted_state_seq = torch.permute(
@@ -320,7 +332,7 @@ class TrainActionembSarnn(TrainBase):
 
         # Calculate loss
         criterion_mse = torch.nn.MSELoss(reduction="none")
-        criterion_csl = torch.nn.CrossEntropyLoss(reduction="None")
+        criterion_csl = torch.nn.CrossEntropyLoss(reduction="none")
 
         state_loss = torch.mean(criterion_mse(predicted_state_seq, state_seq[:, 1:]), dim=2)
         state_loss = torch.sum(state_loss * mask_seq[:, 1:]) / torch.sum(
@@ -358,16 +370,12 @@ class TrainActionembSarnn(TrainBase):
         actionemb_csl_log_temp = torch.nn.Parameter(
             torch.ones([]) * np.log(1.0 / actionemb_csl_init_temp)
         )
-        actionemb_seq = torch.tensor(actionemb_seq)
-        predicted_actionemb_seq = torch.tensor(predicted_actionemb_seq)
+        
         logits = actionemb_csl_log_temp.exp() * actionemb_seq[:, 1:] @ predicted_actionemb_seq.swapaxes(-2, -1)
         logit_size = logits.size()
         arange = torch.arange(logit_size[-1]).long().cuda()
-        for _ in range(actionemb_seq[:, 1:].ndim):
-            arange = arange[None]
         arange = torch.tile(arange, logit_size[:-2] + (1,))
-        
-        actionemb_loss = torch.mean(criterion_csl(predicted_actionemb_seq, actionemb_seq[:, 1:]), dim=2)
+        actionemb_loss = torch.mean(criterion_csl(logits, arange))
         actionemb_loss = torch.sum(actionemb_loss * mask_seq[:, 1:]) / torch.sum(
             mask_seq[:, 1:]
         )

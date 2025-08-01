@@ -159,7 +159,8 @@ class ActionembSarnnPolicy(nn.Module):
             or isinstance(m, nn.Linear)
         ):
             nn.init.xavier_uniform_(m.weight)
-            nn.init.zeros_(m.bias)
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
 
     def forward(self, state, image_list, classify_state=None, predict_state=None):
         assert len(image_list) == len(self.image_encoder_list)
@@ -180,11 +181,7 @@ class ActionembSarnnPolicy(nn.Module):
         classify_lstm_output = self.classify_lstm(classify_lstm_input, classify_state)
         
         # action classification
-        pred_rec_in: OrderedDict[str, Tensor] = OrderedDict(
-            attention=attention_list,
-            vector=state,
-        )
-        predicted_actionemb: OrderedDict[str, Tensor] = OrderedDict()
+        predicted_actionemb = {}
         for key in self.action_inter.keys():
             fc = self.action_inter[key]
             gate = self.action_gate[key]
@@ -192,13 +189,13 @@ class ActionembSarnnPolicy(nn.Module):
 
             inter = fc(classify_lstm_output[0])
             g = gate(classify_lstm_output[0])
-            pred_rec_in[key] = inter * g
+            pred_classify_output = inter * g
 
-            embed = proj(inter)
-            embed = embed / torch.norm(embed, dim=-1, keepdim=True)
-            predicted_actionemb[key] = embed
-
-        predict_lstm_input = torch.cat([classify_lstm_output, tuple(pred_rec_in.values())], dim=-1)
+            embedding = proj(inter)
+            embedding = embedding / torch.norm(embedding, dim=-1, keepdim=True)
+            predicted_actionemb[key] = embedding
+        
+        predict_lstm_input = torch.cat([classify_lstm_input, pred_classify_output], dim=-1)
         predicted_lstm_output = self.predict_lstm(predict_lstm_input, predict_state)
 
         # Decode state

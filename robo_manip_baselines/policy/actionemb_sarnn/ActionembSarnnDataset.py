@@ -13,6 +13,8 @@ from robo_manip_baselines.common import (
 
 from sentence_transformers import SentenceTransformer
 
+sentence_encode_model = SentenceTransformer('sentence-transformers/use-cmlm-multilingual')
+sentence_encode_model.eval()
 
 class ActionembSarnnDataset(DatasetBase):
     """Dataset to train SARNN policy."""
@@ -45,7 +47,7 @@ class ActionembSarnnDataset(DatasetBase):
             # Load actionemb  (change sentence -> embedding?)
             key = self.model_meta_info["tasks"]["key"]
             actionemb_sentences = np.array(
-                get_skipped_data_seq(rmb_data[key][:], key, skip)
+                get_skipped_data_seq(rmb_data[key][:], key, skip), dtype=str
             )
 
         # Crop and resize images
@@ -64,8 +66,6 @@ class ActionembSarnnDataset(DatasetBase):
         actionemb_sentences = self.pad_last_element(actionemb_sentences)
 
         # actionemb
-        sentence_encode_model = SentenceTransformer('sentence-transformers/use-cmlm-multilingual')
-        sentence_encode_model.eval()
         actionemb_list = [sentence_encode_model.encode(sentence) for sentence in actionemb_sentences]
 
         # Setup mask

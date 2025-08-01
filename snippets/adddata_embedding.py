@@ -1,7 +1,6 @@
 from pathlib import Path
 import numpy as np
 import h5py as h5
-from sentence_transformers import SentenceTransformer
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -9,9 +8,6 @@ parser.add_argument("--data_dir", type=str, required=True)
 args = parser.parse_args()
 
 data_dir = Path(args.data_dir)
-
-model = SentenceTransformer('sentence-transformers/use-cmlm-multilingual')
-model.eval()
 
 R_ROBOT_TEMPLATE = "Right robot {}."
 
@@ -27,11 +23,6 @@ ACTION_SENTENCES = {
             "put a cable down to the table",
         )
     ]
-}
-
-embeddings_list = {
-    agent: model.encode(sentences)
-    for agent, sentences in ACTION_SENTENCES.items()
 }
 
 joints_hdf5rawlist = list(sorted(data_dir.glob("*.rmb/main.rmb.hdf5")))
@@ -54,4 +45,5 @@ for joints_hdf5data in joints_hdf5rawlist:
         for i in range(len(embedding_sentence)):
             embedding_sentence[i] = ACTION_SENTENCES["right_robot"][emb_idxlist[i]]
         
-        f.create_dataset("tasks", data=embedding_sentence, dtype=data_type)
+        sentence_group = f.create_group("tasks")
+        sentence_group.attrs["right_robot"] = embedding_sentence

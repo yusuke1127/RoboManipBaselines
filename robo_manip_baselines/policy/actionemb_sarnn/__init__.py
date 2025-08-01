@@ -1,4 +1,4 @@
 from .ActionembSarnnPolicy import ActionembSarnnPolicy
 from .ActionembSarnnDataset import ActionembSarnnDataset
 from .TrainActionembSarnn import TrainActionembSarnn
-from .RolloutSarnn import RolloutSarnn
+from .RolloutActionembSarnn import RolloutActionembSarnn

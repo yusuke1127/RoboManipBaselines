@@ -11,10 +11,10 @@ from robo_manip_baselines.common import (
     denormalize_data,
 )
 
-from .SarnnPolicy import SarnnPolicy
+from .ActionembSarnnPolicy import ActionembSarnnPolicy
 
 
-class RolloutSarnn(RolloutBase):
+class RolloutActionembSarnn(RolloutBase):
     def setup_policy(self):
         # Print policy information
         self.print_policy_info()
@@ -27,7 +27,7 @@ class RolloutSarnn(RolloutBase):
         )
 
         # Construct policy
-        self.policy = SarnnPolicy(
+        self.policy = ActionembSarnnPolicy(
             self.state_dim,
             len(self.camera_names),
             **self.model_meta_info["policy"]["args"],
