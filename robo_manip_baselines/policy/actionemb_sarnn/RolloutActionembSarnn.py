@@ -65,7 +65,7 @@ class RolloutActionembSarnn(RolloutBase):
         self.attention_list = None
         self.predicted_attention_list = None
         self.predicted_actionemb = None
-        self.classyfy_lstm_output = None
+        self.classify_lstm_output = None
         self.predicted_lstm_output = None
 
     def infer_policy(self):
@@ -76,7 +76,7 @@ class RolloutActionembSarnn(RolloutBase):
             predicted_image_list,
             attention_list,
             predicted_attention_list,
-            predicted_actionemb,
+            predicted_actionemb, 
             classify_lstm_output,
             predicted_lstm_output,
         ) = self.policy(state, image_list, self.classify_state, self.predict_state)
