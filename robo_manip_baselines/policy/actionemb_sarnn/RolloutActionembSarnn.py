@@ -55,6 +55,8 @@ class RolloutActionembSarnn(RolloutBase):
         super().reset_variables()
 
         self.lstm_state = None
+        self.classify_state = None
+        self.predict_state = None
 
         self.policy_action_list = np.empty((0, self.state_dim))
         self.state_list = np.empty((0, self.state_dim))
@@ -62,6 +64,9 @@ class RolloutActionembSarnn(RolloutBase):
         self.predicted_image_list = None
         self.attention_list = None
         self.predicted_attention_list = None
+        self.predicted_actionemb = None
+        self.classyfy_lstm_output = None
+        self.predicted_lstm_output = None
 
     def infer_policy(self):
         state = self.get_state()
@@ -71,8 +76,10 @@ class RolloutActionembSarnn(RolloutBase):
             predicted_image_list,
             attention_list,
             predicted_attention_list,
-            self.lstm_state,
-        ) = self.policy(state, image_list, self.lstm_state)
+            predicted_actionemb,
+            classify_lstm_output,
+            predicted_lstm_output,
+        ) = self.policy(state, image_list, self.classify_state, self.predict_state)
         predicted_state = predicted_state[0].detach().numpy().astype(np.float64)
         self.policy_action = denormalize_data(
             predicted_state, self.model_meta_info["state"]
