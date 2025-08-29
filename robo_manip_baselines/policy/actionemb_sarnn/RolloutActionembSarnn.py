@@ -13,6 +13,19 @@ from robo_manip_baselines.common import (
 
 from .ActionembSarnnPolicy import ActionembSarnnPolicy
 
+from sentence_transformers import SentenceTransformer
+
+sentence_encode_model = SentenceTransformer('sentence-transformers/use-cmlm-multilingual')
+sentence_encode_model.eval()
+
+# temporary setting - get this list from traindata ver. soon
+ACTIONS_RIGHT_ROBOT = [
+    "Right robot lifts a cable.",
+    "Right robot carries a cable to the first corner.",
+    "Right robot carries a cable to the final position.",
+    "Right robot put a cable down to the table.",
+]
+
 
 class RolloutActionembSarnn(RolloutBase):
     def setup_policy(self):
@@ -39,7 +52,7 @@ class RolloutActionembSarnn(RolloutBase):
     def setup_plot(self):
         fig_ax = plt.subplots(
             2,
-            len(self.camera_names) + 1,
+            len(self.camera_names) + 2,
             figsize=(13.5, 6.0),
             dpi=60,
             squeeze=False,
@@ -54,7 +67,6 @@ class RolloutActionembSarnn(RolloutBase):
     def reset_variables(self):
         super().reset_variables()
 
-        self.lstm_state = None
         self.classify_state = None
         self.predict_state = None
 
@@ -64,13 +76,14 @@ class RolloutActionembSarnn(RolloutBase):
         self.predicted_image_list = None
         self.attention_list = None
         self.predicted_attention_list = None
-        self.predicted_actionemb = None
         self.classify_lstm_output = None
         self.predicted_lstm_output = None
+        self.embedding_sim_list = np.empty((len(ACTIONS_RIGHT_ROBOT), 0))
 
     def infer_policy(self):
         state = self.get_state()
         image_list = self.get_images()
+        actionemb_list = np.array([sentence_encode_model.encode(sentence) for sentence in ACTIONS_RIGHT_ROBOT])
         (
             predicted_state,
             predicted_image_list,
@@ -87,6 +100,9 @@ class RolloutActionembSarnn(RolloutBase):
         self.policy_action_list = np.concatenate(
             [self.policy_action_list, self.policy_action[np.newaxis]]
         )
+        self.embedding_sim = np.array([sentence_encode_model.similarity(actionemb_list[i], predicted_actionemb['action_0'].detach().numpy()) for i in range(len(actionemb_list))])
+        self.embedding_sim = np.squeeze(self.embedding_sim).reshape(len(actionemb_list), 1)
+        self.embedding_sim_list = np.hstack([self.embedding_sim_list, self.embedding_sim])
 
         # Store for plot
         state = state[0].detach().numpy().astype(np.float64)
@@ -170,25 +186,25 @@ class RolloutActionembSarnn(RolloutBase):
                 image_size_list,
             )
         ):
-            self.ax[0, camera_idx + 1].imshow(image)
-            self.ax[0, camera_idx + 1].set_title(f"obs {camera_name}", fontsize=20)
-            self.ax[1, camera_idx + 1].imshow(predicted_image)
-            self.ax[1, camera_idx + 1].set_title(f"pred {camera_name}", fontsize=20)
+            self.ax[0, camera_idx + 2].imshow(image)
+            self.ax[0, camera_idx + 2].set_title(f"obs {camera_name}", fontsize=20)
+            self.ax[1, camera_idx + 2].imshow(predicted_image)
+            self.ax[1, camera_idx + 2].set_title(f"pred {camera_name}", fontsize=20)
 
             for attention_idx in range(
                 self.model_meta_info["policy"]["args"]["num_attentions"]
             ):
-                self.ax[0, camera_idx + 1].plot(
+                self.ax[0, camera_idx + 2].plot(
                     *(attention[attention_idx] * image_size), "co", markersize=12
                 )
-                self.ax[0, camera_idx + 1].plot(
+                self.ax[0, camera_idx + 2].plot(
                     *(predicted_attention[attention_idx] * image_size),
                     "rx",
                     markersize=12,
                 )
 
     def plot_action(self):
-        history_size = 100
+        history_size = 50
         for ax_idx, data_list in zip(
             [0, 1], [self.state_list, self.policy_action_list]
         ):
@@ -206,3 +222,14 @@ class RolloutActionembSarnn(RolloutBase):
             ax.tick_params(axis="x", labelsize=16)
             ax.tick_params(axis="y", labelsize=16)
             ax.axis("on")
+        
+        ax2 = self.ax[0, 1]
+        for i in range(len(self.embedding_sim_list)):
+            ax2.plot(np.arange(len(self.embedding_sim_list[i])), self.embedding_sim_list[i])
+        ax2.set_xlim(0, history_size - 1)
+        ax2.set_ylim(-1, 1)
+        ax2.set_title("similarity", fontsize=20)
+        ax2.set_xlabel("step", fontsize=16)
+        ax2.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        ax2.yaxis.set_major_formatter(ticker.FormatStrFormatter("%.2f"))
+        ax2.axis("on")
