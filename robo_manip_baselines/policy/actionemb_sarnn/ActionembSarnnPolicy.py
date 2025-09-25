@@ -98,7 +98,10 @@ class ActionembSarnnPolicy(nn.Module):
             inter_size = act_inter_sizes[key]
             emb_size = act_emb_sizes[key]
             self.action_inter[key] = nn.Linear(lstm_hidden_dim, inter_size)
-            self.action_gate[key] = nn.Linear(lstm_hidden_dim, 1)
+            self.action_gate[key] = nn.Sequential(
+                nn.Linear(lstm_hidden_dim, 1), 
+                nn.Sigmoid(),
+            )
             self.action_embedding[key] = nn.Linear(
                 inter_size, emb_size, bias=False
             )
