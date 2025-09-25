@@ -45,5 +45,7 @@ for joints_hdf5data in joints_hdf5rawlist:
         for i in range(len(embedding_sentence)):
             embedding_sentence[i] = ACTION_SENTENCES["right_robot"][emb_idxlist[i]]
         
-        sentence_group = f.create_group("tasks")
-        sentence_group.attrs["right_robot"] = embedding_sentence
+        sentence_group = f.create_group("tasks_ex2")
+        sentence_group.create_dataset("right_robot", data=embedding_sentence)
+        sentence_group.create_dataset("human", data=embedding_sentence)
+
